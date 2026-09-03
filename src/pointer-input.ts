@@ -1,14 +1,14 @@
 import type { InkPoint } from "./types";
 
-export function isPenEvent(event: PointerEvent): boolean {
+export function isStylusEvent(event: PointerEvent): boolean {
   return event.pointerType === "pen";
 }
 
-export function isPenContact(event: PointerEvent): boolean {
+export function isStylusContact(event: PointerEvent): boolean {
   return event.pressure > 0 || (event.buttons & 1) !== 0 || (event.type === "pointerdown" && event.button === 0);
 }
 
-export function isPenBarrelButton(event: PointerEvent): boolean {
+export function isStylusBarrelButton(event: PointerEvent): boolean {
   return event.button === 2 || (event.buttons & 2) !== 0;
 }
 

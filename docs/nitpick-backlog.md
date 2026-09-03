@@ -12,7 +12,7 @@ Acceptance check: draw comparable strokes before and after zooming, then view th
 
 Add a low-friction way to switch among recently used or pinned pen and highlighter colors without opening a full settings interface.
 
-The interaction should be comfortable with the S Pen and should not obstruct native Canvas controls.
+The interaction should be comfortable with a stylus and should not obstruct native Canvas controls.
 
 ## Pen and stylus terminology
 

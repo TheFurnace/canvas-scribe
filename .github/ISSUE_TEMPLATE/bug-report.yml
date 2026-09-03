@@ -1,5 +1,5 @@
 name: Galaxy tablet test report
-description: Report an S Pen, Canvas, or persistence problem.
+description: Report a stylus, Canvas, or persistence problem.
 title: "[Galaxy] "
 body:
   - type: markdown

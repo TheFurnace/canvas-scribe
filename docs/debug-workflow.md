@@ -22,11 +22,11 @@ BRAT 1.1 or newer installs from GitHub Releases. Each release must use the same 
 
 Use a new semantic version for every tablet build. This makes every report identify the precise code that produced it.
 
-## Run a focused S Pen test
+## Run a focused stylus test
 
 1. Open the test Canvas.
 2. Run **Canvas Scribe: Clear debug history**.
-3. For button, hover, palm-rejection, or pressure problems, run **Canvas Scribe: Toggle S Pen input diagnostics**. Leave it off for normal endurance testing.
+3. For button, hover, palm-rejection, or pressure problems, run **Canvas Scribe: Toggle stylus input diagnostics**. Leave it off for normal endurance testing.
 4. Reproduce the issue with as few extra actions as practical.
 5. If diagnostics are visible, toggle them off.
 6. Run **Canvas Scribe: Export debug report**.

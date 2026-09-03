@@ -6,7 +6,7 @@ Obsidian Canvas should remain the note-management and spatial-thinking system. C
 
 The interaction contract is based on Samsung Notes:
 
-1. Pen contact writes immediately; there is no open-to-edit step.
+1. Stylus contact writes immediately; there is no open-to-edit step.
 2. Finger input navigates and never creates ink.
 3. Stylus pressure affects the stroke, and coalesced pointer samples preserve fast handwriting detail.
 4. While stylus input is enabled, Canvas context-menu gestures open a radial palette of ink actions with an escape hatch to the original Canvas menu.
@@ -28,15 +28,15 @@ Ink is stored in the `.canvas` file rather than a plugin settings folder or opaq
 ## Known MVP risks
 
 - Obsidian does not expose a stable public Canvas extension API; DOM selectors may change.
-- Android/WebView mappings for S Pen barrel buttons vary by device. Input diagnostics and real-device event traces are the next priority.
-- A palm that lands before pen contact can begin a native Canvas gesture. Pen-hover detection and a short palm-suppression window should be evaluated on-device.
+- Android/WebView mappings for stylus barrel buttons vary by device. Input diagnostics and real-device event traces are the next priority.
+- A palm that lands before stylus contact can begin a native Canvas gesture. Stylus-hover detection and a short palm-suppression window should be evaluated on-device.
 - Directly rewriting the Canvas JSON can race with native Canvas saves. A future adapter should coordinate with the internal `requestSave()` lifecycle or use an atomic vault processing API where supported.
 - SVG is ideal for an MVP and editable strokes. Dense boards will eventually need viewport culling and raster tile caching.
 
 ## Next milestones
 
 1. Device-input harness: record `pointerType`, `button`, `buttons`, pressure, tilt, hover, and event timing on a Galaxy Tab.
-2. Pen fidelity: pressure curves, stabilization presets, predicted-event preview, tilt-aware pencil, and zoom-normalized tool sizes.
+2. Stylus fidelity: pressure curves, stabilization presets, predicted-event preview, tilt-aware pencil, and zoom-normalized tool sizes.
 3. Editing: lasso/rectangle selection, move/scale/recolor, area eraser, and highlighter-only erase.
 4. Samsung Notes parity: favorite pens, radial action refinements, shape cleanup, handwriting straighten, and zoom lock/easy writing pad.
 5. Obsidian synthesis: convert selected ink to a Canvas card, link ink selections to notes, OCR/search metadata, and portable SVG/PDF export.

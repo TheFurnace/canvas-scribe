@@ -41,7 +41,7 @@ export class InputDiagnostics {
   private enable(): void {
     const overlay = this.document.createElement("div");
     overlay.className = "canvas-scribe-input-diagnostics";
-    overlay.textContent = "Canvas Scribe input diagnostics\nTouch the canvas with the S Pen.";
+    overlay.textContent = "Canvas Scribe input diagnostics\nTouch the canvas with your stylus.";
     this.document.body.appendChild(overlay);
     this.overlay = overlay;
     this.logger.record("diagnostics", "overlay_enabled");

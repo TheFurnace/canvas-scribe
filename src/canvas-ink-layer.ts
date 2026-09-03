@@ -7,9 +7,9 @@ import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
 import {
   isEraserTip,
-  isPenBarrelButton,
-  isPenContact,
-  isPenEvent,
+  isStylusBarrelButton,
+  isStylusContact,
+  isStylusEvent,
   pointerSamples,
   pointerToInkPoint,
   shouldAppendReleasePoint,
@@ -48,7 +48,7 @@ export class CanvasInkLayer {
   private temporaryTool: DrawingTool | null = null;
   private enabled = true;
   private didEraseInGesture = false;
-  private penMenuArmed = false;
+  private stylusMenuArmed = false;
   private eraserTipArmed = false;
   private undoStack: InkStroke[][] = [];
   private redoStack: InkStroke[][] = [];
@@ -93,7 +93,7 @@ export class CanvasInkLayer {
 
   toggleEnabled(): void {
     this.enabled = !this.enabled;
-    this.logger.record("canvas", "pen_input_toggled", { enabled: this.enabled });
+    this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
 
@@ -181,19 +181,19 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
-    if (!isPenEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
-    if (isPenBarrelButton(event)) {
-      this.penMenuArmed = true;
+    if (!isStylusEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
+    if (isStylusBarrelButton(event)) {
+      this.stylusMenuArmed = true;
       this.consume(event);
       return;
     }
     if (!this.enabled) return;
-    if (isEraserTip(event) && !isPenContact(event)) {
+    if (isEraserTip(event) && !isStylusContact(event)) {
       this.eraserTipArmed = true;
       this.consume(event);
       return;
     }
-    if (!isPenContact(event)) return;
+    if (!isStylusContact(event)) return;
     this.closeRadialMenu();
     this.beginGesture(event, this.eraserTipArmed ? "eraser" : undefined);
   };
@@ -257,17 +257,17 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
-    if (event.pointerId === this.activePointerId && isPenEvent(event) && isPenBarrelButton(event)) {
+    if (event.pointerId === this.activePointerId && isStylusEvent(event) && isStylusBarrelButton(event)) {
       this.consume(event);
       this.cancelGesture("barrel_button");
-      this.penMenuArmed = true;
+      this.stylusMenuArmed = true;
       return;
     }
-    if (this.activePointerId === null && this.penMenuArmed && isPenEvent(event)) {
+    if (this.activePointerId === null && this.stylusMenuArmed && isStylusEvent(event)) {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.enabled && this.eraserTipArmed && isPenEvent(event) && isPenContact(event)) {
+    if (this.activePointerId === null && this.enabled && this.eraserTipArmed && isStylusEvent(event) && isStylusContact(event)) {
       this.beginGesture(event, "eraser");
       return;
     }
@@ -294,12 +294,12 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.penMenuArmed && isPenEvent(event)) {
-      this.penMenuArmed = false;
+    if (this.activePointerId === null && this.stylusMenuArmed && isStylusEvent(event)) {
+      this.stylusMenuArmed = false;
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.eraserTipArmed && isPenEvent(event)) {
+    if (this.activePointerId === null && this.eraserTipArmed && isStylusEvent(event)) {
       this.eraserTipArmed = false;
       this.consume(event);
       return;
@@ -321,7 +321,7 @@ export class CanvasInkLayer {
     if (!this.enabled) return;
     this.consume(event);
     if (this.activePointerId !== null) this.cancelGesture("context_menu");
-    this.penMenuArmed = false;
+    this.stylusMenuArmed = false;
     this.showRadialMenu(event.clientX, event.clientY, event.target);
   };
 
@@ -602,13 +602,13 @@ export class CanvasInkLayer {
     const group = document.createElement("div");
     group.className = "canvas-control-group mod-raised canvas-scribe-controls";
     group.append(
-      this.controlButton("pencil", "Pen", "pen", () => this.setTool("pen")),
+      this.controlButton("pen-tool", "Pen", "pen", () => this.setTool("pen")),
       this.controlButton("highlighter", "Highlighter", "highlighter", () => this.setTool("highlighter")),
       this.controlButton("eraser", "Eraser", "eraser", () => this.setTool("eraser")),
       this.controlButton("palette", "Choose pen color", "color", () => this.toggleColorPalette()),
       this.controlButton("undo-2", "Undo ink", "undo", () => this.undo()),
       this.controlButton("redo-2", "Redo ink", "redo", () => this.redo()),
-      this.controlButton("pen-tool", "Toggle pen input", "toggle", () => this.toggleEnabled()),
+      this.controlButton("pencil", "Toggle stylus input", "toggle", () => this.toggleEnabled()),
     );
     canvasControls.prepend(group);
     this.controlsEl = group;
