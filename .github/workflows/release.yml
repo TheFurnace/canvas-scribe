@@ -2,36 +2,90 @@ name: Publish beta release
 
 on:
   push:
+    branches: [main]
     tags: ["*"]
+    paths:
+      - package.json
+      - manifest.json
+      - versions.json
 
 permissions:
   contents: write
+
+concurrency:
+  group: publish-beta-release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Verify tag and version
+      - name: Verify version metadata
+        id: version
         run: |
-          pnpm check:versions
-          test "$(node -p "require('./manifest.json').version")" = "$GITHUB_REF_NAME"
-      - run: pnpm build
+          node scripts/check-versions.mjs
+          version="$(node -p "require('./manifest.json').version")"
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "$version" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match manifest version $version." >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Create version tag when missing
+        if: github.ref_type == 'branch'
         env:
-          CANVAS_SCRIBE_BUILD_ID: release-${{ github.ref_name }}-${{ github.sha }}
-      - run: pnpm test
-      - name: Create install archive
-        run: zip "canvas-scribe-${GITHUB_REF_NAME}.zip" main.js manifest.json styles.css
-      - name: Publish GitHub release for BRAT
-        run: >-
-          gh release create "$GITHUB_REF_NAME"
-          main.js manifest.json styles.css "canvas-scribe-${GITHUB_REF_NAME}.zip"
-          --verify-tag --generate-notes --title "Canvas Scribe $GITHUB_REF_NAME"
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git show-ref --verify --quiet "refs/tags/$VERSION"; then
+            echo "Tag $VERSION already exists."
+          else
+            git tag "$VERSION" "$GITHUB_SHA"
+            git push origin "refs/tags/$VERSION"
+          fi
+      - name: Use the tagged release source
+        id: release-source
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git checkout --detach "refs/tags/$VERSION"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Check for existing release
+        id: existing-release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.existing-release.outputs.exists == 'false'
+        run: pnpm install --frozen-lockfile
+      - if: steps.existing-release.outputs.exists == 'false'
+        run: pnpm build
+        env:
+          CANVAS_SCRIBE_BUILD_ID: release-${{ steps.version.outputs.version }}-${{ steps.release-source.outputs.sha }}
+      - if: steps.existing-release.outputs.exists == 'false'
+        run: pnpm test
+      - name: Create install archive
+        if: steps.existing-release.outputs.exists == 'false'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: zip "canvas-scribe-${VERSION}.zip" main.js manifest.json styles.css
+      - name: Publish GitHub release for BRAT
+        if: steps.existing-release.outputs.exists == 'false'
+        run: >-
+          gh release create "$VERSION"
+          main.js manifest.json styles.css "canvas-scribe-${VERSION}.zip"
+          --verify-tag --generate-notes --title "Canvas Scribe $VERSION"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
