@@ -4,7 +4,14 @@ import type { CanvasTarget } from "./canvas-target";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
-import { isPenContact, isPenEvent, isTemporaryEraser, pointerSamples, pointerToInkPoint } from "./pointer-input";
+import {
+  isPenContact,
+  isPenEvent,
+  isTemporaryEraser,
+  pointerSamples,
+  pointerToInkPoint,
+  shouldAppendReleasePoint,
+} from "./pointer-input";
 import {
   cloneStrokes,
   createEmptyInkData,
@@ -270,7 +277,9 @@ export class CanvasInkLayer {
     }
     if (event.pointerId !== this.activePointerId) return;
     this.consume(event);
-    if ((this.temporaryTool ?? this.activeTool) !== "eraser") this.appendReleasePoint(event);
+    if ((this.temporaryTool ?? this.activeTool) !== "eraser" && shouldAppendReleasePoint(event)) {
+      this.appendReleasePoint(event);
+    }
     if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
     this.finishGesture();
   };

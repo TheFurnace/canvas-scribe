@@ -19,6 +19,10 @@ export function pointerSamples(event: PointerEvent): PointerEvent[] {
   return coalesced;
 }
 
+export function shouldAppendReleasePoint(event: PointerEvent): boolean {
+  return event.type === "pointerup";
+}
+
 export function pointerToInkPoint(event: PointerEvent, x: number, y: number): InkPoint {
   const pressure = event.pressure > 0 ? event.pressure : 0.5;
   const point: InkPoint = {
