@@ -4,7 +4,7 @@ The recommended loop is **GitHub release → BRAT update on the Galaxy tablet �
 
 ## One-time Galaxy setup
 
-1. Make sure the test vault is available in Obsidian on the Galaxy tablet. Obsidian Sync is the simplest option, but any sync method that preserves `.canvas`, `.md`, and `.json` files works for reports.
+1. Make sure the test vault is available in Obsidian on the Galaxy tablet. Obsidian Sync is the simplest option; reports and structured logs are both stored as Markdown files for sync compatibility.
 2. In **Settings → Community plugins**, install and enable **Obsidian42 - BRAT**.
 3. Run **BRAT: Add a beta plugin for testing** and enter `https://github.com/TheFurnace/canvas-scribe`.
 4. Track the latest release, then enable **Canvas Scribe** under **Community plugins**.
@@ -32,11 +32,11 @@ Use a new semantic version for every tablet build. This makes every report ident
 6. Run **Canvas Scribe: Export debug report**.
 7. Complete the Markdown report that opens. Add screenshots or screen recordings to the note if useful.
 
-Canvas Scribe writes two files under `Canvas Scribe Debug/`: a human-editable Markdown report and a JSON event log. The log is capped at 1,200 events. It includes build/device information, lifecycle and storage outcomes, gesture summaries, and—while the diagnostic overlay is enabled—S Pen Pointer Event fields. The recorder does not intentionally collect note text, canvas or vault names, or raw coordinates.
+Canvas Scribe writes two Markdown files under `Canvas Scribe Debug/`: a human-editable report and a diagnostic log containing structured JSON in a fenced code block. The log is capped at 1,200 events. It includes build/device information, lifecycle and storage outcomes, gesture summaries, and—while the diagnostic overlay is enabled—pointer, secondary-click, and context-menu fields. The recorder does not intentionally collect note text, canvas or vault names, or raw coordinates.
 
 ## Return feedback
 
-Let the `Canvas Scribe Debug` folder sync to this development computer, then provide the Markdown and JSON file paths. Alternatively, attach both files to a GitHub issue created with the Galaxy test template. Review the files before attaching them to a public issue; the browser user-agent string may identify the tablet model and OS build.
+Let the `Canvas Scribe Debug` folder sync to this development computer, then provide both Markdown file paths. Alternatively, attach both files to a GitHub issue created with the Galaxy test template. Review them before attaching them to a public issue; the browser user-agent string may identify the tablet model and OS build.
 
 ## Fast desktop or synced-vault deployment
 

@@ -29,4 +29,4 @@ Run **Canvas Scribe: Clear debug history**, then **Canvas Scribe: Toggle S Pen i
 
 The important fields are `button`, `buttons`, and `pressure`. These mappings can differ across Galaxy model, Android version, and Obsidian's bundled WebView.
 
-When finished, run **Canvas Scribe: Export debug report**. Fill in the generated Markdown note and let the `Canvas Scribe Debug` folder sync back to the development computer. The paired JSON file contains the exact button and pressure mappings.
+When finished, run **Canvas Scribe: Export debug report**. Fill in the generated report and let the `Canvas Scribe Debug` folder sync back to the development computer. The paired Markdown log contains structured JSON with the exact button and pressure mappings.

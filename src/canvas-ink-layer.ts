@@ -18,6 +18,12 @@ import {
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SAVE_DELAY_MS = 250;
 const MIN_SCREEN_POINT_DISTANCE = 0.35;
+const RECENT_PEN_CONTEXT_MENU_MS = 1000;
+
+interface CanvasTransform {
+  screenToCanvas: DOMMatrix;
+  screenScale: number;
+}
 
 export class CanvasInkLayer {
   private data: CanvasInkData = createEmptyInkData();
@@ -42,6 +48,8 @@ export class CanvasInkLayer {
   private readonly inputDisposers: Array<() => void> = [];
   private observer: MutationObserver | null = null;
   private gestureStartedAt = 0;
+  private gestureTransform: CanvasTransform | null = null;
+  private lastPenEventAt = Number.NEGATIVE_INFINITY;
   private erasedStrokeCount = 0;
 
   constructor(
@@ -152,6 +160,7 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
+    this.notePenEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
@@ -170,9 +179,16 @@ export class CanvasInkLayer {
     this.ensureDom();
     if (!this.svgEl || !this.wrapperEl) return;
 
+    const transform = this.readCanvasTransform();
+    if (!transform) {
+      this.logger.record("ink", "gesture_rejected", { reason: "invalid_canvas_transform" });
+      return;
+    }
+
     this.consume(event);
     trySetPointerCapture(this.wrapperEl, event.pointerId);
     this.activePointerId = event.pointerId;
+    this.gestureTransform = transform;
     this.temporaryTool = forcedTool ?? (isTemporaryEraser(event) ? "eraser" : null);
     this.barrelButtonArmed = false;
     const tool = this.temporaryTool ?? this.activeTool;
@@ -214,6 +230,7 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    this.notePenEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
@@ -241,6 +258,7 @@ export class CanvasInkLayer {
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
+    this.notePenEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
@@ -258,7 +276,8 @@ export class CanvasInkLayer {
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
-    if (this.activePointerId !== null || this.barrelButtonArmed) this.consume(event);
+    const followsPenInput = event.timeStamp - this.lastPenEventAt <= RECENT_PEN_CONTEXT_MENU_MS;
+    if (this.activePointerId !== null || this.barrelButtonArmed || (this.enabled && followsPenInput)) this.consume(event);
   };
 
   private finishGesture(): void {
@@ -290,6 +309,7 @@ export class CanvasInkLayer {
     this.activeStroke = null;
     this.activePathEl = null;
     this.activePointerId = null;
+    this.gestureTransform = null;
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.syncControls();
@@ -319,14 +339,14 @@ export class CanvasInkLayer {
   }
 
   private eventToPoint(event: PointerEvent): InkPoint | null {
-    if (!this.svgEl) return null;
-    const matrix = this.svgEl.getScreenCTM();
-    if (!matrix) return null;
-    const svgPoint = this.svgEl.createSVGPoint();
-    svgPoint.x = event.clientX;
-    svgPoint.y = event.clientY;
-    const canvasPoint = svgPoint.matrixTransform(matrix.inverse());
-    return pointerToInkPoint(event, canvasPoint.x, canvasPoint.y);
+    if (!Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return null;
+    const transform = this.gestureTransform ?? this.readCanvasTransform();
+    if (!transform) return null;
+    const { screenToCanvas } = transform;
+    const x = screenToCanvas.a * event.clientX + screenToCanvas.c * event.clientY + screenToCanvas.e;
+    const y = screenToCanvas.b * event.clientX + screenToCanvas.d * event.clientY + screenToCanvas.f;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    return pointerToInkPoint(event, x, y);
   }
 
   private shouldAppendPoint(stroke: InkStroke, point: InkPoint): boolean {
@@ -337,10 +357,33 @@ export class CanvasInkLayer {
   }
 
   private getScreenScale(): number {
+    if (this.gestureTransform) return this.gestureTransform.screenScale;
+    return this.readCanvasTransform()?.screenScale ?? 1;
+  }
+
+  private readCanvasTransform(): CanvasTransform | null {
     const matrix = this.svgEl?.getScreenCTM();
-    if (!matrix) return 1;
-    const scale = Math.max(Math.hypot(matrix.a, matrix.b), Math.hypot(matrix.c, matrix.d));
-    return Number.isFinite(scale) && scale > 0 ? scale : 1;
+    if (!matrix) return null;
+    const screenScale = Math.max(Math.hypot(matrix.a, matrix.b), Math.hypot(matrix.c, matrix.d));
+    if (!Number.isFinite(screenScale) || screenScale <= 0) return null;
+    try {
+      const screenToCanvas = matrix.inverse();
+      const components = [
+        screenToCanvas.a,
+        screenToCanvas.b,
+        screenToCanvas.c,
+        screenToCanvas.d,
+        screenToCanvas.e,
+        screenToCanvas.f,
+      ];
+      return components.every(Number.isFinite) ? { screenToCanvas, screenScale } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private notePenEvent(event: PointerEvent): void {
+    if (isPenEvent(event)) this.lastPenEventAt = event.timeStamp;
   }
 
   private getDefaultPenColor(): string {
@@ -475,7 +518,7 @@ export class CanvasInkLayer {
 
   private consume(event: Event): void {
     if (event.cancelable) event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
   }
 }
 

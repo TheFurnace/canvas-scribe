@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        In Obsidian, run **Canvas Scribe: Export debug report**. Complete the generated Markdown note, then drag both that note and its JSON log into this issue.
+        In Obsidian, run **Canvas Scribe: Export debug report**. Complete the generated Markdown note, then drag both that note and its Markdown diagnostic log into this issue.
   - type: textarea
     id: behavior
     attributes:
@@ -24,4 +24,4 @@ body:
     id: attachments
     attributes:
       label: Debug report, screenshot, or recording
-      description: Drag the generated .md and .json files here. Review them first if the issue is public.
+      description: Drag both generated .md files here. Review them first if the issue is public.

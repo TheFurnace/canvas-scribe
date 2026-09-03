@@ -72,6 +72,27 @@ export class DebugLogger {
     });
   }
 
+  recordMouse(event: MouseEvent): void {
+    const pointerLike = event as MouseEvent & {
+      pointerId?: unknown;
+      pointerType?: unknown;
+      pressure?: unknown;
+    };
+    this.record("mouse", event.type, {
+      eventClass: event.constructor.name,
+      pointerId: typeof pointerLike.pointerId === "number" ? pointerLike.pointerId : -1,
+      pointerType: typeof pointerLike.pointerType === "string" ? pointerLike.pointerType : "unknown",
+      button: event.button,
+      buttons: event.buttons,
+      pressure: typeof pointerLike.pressure === "number" ? round(pointerLike.pressure) : 0,
+      detail: event.detail,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+      metaKey: event.metaKey,
+    });
+  }
+
   recordError(event: string, error: unknown): void {
     const normalized = normalizeError(error);
     this.record("error", event, normalized);

@@ -56,4 +56,38 @@ describe("DebugLogger", () => {
       "pointerdown",
     ]);
   });
+
+  it("records secondary mouse-style input without coordinates", () => {
+    const logger = new DebugLogger();
+    const event = {
+      type: "contextmenu",
+      constructor: { name: "PointerEvent" },
+      pointerId: 9,
+      pointerType: "pen",
+      pressure: 0,
+      button: 2,
+      buttons: 2,
+      detail: 0,
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      metaKey: false,
+    } as unknown as MouseEvent;
+
+    logger.recordMouse(event);
+
+    expect(logger.snapshot().entries[0]).toMatchObject({
+      category: "mouse",
+      event: "contextmenu",
+      data: {
+        eventClass: "PointerEvent",
+        pointerId: 9,
+        pointerType: "pen",
+        button: 2,
+        buttons: 2,
+      },
+    });
+    expect(logger.snapshot().entries[0]?.data).not.toHaveProperty("clientX");
+    expect(logger.snapshot().entries[0]?.data).not.toHaveProperty("clientY");
+  });
 });

@@ -8,6 +8,8 @@ const DIAGNOSTIC_EVENTS = [
   "pointercancel",
 ] as const;
 
+const SECONDARY_INPUT_EVENTS = ["mousedown", "mouseup", "auxclick", "contextmenu"] as const;
+
 export class InputDiagnostics {
   private overlay: HTMLElement | null = null;
   private readonly lines: string[] = [];
@@ -43,11 +45,13 @@ export class InputDiagnostics {
     this.overlay = overlay;
     this.logger.record("diagnostics", "overlay_enabled");
     for (const eventName of DIAGNOSTIC_EVENTS) this.document.addEventListener(eventName, this.onPointerEvent, true);
+    for (const eventName of SECONDARY_INPUT_EVENTS) this.document.addEventListener(eventName, this.onMouseEvent, true);
   }
 
   private disable(): void {
     if (this.overlay) this.logger.record("diagnostics", "overlay_disabled");
     for (const eventName of DIAGNOSTIC_EVENTS) this.document.removeEventListener(eventName, this.onPointerEvent, true);
+    for (const eventName of SECONDARY_INPUT_EVENTS) this.document.removeEventListener(eventName, this.onMouseEvent, true);
     this.overlay?.remove();
     this.overlay = null;
     this.lines.length = 0;
@@ -67,6 +71,23 @@ export class InputDiagnostics {
       `pressure=${event.pressure.toFixed(3)}`,
       `tilt=${event.tiltX},${event.tiltY}`,
       `size=${Math.round(event.width)}x${Math.round(event.height)}`,
+    ].join(" ");
+    this.lines.push(line);
+    if (this.lines.length > 14) this.lines.shift();
+    this.overlay.textContent = `Canvas Scribe input diagnostics\n${this.lines.join("\n")}`;
+  };
+
+  private readonly onMouseEvent = (event: MouseEvent): void => {
+    if (!this.overlay) return;
+    this.logger.recordMouse(event);
+    const pointerType = "pointerType" in event && typeof event.pointerType === "string" ? event.pointerType : "unknown";
+    const line = [
+      event.type.padEnd(11),
+      pointerType.padEnd(5),
+      `button=${event.button}`,
+      `buttons=${event.buttons}`,
+      `detail=${event.detail}`,
+      `class=${event.constructor.name}`,
     ].join(" ");
     this.lines.push(line);
     if (this.lines.length > 14) this.lines.shift();

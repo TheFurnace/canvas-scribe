@@ -27,7 +27,7 @@ interface DebugBundle {
 
 export interface DebugReportFiles {
   markdown: TFile;
-  json: TFile;
+  log: TFile;
 }
 
 export async function createDebugReport(
@@ -38,10 +38,11 @@ export async function createDebugReport(
   await ensureDebugFolder(app);
   const stamp = fileTimestamp(new Date());
   const baseName = `canvas-scribe-${stamp}`;
-  const jsonPath = availableReportPath(app, baseName);
-  const markdownPath = jsonPath.replace(/\.json$/, ".md");
+  const reportStem = availableReportStem(app, baseName);
+  const markdownPath = `${reportStem}.md`;
+  const logPath = `${reportStem}-log.md`;
   const device = collectDeviceDetails(app, pluginVersion);
-  logger.record("debug", "report_exported", { jsonFile: jsonPath.split("/").pop() ?? "report.json" });
+  logger.record("debug", "report_exported", { logFile: logPath.split("/").pop() ?? "report-log.md" });
   const bundle: DebugBundle = {
     format: "canvas-scribe-debug",
     schemaVersion: 1,
@@ -49,9 +50,9 @@ export async function createDebugReport(
     log: logger.snapshot(),
     privacy: "The recorder does not intentionally collect note text, canvas file names, vault name, or raw pen coordinates. Review before sharing publicly.",
   };
-  const json = await app.vault.create(jsonPath, `${JSON.stringify(bundle, null, 2)}\n`);
-  const markdown = await app.vault.create(markdownPath, feedbackTemplate(device, json.name));
-  return { markdown, json };
+  const log = await app.vault.create(logPath, logTemplate(bundle));
+  const markdown = await app.vault.create(markdownPath, feedbackTemplate(device, log.name));
+  return { markdown, log };
 }
 
 function collectDeviceDetails(app: App, pluginVersion: string): DeviceDetails {
@@ -79,7 +80,7 @@ function platformName(): string {
   return Platform.isMobile ? "mobile-unknown" : "desktop-unknown";
 }
 
-function feedbackTemplate(device: DeviceDetails, jsonName: string): string {
+function feedbackTemplate(device: DeviceDetails, logName: string): string {
   return `# Canvas Scribe test report
 
 ## What happened?
@@ -110,11 +111,22 @@ Describe the result you wanted.
 - Obsidian version: ${device.obsidianVersion}
 - Canvas Scribe version: ${device.pluginVersion}
 - Build: ${device.buildId}
-- Diagnostic log: [[${jsonName}]]
+- Diagnostic log: [[${logName}]]
 
 ## Optional notes
 
-Add screenshots or a short screen recording here. The JSON log intentionally excludes note text, canvas names, vault names, and raw pen coordinates.
+Add screenshots or a short screen recording here. The diagnostic log intentionally excludes note text, canvas names, vault names, and raw pen coordinates.
+`;
+}
+
+function logTemplate(bundle: DebugBundle): string {
+  return `# Canvas Scribe diagnostic log
+
+This Markdown wrapper keeps the structured log compatible with vault sync. The JSON block intentionally excludes note text, canvas names, vault names, and raw pen coordinates.
+
+\`\`\`json
+${JSON.stringify(bundle, null, 2)}
+\`\`\`
 `;
 }
 
@@ -123,19 +135,19 @@ async function ensureDebugFolder(app: App): Promise<void> {
   if (!existing) await app.vault.createFolder(DEBUG_FOLDER);
 }
 
-function availableReportPath(app: App, baseName: string): string {
+function availableReportStem(app: App, baseName: string): string {
   const stem = `${DEBUG_FOLDER}/${baseName}`;
-  if (!app.vault.getAbstractFileByPath(`${stem}.json`) && !app.vault.getAbstractFileByPath(`${stem}.md`)) {
-    return `${stem}.json`;
+  if (!app.vault.getAbstractFileByPath(`${stem}.md`) && !app.vault.getAbstractFileByPath(`${stem}-log.md`)) {
+    return stem;
   }
   let suffix = 2;
   while (
-    app.vault.getAbstractFileByPath(`${stem}-${suffix}.json`) ||
-    app.vault.getAbstractFileByPath(`${stem}-${suffix}.md`)
+    app.vault.getAbstractFileByPath(`${stem}-${suffix}.md`) ||
+    app.vault.getAbstractFileByPath(`${stem}-${suffix}-log.md`)
   ) {
     suffix += 1;
   }
-  return `${stem}-${suffix}.json`;
+  return `${stem}-${suffix}`;
 }
 
 function fileTimestamp(date: Date): string {
