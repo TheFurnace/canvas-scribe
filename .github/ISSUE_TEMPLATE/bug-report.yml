@@ -1,0 +1,27 @@
+name: Galaxy tablet test report
+description: Report an S Pen, Canvas, or persistence problem.
+title: "[Galaxy] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        In Obsidian, run **Canvas Scribe: Export debug report**. Complete the generated Markdown note, then drag both that note and its JSON log into this issue.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include what you expected and whether the problem is repeatable.
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Galaxy model and Android version
+      placeholder: Galaxy Tab S10+, Android 16
+    validations:
+      required: true
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Debug report, screenshot, or recording
+      description: Drag the generated .md and .json files here. Review them first if the issue is public.

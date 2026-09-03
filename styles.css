@@ -1,0 +1,50 @@
+.canvas-scribe-render-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.canvas-scribe-stroke {
+  pointer-events: none;
+  will-change: d;
+}
+
+.canvas-scribe-stroke.is-highlighter {
+  mix-blend-mode: multiply;
+}
+
+.theme-dark .canvas-scribe-stroke.is-highlighter {
+  mix-blend-mode: screen;
+}
+
+.canvas-scribe-controls .canvas-scribe-control-item.is-active {
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+}
+
+.canvas-scribe-controls .canvas-scribe-control-item.is-disabled {
+  opacity: 0.35;
+}
+
+.canvas-scribe-input-diagnostics {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  right: 8px;
+  z-index: 100000;
+  max-width: min(94vw, 760px);
+  max-height: 46vh;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid rgb(74 222 128 / 55%);
+  border-radius: 8px;
+  color: #86efac;
+  background: rgb(3 7 18 / 88%);
+  font: 10px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  white-space: pre-wrap;
+  pointer-events: none;
+}

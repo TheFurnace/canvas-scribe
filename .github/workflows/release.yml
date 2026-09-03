@@ -1,0 +1,37 @@
+name: Publish beta release
+
+on:
+  push:
+    tags: ["*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify tag and version
+        run: |
+          pnpm check:versions
+          test "$(node -p "require('./manifest.json').version")" = "$GITHUB_REF_NAME"
+      - run: pnpm build
+        env:
+          CANVAS_SCRIBE_BUILD_ID: release-${{ github.ref_name }}-${{ github.sha }}
+      - run: pnpm test
+      - name: Create install archive
+        run: zip "canvas-scribe-${GITHUB_REF_NAME}.zip" main.js manifest.json styles.css
+      - name: Publish GitHub release for BRAT
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          main.js manifest.json styles.css "canvas-scribe-${GITHUB_REF_NAME}.zip"
+          --verify-tag --generate-notes --title "Canvas Scribe $GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}
