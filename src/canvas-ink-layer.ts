@@ -27,6 +27,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const SAVE_DELAY_MS = 250;
 const MIN_SCREEN_POINT_DISTANCE = 0.35;
 const RECENT_STYLUS_CONTEXT_MENU_MS = 1000;
+const ERASER_SCREEN_RADIUS = 18;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -36,6 +37,7 @@ interface CanvasTransform {
 export class CanvasInkLayer {
   private data: CanvasInkData = createEmptyInkData();
   private svgEl: SVGSVGElement | null = null;
+  private eraserCursorEl: SVGCircleElement | null = null;
   private controlsEl: HTMLElement | null = null;
   private colorPaletteEl: HTMLElement | null = null;
   private wrapperEl: HTMLElement | null = null;
@@ -82,6 +84,7 @@ export class CanvasInkLayer {
 
   setTool(tool: DrawingTool): void {
     this.activeTool = tool;
+    if (tool !== "eraser") this.hideEraserCursor();
     this.closeColorPalette();
     this.logger.record("canvas", "tool_selected", { tool });
     this.syncControls();
@@ -126,6 +129,7 @@ export class CanvasInkLayer {
     this.observer?.disconnect();
     this.observer = null;
     this.svgEl?.remove();
+    this.eraserCursorEl = null;
     this.closeColorPalette();
     this.controlsEl?.remove();
     this.logger.record("canvas", "layer_disposed", { strokeCount: this.data.strokes.length });
@@ -168,11 +172,13 @@ export class CanvasInkLayer {
     this.listen(wrapper, "pointermove", this.onPointerMove, true, this.inputDisposers);
     this.listen(wrapper, "pointerup", this.onPointerUp, true, this.inputDisposers);
     this.listen(wrapper, "pointercancel", this.onPointerUp, true, this.inputDisposers);
+    this.listen(wrapper, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     this.noteStylusEvent(event);
+    this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
@@ -242,6 +248,7 @@ export class CanvasInkLayer {
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     this.noteStylusEvent(event);
+    this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
@@ -294,6 +301,10 @@ export class CanvasInkLayer {
     this.finishGesture();
   };
 
+  private readonly onPointerLeave = (event: PointerEvent): void => {
+    if (event.pointerId !== this.activePointerId) this.hideEraserCursor();
+  };
+
   private readonly onContextMenu = (event: MouseEvent): void => {
     const followsStylusInput = event.timeStamp - this.lastStylusEventAt <= RECENT_STYLUS_CONTEXT_MENU_MS;
     if (this.activePointerId !== null || this.barrelButtonArmed || (this.enabled && followsStylusInput)) this.consume(event);
@@ -331,6 +342,7 @@ export class CanvasInkLayer {
     this.gestureTransform = null;
     this.temporaryTool = null;
     this.didEraseInGesture = false;
+    if (this.activeTool !== "eraser") this.hideEraserCursor();
     this.syncControls();
   }
 
@@ -338,9 +350,12 @@ export class CanvasInkLayer {
     for (const sample of pointerSamples(event)) {
       const point = this.eventToPoint(sample);
       if (!point) continue;
-      const radius = 11 / this.getScreenScale();
+      const screenScale = this.getScreenScale();
+      const radius = ERASER_SCREEN_RADIUS / screenScale;
       const before = this.data.strokes.length;
-      this.data.strokes = this.data.strokes.filter((stroke) => !strokeIntersectsCircle(stroke, point.x, point.y, radius));
+      this.data.strokes = this.data.strokes.filter(
+        (stroke) => !strokeIntersectsCircle(stroke, point.x, point.y, radius),
+      );
       if (this.data.strokes.length !== before) {
         this.erasedStrokeCount += before - this.data.strokes.length;
         this.didEraseInGesture = true;
@@ -424,6 +439,7 @@ export class CanvasInkLayer {
   private renderAll(): void {
     if (!this.svgEl) return;
     this.svgEl.replaceChildren(...this.data.strokes.map((stroke) => this.createPath(stroke, true)));
+    this.ensureEraserCursor();
   }
 
   private getToolColor(tool: ColorTool): string {
@@ -534,6 +550,36 @@ export class CanvasInkLayer {
     if (colorTool) color?.style.setProperty("--canvas-scribe-active-color", this.getToolColor(colorTool));
     this.controlsEl.querySelector<HTMLElement>("[data-action=undo]")?.classList.toggle("is-disabled", this.undoStack.length === 0);
     this.controlsEl.querySelector<HTMLElement>("[data-action=redo]")?.classList.toggle("is-disabled", this.redoStack.length === 0);
+  }
+
+  private ensureEraserCursor(): void {
+    if (!this.svgEl) return;
+    if (!this.eraserCursorEl) {
+      this.eraserCursorEl = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "circle");
+      this.eraserCursorEl.classList.add("canvas-scribe-eraser-cursor");
+      this.eraserCursorEl.setAttribute("vector-effect", "non-scaling-stroke");
+    }
+    this.eraserCursorEl.setAttribute("r", (ERASER_SCREEN_RADIUS / this.getScreenScale()).toString());
+    this.svgEl.appendChild(this.eraserCursorEl);
+  }
+
+  private updateEraserCursor(event: PointerEvent): void {
+    if (!this.enabled || !isStylusEvent(event) || isControlTarget(event.target)) return;
+    const tool = this.activePointerId === null ? this.activeTool : (this.temporaryTool ?? this.activeTool);
+    if (tool !== "eraser" && !isTemporaryEraser(event) && !this.barrelButtonArmed) {
+      this.hideEraserCursor();
+      return;
+    }
+    const point = this.eventToPoint(event);
+    if (!point) return;
+    this.ensureEraserCursor();
+    this.eraserCursorEl?.setAttribute("cx", point.x.toString());
+    this.eraserCursorEl?.setAttribute("cy", point.y.toString());
+    this.eraserCursorEl?.classList.add("is-visible");
+  }
+
+  private hideEraserCursor(): void {
+    this.eraserCursorEl?.classList.remove("is-visible");
   }
 
   private toggleColorPalette(): void {

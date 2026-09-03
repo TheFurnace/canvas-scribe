@@ -22,10 +22,6 @@ export function strokeToSvgPath(stroke: InkStroke, complete = true): string {
   return outlineToSvgPath(outline);
 }
 
-export function screenSizeToCanvasSize(screenSize: number, screenScale: number): number {
-  return screenSize / (Number.isFinite(screenScale) && screenScale > 0 ? screenScale : 1);
-}
-
 export function outlineToSvgPath(points: readonly Coordinate[]): string {
   if (points.length === 0) return "";
 
@@ -48,7 +44,12 @@ export function outlineToSvgPath(points: readonly Coordinate[]): string {
   return commands.join(" ");
 }
 
-export function strokeIntersectsCircle(stroke: InkStroke, x: number, y: number, radius: number): boolean {
+export function strokeIntersectsCircle(
+  stroke: InkStroke,
+  x: number,
+  y: number,
+  radius: number,
+): boolean {
   const hitRadius = radius + stroke.size / 2;
   const hitRadiusSquared = hitRadius * hitRadius;
   const points = stroke.points;
