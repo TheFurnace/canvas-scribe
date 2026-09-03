@@ -107,6 +107,10 @@ Describe the result you wanted.
 
 - Galaxy model:
 - Android version:
+- One UI version:
+- Android System WebView version:
+- Keyboard / IME and version:
+- Samsung **S Pen to text** enabled: yes / no
 - Stylus model (built-in S Pen / S Pen Pro / other):
 - Obsidian version: ${device.obsidianVersion}
 - Canvas Scribe version: ${device.pluginVersion}

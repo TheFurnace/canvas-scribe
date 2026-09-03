@@ -196,7 +196,15 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
-    if (!this.enabled || !isStylusEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
+    if (
+      !this.enabled ||
+      !isStylusEvent(event) ||
+      this.activePointerId !== null ||
+      isControlTarget(event.target) ||
+      isEditableTarget(event.target)
+    ) {
+      return;
+    }
     if (isTemporaryEraser(event) && !isStylusContact(event)) {
       this.barrelButtonArmed = true;
       this.consume(event);
@@ -330,6 +338,7 @@ export class CanvasInkLayer {
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
+    if (isEditableTarget(event.target)) return;
     const followsStylusInput = event.timeStamp - this.lastStylusEventAt <= RECENT_STYLUS_CONTEXT_MENU_MS;
     if (this.activePointerId !== null || this.barrelButtonArmed || (this.enabled && followsStylusInput)) this.consume(event);
   };
@@ -793,6 +802,13 @@ export class CanvasInkLayer {
 
 function isControlTarget(target: EventTarget | null): boolean {
   return target instanceof Element && Boolean(target.closest(".canvas-controls, .canvas-menu, .canvas-card-menu"));
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'))
+  );
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {
