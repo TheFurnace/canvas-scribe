@@ -31,6 +31,54 @@
   opacity: 0.35;
 }
 
+.canvas-scribe-controls {
+  position: relative;
+}
+
+.canvas-scribe-controls [data-action="color"] {
+  position: relative;
+}
+
+.canvas-scribe-controls [data-action="color"]::after {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--background-primary);
+  border-radius: 50%;
+  background: var(--canvas-scribe-active-color);
+  content: "";
+}
+
+.canvas-scribe-color-palette {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  box-shadow: var(--shadow-s);
+}
+
+.canvas-scribe-color-swatch {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--canvas-scribe-swatch-color);
+  touch-action: manipulation;
+}
+
+.canvas-scribe-color-swatch[aria-pressed="true"] {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 2px var(--background-primary) inset;
+}
+
 .canvas-scribe-input-diagnostics {
   position: fixed;
   top: max(8px, env(safe-area-inset-top));
