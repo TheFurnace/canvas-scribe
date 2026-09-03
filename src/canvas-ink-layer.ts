@@ -201,7 +201,14 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
-    if (!isStylusEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
+    if (
+      !isStylusEvent(event) ||
+      this.activePointerId !== null ||
+      isControlTarget(event.target) ||
+      isEditableTarget(event.target)
+    ) {
+      return;
+    }
     if (isStylusBarrelButton(event)) {
       this.stylusMenuArmed = true;
       this.consume(event);
@@ -357,6 +364,7 @@ export class CanvasInkLayer {
       this.allowNextContextMenu = false;
       return;
     }
+    if (isEditableTarget(event.target)) return;
     if (!this.enabled) return;
     this.consume(event);
     if (this.activePointerId !== null) this.cancelGesture("context_menu");
@@ -803,9 +811,12 @@ export class CanvasInkLayer {
   }
 
   private updateEraserCursor(event: PointerEvent): void {
-    if (!this.enabled || !isStylusEvent(event) || isControlTarget(event.target)) return;
+    if (!this.enabled || !isStylusEvent(event) || isControlTarget(event.target) || isEditableTarget(event.target)) {
+      this.hideEraserCursor();
+      return;
+    }
     const tool = this.activePointerId === null ? this.activeTool : (this.temporaryTool ?? this.activeTool);
-    if (tool !== "eraser" && !isTemporaryEraser(event) && !this.barrelButtonArmed) {
+    if (tool !== "eraser" && !isEraserTip(event) && !this.eraserTipArmed) {
       this.hideEraserCursor();
       return;
     }
@@ -930,6 +941,13 @@ export class CanvasInkLayer {
 
 function isControlTarget(target: EventTarget | null): boolean {
   return target instanceof Element && Boolean(target.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'))
+  );
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {

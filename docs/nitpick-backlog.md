@@ -41,3 +41,5 @@ Selection should operate in Canvas coordinates and remain accurate at different 
 Investigate integration with Samsung's S Pen handwriting-to-text behavior, commonly exposed as “S Pen to text” or scribble-to-text. Determine which behavior is available to Obsidian's Android WebView and whether handwritten input can be directed into Canvas text cards without compromising normal drawing.
 
 This item requires device-level capability testing before choosing an implementation. Record Android, One UI, Obsidian, and WebView versions during that investigation.
+
+Investigation status: [platform findings, the non-invasive editor pass-through, and the device matrix](stylus-to-text.md) are documented. Real-device combinations remain intentionally unverified until the matrix is run on Galaxy hardware.
