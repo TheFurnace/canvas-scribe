@@ -14,6 +14,22 @@ Add a low-friction way to switch among recently used or pinned pen and highlight
 
 The interaction should be comfortable with the S Pen and should not obstruct native Canvas controls.
 
+## Pen and stylus terminology
+
+Use **pen** exclusively for the brush style and **stylus** exclusively for the input method throughout labels, tooltips, settings, and documentation.
+
+Swap the brush and input-toggle icons so the pen brush uses the fountainhead icon and the stylus input toggle uses the stylus icon.
+
+Acceptance check: the interface should never use “pen” to describe the input device, and each icon should consistently represent its corresponding brush style or input method.
+
+## Eraser size and cursor
+
+Give eraser mode a larger default brush size so strokes are easier to target and remove without excessive scrubbing.
+
+While erasing, show a circular cursor that clearly represents the eraser's active footprint. The circle should track the pointer accurately and reflect the current eraser size at every Canvas zoom level.
+
+Acceptance check: switching to the eraser should select its larger default size, and hovering or dragging over the Canvas should display a circle matching the area that will be erased.
+
 ## Lasso tool
 
 Add stylus-friendly lasso selection for existing ink. The first pass should support selecting one or more strokes and moving them together; deletion and other transforms can be evaluated alongside it.
