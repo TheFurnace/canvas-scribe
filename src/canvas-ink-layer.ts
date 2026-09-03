@@ -1,6 +1,7 @@
 import { Notice, setIcon, type App } from "obsidian";
 
 import type { CanvasTarget } from "./canvas-target";
+import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
@@ -37,11 +38,13 @@ export class CanvasInkLayer {
   private data: CanvasInkData = createEmptyInkData();
   private svgEl: SVGSVGElement | null = null;
   private controlsEl: HTMLElement | null = null;
+  private colorPaletteEl: HTMLElement | null = null;
   private wrapperEl: HTMLElement | null = null;
   private activeStroke: InkStroke | null = null;
   private activePathEl: SVGPathElement | null = null;
   private activePointerId: number | null = null;
   private activeTool: DrawingTool = "pen";
+  private readonly selectedColors: Partial<Record<ColorTool, string>> = {};
   private temporaryTool: DrawingTool | null = null;
   private enabled = true;
   private didEraseInGesture = false;
@@ -83,6 +86,7 @@ export class CanvasInkLayer {
 
   setTool(tool: DrawingTool): void {
     this.activeTool = tool;
+    this.closeColorPalette();
     this.logger.record("canvas", "tool_selected", { tool });
     this.syncControls();
   }
@@ -126,6 +130,7 @@ export class CanvasInkLayer {
     this.observer?.disconnect();
     this.observer = null;
     this.svgEl?.remove();
+    this.closeColorPalette();
     this.controlsEl?.remove();
     this.closeRadialMenu();
     this.logger.record("canvas", "layer_disposed", { strokeCount: this.data.strokes.length });
@@ -234,7 +239,7 @@ export class CanvasInkLayer {
     this.activeStroke = {
       id: createStrokeId(),
       tool,
-      color: tool === "pen" ? this.getDefaultPenColor() : "#fde047",
+      color: this.getToolColor(tool),
       size: tool === "pen" ? 3.5 : 17,
       opacity: tool === "pen" ? 1 : 0.38,
       points: [point],
@@ -541,6 +546,10 @@ export class CanvasInkLayer {
     this.svgEl.replaceChildren(...this.data.strokes.map((stroke) => this.createPath(stroke, true)));
   }
 
+  private getToolColor(tool: ColorTool): string {
+    return this.selectedColors[tool] ?? (tool === "pen" ? this.getDefaultPenColor() : "#fde047");
+  }
+
   private createPath(stroke: InkStroke, complete: boolean): SVGPathElement {
     const path = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "path");
     path.classList.add("canvas-scribe-stroke", `is-${stroke.tool}`);
@@ -596,6 +605,7 @@ export class CanvasInkLayer {
       this.controlButton("pencil", "Pen", "pen", () => this.setTool("pen")),
       this.controlButton("highlighter", "Highlighter", "highlighter", () => this.setTool("highlighter")),
       this.controlButton("eraser", "Eraser", "eraser", () => this.setTool("eraser")),
+      this.controlButton("palette", "Choose pen color", "color", () => this.toggleColorPalette()),
       this.controlButton("undo-2", "Undo ink", "undo", () => this.undo()),
       this.controlButton("redo-2", "Redo ink", "redo", () => this.redo()),
       this.controlButton("pen-tool", "Toggle pen input", "toggle", () => this.toggleEnabled()),
@@ -635,8 +645,54 @@ export class CanvasInkLayer {
     const toggle = this.controlsEl.querySelector<HTMLElement>("[data-action=toggle]");
     toggle?.classList.toggle("is-active", this.enabled);
     toggle?.setAttribute("aria-pressed", String(this.enabled));
+    const color = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
+    const colorTool = this.activeTool === "eraser" ? null : this.activeTool;
+    color?.classList.toggle("is-disabled", colorTool === null);
+    color?.classList.toggle("is-active", this.colorPaletteEl !== null);
+    color?.setAttribute("aria-disabled", String(colorTool === null));
+    color?.setAttribute("aria-label", colorTool ? `Choose ${colorTool} color` : "Choose a pen or highlighter first");
+    if (colorTool) color?.style.setProperty("--canvas-scribe-active-color", this.getToolColor(colorTool));
     this.controlsEl.querySelector<HTMLElement>("[data-action=undo]")?.classList.toggle("is-disabled", this.undoStack.length === 0);
     this.controlsEl.querySelector<HTMLElement>("[data-action=redo]")?.classList.toggle("is-disabled", this.redoStack.length === 0);
+  }
+
+  private toggleColorPalette(): void {
+    if (this.colorPaletteEl) {
+      this.closeColorPalette();
+      this.syncControls();
+      return;
+    }
+    if (!this.controlsEl || this.activeTool === "eraser") return;
+    const tool = this.activeTool;
+    const document = this.target.containerEl.ownerDocument;
+    const palette = document.createElement("div");
+    palette.className = "canvas-scribe-color-palette";
+    palette.setAttribute("role", "toolbar");
+    palette.setAttribute("aria-label", `${tool} colors`);
+    for (const color of paletteColors(tool, this.getToolColor(tool))) {
+      const swatch = document.createElement("button");
+      swatch.type = "button";
+      swatch.className = "canvas-scribe-color-swatch";
+      swatch.style.setProperty("--canvas-scribe-swatch-color", color);
+      swatch.setAttribute("aria-label", `Use ${color} for ${tool}`);
+      swatch.setAttribute("aria-pressed", String(color.toLowerCase() === this.getToolColor(tool).toLowerCase()));
+      swatch.addEventListener("pointerdown", (event) => {
+        this.consume(event);
+        this.selectedColors[tool] = color;
+        this.logger.record("canvas", "color_selected", { tool, color });
+        this.closeColorPalette();
+        this.syncControls();
+      });
+      palette.appendChild(swatch);
+    }
+    this.controlsEl.appendChild(palette);
+    this.colorPaletteEl = palette;
+    this.syncControls();
+  }
+
+  private closeColorPalette(): void {
+    this.colorPaletteEl?.remove();
+    this.colorPaletteEl = null;
   }
 
   private listen<K extends keyof HTMLElementEventMap>(
