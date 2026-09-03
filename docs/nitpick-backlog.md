@@ -4,9 +4,9 @@ Small interaction and quality improvements observed during Galaxy tablet testing
 
 ## Absolute brush width
 
-The apparent brush width currently changes with Canvas zoom and grows when zooming out. Make brush width screen-space absolute so a selected width has a consistent physical appearance at every Canvas zoom level.
+The Canvas-space width assigned to a new stroke currently changes with Canvas zoom, so ink drawn after zooming does not match existing ink. Keep the selected brush width absolute in Canvas coordinates regardless of the zoom at which a stroke is created. Completed strokes should continue to scale normally with the Canvas.
 
-Acceptance check: draw comparable strokes before and after zooming, then change zoom while viewing them. Stroke thickness should remain visually consistent rather than scaling with the Canvas.
+Acceptance check: draw comparable strokes before and after zooming, then view them at the same zoom level. Their thickness should match. Changing zoom while viewing completed strokes should scale all of them together with the Canvas.
 
 ## Quick color swapping
 

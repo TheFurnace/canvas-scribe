@@ -22,6 +22,10 @@ export function strokeToSvgPath(stroke: InkStroke, complete = true): string {
   return outlineToSvgPath(outline);
 }
 
+export function screenSizeToCanvasSize(screenSize: number, screenScale: number): number {
+  return screenSize / (Number.isFinite(screenScale) && screenScale > 0 ? screenScale : 1);
+}
+
 export function outlineToSvgPath(points: readonly Coordinate[]): string {
   if (points.length === 0) return "";
 

@@ -219,12 +219,11 @@ export class CanvasInkLayer {
 
     const point = this.eventToPoint(event);
     if (!point) return;
-    const scale = this.getScreenScale();
     this.activeStroke = {
       id: createStrokeId(),
       tool,
       color: tool === "pen" ? this.getDefaultPenColor() : "#fde047",
-      size: (tool === "pen" ? 3.5 : 17) / scale,
+      size: tool === "pen" ? 3.5 : 17,
       opacity: tool === "pen" ? 1 : 0.38,
       points: [point],
       hasPressure: event.pressure > 0 && event.pressure !== 0.5,
