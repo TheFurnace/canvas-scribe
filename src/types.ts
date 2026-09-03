@@ -1,7 +1,8 @@
 export const CANVAS_INK_KEY = "canvasScribe" as const;
 export const CANVAS_INK_VERSION = 1 as const;
 
-export type DrawingTool = "pen" | "highlighter" | "eraser";
+export type InkTool = "pen" | "highlighter";
+export type DrawingTool = InkTool | "eraser" | "lasso";
 
 export interface InkPoint {
   x: number;
@@ -14,7 +15,7 @@ export interface InkPoint {
 
 export interface InkStroke {
   id: string;
-  tool: Exclude<DrawingTool, "eraser">;
+  tool: InkTool;
   color: string;
   size: number;
   opacity: number;

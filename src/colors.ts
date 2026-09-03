@@ -1,6 +1,6 @@
-import type { DrawingTool } from "./types";
+import type { InkTool } from "./types";
 
-export type ColorTool = Exclude<DrawingTool, "eraser">;
+export type ColorTool = InkTool;
 
 export const PINNED_TOOL_COLORS: Readonly<Record<ColorTool, readonly string[]>> = {
   pen: ["#1f2937", "#2563eb", "#dc2626", "#16a34a", "#9333ea"],
