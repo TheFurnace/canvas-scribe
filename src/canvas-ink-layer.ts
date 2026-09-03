@@ -5,6 +5,7 @@ import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
+import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
 import {
   isEraserTip,
   isStylusBarrelButton,
@@ -29,6 +30,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const SAVE_DELAY_MS = 250;
 const MIN_SCREEN_POINT_DISTANCE = 0.35;
 const ERASER_SCREEN_RADIUS = 18;
+const SELECTION_SCREEN_PADDING = 8;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -39,6 +41,8 @@ export class CanvasInkLayer {
   private data: CanvasInkData = createEmptyInkData();
   private svgEl: SVGSVGElement | null = null;
   private eraserCursorEl: SVGCircleElement | null = null;
+  private lassoPathEl: SVGPathElement | null = null;
+  private selectionRectEl: SVGRectElement | null = null;
   private controlsEl: HTMLElement | null = null;
   private colorPaletteEl: HTMLElement | null = null;
   private wrapperEl: HTMLElement | null = null;
@@ -47,6 +51,12 @@ export class CanvasInkLayer {
   private activePointerId: number | null = null;
   private activeTool: DrawingTool = "pen";
   private readonly selectedColors: Partial<Record<ColorTool, string>> = {};
+  private readonly selectedStrokeIds = new Set<string>();
+  private lassoPoints: InkPoint[] = [];
+  private lassoMode: "select" | "move" | null = null;
+  private moveOrigin: InkPoint | null = null;
+  private moveStartPoints = new Map<string, InkPoint[]>();
+  private didMoveSelection = false;
   private temporaryTool: DrawingTool | null = null;
   private enabled = true;
   private didEraseInGesture = false;
@@ -55,6 +65,7 @@ export class CanvasInkLayer {
   private undoStack: InkStroke[][] = [];
   private redoStack: InkStroke[][] = [];
   private gestureRedoStack: InkStroke[][] | null = null;
+  private gestureHasUndoSnapshot = false;
   private saveTimer: number | null = null;
   private renderFrame: number | null = null;
   private domFrame: number | null = null;
@@ -89,6 +100,7 @@ export class CanvasInkLayer {
   setTool(tool: DrawingTool): void {
     this.activeTool = tool;
     if (tool !== "eraser") this.hideEraserCursor();
+    if (tool !== "lasso") this.clearSelection();
     this.closeColorPalette();
     this.logger.record("canvas", "tool_selected", { tool });
     this.syncControls();
@@ -134,6 +146,8 @@ export class CanvasInkLayer {
     this.observer = null;
     this.svgEl?.remove();
     this.eraserCursorEl = null;
+    this.lassoPathEl = null;
+    this.selectionRectEl = null;
     this.closeColorPalette();
     this.controlsEl?.remove();
     this.closeRadialMenu();
@@ -232,9 +246,10 @@ export class CanvasInkLayer {
       temporaryTool: this.temporaryTool !== null,
     });
     this.gestureRedoStack = this.redoStack;
-    this.pushUndoSnapshot();
-
+    this.gestureHasUndoSnapshot = false;
     if (tool === "eraser") {
+      this.pushUndoSnapshot();
+      this.gestureHasUndoSnapshot = true;
       this.didEraseInGesture = false;
       this.eraseSamples(event);
       return;
@@ -242,6 +257,12 @@ export class CanvasInkLayer {
 
     const point = this.eventToPoint(event);
     if (!point) return;
+    if (tool === "lasso") {
+      this.beginLassoGesture(point);
+      return;
+    }
+    this.pushUndoSnapshot();
+    this.gestureHasUndoSnapshot = true;
     this.activeStroke = {
       id: createStrokeId(),
       tool,
@@ -286,6 +307,10 @@ export class CanvasInkLayer {
       this.eraseSamples(event);
       return;
     }
+    if (tool === "lasso") {
+      this.updateLassoGesture(event);
+      return;
+    }
     if (!this.activeStroke) return;
     for (const sample of pointerSamples(event)) {
       const point = this.eventToPoint(sample);
@@ -313,7 +338,10 @@ export class CanvasInkLayer {
     }
     if (event.pointerId !== this.activePointerId) return;
     this.consume(event);
-    if ((this.temporaryTool ?? this.activeTool) !== "eraser" && shouldAppendReleasePoint(event)) {
+    const tool = this.temporaryTool ?? this.activeTool;
+    if (tool === "lasso" && shouldAppendReleasePoint(event)) {
+      this.updateLassoGesture(event);
+    } else if (tool !== "eraser" && shouldAppendReleasePoint(event)) {
       this.appendReleasePoint(event);
     }
     if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
@@ -343,10 +371,13 @@ export class CanvasInkLayer {
     }
     const pointerId = this.activePointerId;
     if (pointerId !== null && this.wrapperEl?.hasPointerCapture(pointerId)) this.wrapperEl.releasePointerCapture(pointerId);
-    const previous = this.undoStack.pop();
-    if (previous) this.data.strokes = previous;
+    if (this.gestureHasUndoSnapshot) {
+      const previous = this.undoStack.pop();
+      if (previous) this.data.strokes = previous;
+    }
     if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
     this.gestureRedoStack = null;
+    this.gestureHasUndoSnapshot = false;
     this.activeStroke = null;
     this.activePathEl = null;
     this.activePointerId = null;
@@ -354,6 +385,13 @@ export class CanvasInkLayer {
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.erasedStrokeCount = 0;
+    this.lassoPathEl?.remove();
+    this.lassoPathEl = null;
+    this.lassoMode = null;
+    this.lassoPoints = [];
+    this.moveOrigin = null;
+    this.moveStartPoints.clear();
+    this.didMoveSelection = false;
     this.renderAll();
     this.syncControls();
     this.logger.record("ink", "gesture_cancelled", { reason });
@@ -366,7 +404,9 @@ export class CanvasInkLayer {
     }
     const completedStroke = this.activeStroke;
     const completedTool = this.temporaryTool ?? this.activeTool;
-    if (this.activeStroke) {
+    if (completedTool === "lasso") {
+      this.finishLassoGesture();
+    } else if (this.activeStroke) {
       if (this.activeStroke.points.length === 1) {
         const first = this.activeStroke.points[0];
         if (first) this.activeStroke.points.push({ ...first, x: first.x + 0.01, time: first.time + 1 });
@@ -375,14 +415,14 @@ export class CanvasInkLayer {
       this.scheduleSave();
     } else if (this.didEraseInGesture) {
       this.scheduleSave();
-    } else {
+    } else if (this.gestureHasUndoSnapshot) {
       this.undoStack.pop();
       if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
     }
     this.logger.record("ink", "gesture_finished", {
       tool: completedTool,
       durationMs: Math.round(performance.now() - this.gestureStartedAt),
-      pointCount: completedStroke?.points.length ?? 0,
+      pointCount: completedStroke?.points.length ?? this.lassoPoints.length,
       erasedStrokeCount: this.erasedStrokeCount,
       pressureDetected: completedStroke?.hasPressure ?? false,
     });
@@ -393,6 +433,12 @@ export class CanvasInkLayer {
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.gestureRedoStack = null;
+    this.gestureHasUndoSnapshot = false;
+    this.lassoMode = null;
+    this.lassoPoints = [];
+    this.moveOrigin = null;
+    this.moveStartPoints.clear();
+    this.didMoveSelection = false;
     if (this.activeTool !== "eraser") this.hideEraserCursor();
     this.syncControls();
   }
@@ -559,7 +605,77 @@ export class CanvasInkLayer {
   private renderAll(): void {
     if (!this.svgEl) return;
     this.svgEl.replaceChildren(...this.data.strokes.map((stroke) => this.createPath(stroke, true)));
+    this.updateSelectionRect();
     this.ensureEraserCursor();
+  }
+
+  private beginLassoGesture(point: InkPoint): void {
+    const bounds = boundsForStrokes(this.selectedStrokes());
+    const padding = SELECTION_SCREEN_PADDING / this.getScreenScale();
+    if (bounds && pointInBounds(point, bounds, padding)) {
+      this.lassoMode = "move";
+      this.moveOrigin = point;
+      this.moveStartPoints = new Map(
+        this.selectedStrokes().map((stroke) => [stroke.id, stroke.points.map((candidate) => ({ ...candidate }))]),
+      );
+      this.pushUndoSnapshot();
+      this.gestureHasUndoSnapshot = true;
+      return;
+    }
+
+    this.clearSelection();
+    this.lassoMode = "select";
+    this.lassoPoints = [point];
+    this.ensureLassoPath();
+    this.updateLassoPath();
+  }
+
+  private updateLassoGesture(event: PointerEvent): void {
+    if (this.lassoMode === "select") {
+      for (const sample of pointerSamples(event)) {
+        const point = this.eventToPoint(sample);
+        const previous = this.lassoPoints[this.lassoPoints.length - 1];
+        if (!point || (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < 1 / this.getScreenScale())) {
+          continue;
+        }
+        this.lassoPoints.push(point);
+      }
+      this.updateLassoPath();
+      return;
+    }
+    if (this.lassoMode !== "move" || !this.moveOrigin) return;
+    const samples = pointerSamples(event);
+    const point = this.eventToPoint(samples[samples.length - 1] ?? event);
+    if (!point) return;
+    const deltaX = point.x - this.moveOrigin.x;
+    const deltaY = point.y - this.moveOrigin.y;
+    this.didMoveSelection = this.didMoveSelection || Math.hypot(deltaX, deltaY) >= 1 / this.getScreenScale();
+    for (const stroke of this.data.strokes) {
+      const startPoints = this.moveStartPoints.get(stroke.id);
+      if (startPoints) stroke.points = translatePoints(startPoints, deltaX, deltaY);
+    }
+    this.renderAll();
+  }
+
+  private finishLassoGesture(): void {
+    if (this.lassoMode === "select") {
+      this.selectedStrokeIds.clear();
+      for (const stroke of this.data.strokes) {
+        if (strokeInsidePolygon(stroke, this.lassoPoints)) this.selectedStrokeIds.add(stroke.id);
+      }
+      this.logger.record("ink", "lasso_selected", { strokeCount: this.selectedStrokeIds.size });
+      this.lassoPathEl?.remove();
+      this.lassoPathEl = null;
+      this.renderAll();
+      return;
+    }
+    if (this.lassoMode === "move" && this.didMoveSelection) {
+      this.logger.record("ink", "lasso_moved", { strokeCount: this.selectedStrokeIds.size });
+      this.scheduleSave();
+    } else if (this.lassoMode === "move") {
+      this.undoStack.pop();
+      if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
+    }
   }
 
   private getToolColor(tool: ColorTool): string {
@@ -569,6 +685,7 @@ export class CanvasInkLayer {
   private createPath(stroke: InkStroke, complete: boolean): SVGPathElement {
     const path = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "path");
     path.classList.add("canvas-scribe-stroke", `is-${stroke.tool}`);
+    path.classList.toggle("is-selected", this.selectedStrokeIds.has(stroke.id));
     path.dataset.strokeId = stroke.id;
     path.setAttribute("d", strokeToSvgPath(stroke, complete));
     path.setAttribute("fill", stroke.color);
@@ -621,6 +738,7 @@ export class CanvasInkLayer {
       this.controlButton("pen-tool", "Pen", "pen", () => this.setTool("pen")),
       this.controlButton("highlighter", "Highlighter", "highlighter", () => this.setTool("highlighter")),
       this.controlButton("eraser", "Eraser", "eraser", () => this.setTool("eraser")),
+      this.controlButton("lasso-select", "Lasso ink", "lasso", () => this.setTool("lasso")),
       this.controlButton("palette", "Choose pen color", "color", () => this.toggleColorPalette()),
       this.controlButton("undo-2", "Undo ink", "undo", () => this.undo()),
       this.controlButton("redo-2", "Redo ink", "redo", () => this.redo()),
@@ -653,7 +771,7 @@ export class CanvasInkLayer {
 
   private syncControls(): void {
     if (!this.controlsEl) return;
-    for (const tool of ["pen", "highlighter", "eraser"] as const) {
+    for (const tool of ["pen", "highlighter", "eraser", "lasso"] as const) {
       const button = this.controlsEl.querySelector<HTMLElement>(`[data-action="${tool}"]`);
       button?.classList.toggle("is-active", this.activeTool === tool && this.enabled);
       button?.setAttribute("aria-pressed", String(this.activeTool === tool && this.enabled));
@@ -662,7 +780,8 @@ export class CanvasInkLayer {
     toggle?.classList.toggle("is-active", this.enabled);
     toggle?.setAttribute("aria-pressed", String(this.enabled));
     const color = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
-    const colorTool = this.activeTool === "eraser" ? null : this.activeTool;
+    const colorTool: ColorTool | null =
+      this.activeTool === "pen" || this.activeTool === "highlighter" ? this.activeTool : null;
     color?.classList.toggle("is-disabled", colorTool === null);
     color?.classList.toggle("is-active", this.colorPaletteEl !== null);
     color?.setAttribute("aria-disabled", String(colorTool === null));
@@ -702,13 +821,64 @@ export class CanvasInkLayer {
     this.eraserCursorEl?.classList.remove("is-visible");
   }
 
+  private ensureLassoPath(): void {
+    if (!this.svgEl) return;
+    if (!this.lassoPathEl) {
+      this.lassoPathEl = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "path");
+      this.lassoPathEl.classList.add("canvas-scribe-lasso-path");
+      this.lassoPathEl.setAttribute("vector-effect", "non-scaling-stroke");
+    }
+    this.svgEl.appendChild(this.lassoPathEl);
+  }
+
+  private updateLassoPath(): void {
+    this.ensureLassoPath();
+    if (!this.lassoPathEl) return;
+    const commands = this.lassoPoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`);
+    if (this.lassoPoints.length > 2) commands.push("Z");
+    this.lassoPathEl.setAttribute("d", commands.join(" "));
+  }
+
+  private selectedStrokes(): InkStroke[] {
+    return this.data.strokes.filter((stroke) => this.selectedStrokeIds.has(stroke.id));
+  }
+
+  private updateSelectionRect(): void {
+    if (!this.svgEl) return;
+    const bounds = boundsForStrokes(this.selectedStrokes());
+    if (!bounds) {
+      this.selectionRectEl?.remove();
+      this.selectionRectEl = null;
+      return;
+    }
+    if (!this.selectionRectEl) {
+      this.selectionRectEl = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "rect");
+      this.selectionRectEl.classList.add("canvas-scribe-selection-box");
+      this.selectionRectEl.setAttribute("vector-effect", "non-scaling-stroke");
+    }
+    const padding = SELECTION_SCREEN_PADDING / this.getScreenScale();
+    this.selectionRectEl.setAttribute("x", (bounds.minX - padding).toString());
+    this.selectionRectEl.setAttribute("y", (bounds.minY - padding).toString());
+    this.selectionRectEl.setAttribute("width", (bounds.maxX - bounds.minX + padding * 2).toString());
+    this.selectionRectEl.setAttribute("height", (bounds.maxY - bounds.minY + padding * 2).toString());
+    this.svgEl.appendChild(this.selectionRectEl);
+  }
+
+  private clearSelection(): void {
+    if (this.selectedStrokeIds.size === 0 && !this.selectionRectEl) return;
+    this.selectedStrokeIds.clear();
+    this.selectionRectEl?.remove();
+    this.selectionRectEl = null;
+    this.renderAll();
+  }
+
   private toggleColorPalette(): void {
     if (this.colorPaletteEl) {
       this.closeColorPalette();
       this.syncControls();
       return;
     }
-    if (!this.controlsEl || this.activeTool === "eraser") return;
+    if (!this.controlsEl || (this.activeTool !== "pen" && this.activeTool !== "highlighter")) return;
     const tool = this.activeTool;
     const document = this.target.containerEl.ownerDocument;
     const palette = document.createElement("div");

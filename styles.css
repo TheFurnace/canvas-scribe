@@ -29,6 +29,18 @@
   visibility: visible;
 }
 
+.canvas-scribe-lasso-path,
+.canvas-scribe-selection-box {
+  fill: rgb(var(--interactive-accent-rgb) / 8%);
+  stroke: var(--interactive-accent);
+  stroke-width: 1.5px;
+  stroke-dasharray: 5 4;
+}
+
+.canvas-scribe-stroke.is-selected {
+  filter: drop-shadow(0 0 2px var(--interactive-accent));
+}
+
 .theme-dark .canvas-scribe-stroke.is-highlighter {
   mix-blend-mode: screen;
 }

@@ -35,7 +35,7 @@ export default class CanvasScribePlugin extends Plugin {
       },
     });
 
-    for (const tool of ["pen", "highlighter", "eraser"] as const) this.addToolCommand(tool);
+    for (const tool of ["pen", "highlighter", "eraser", "lasso"] as const) this.addToolCommand(tool);
     this.addCommand({
       id: "undo-ink",
       name: "Undo canvas ink",
