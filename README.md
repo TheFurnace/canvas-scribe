@@ -21,6 +21,8 @@ https://github.com/TheFurnace/canvas-scribe
 
 BRAT can then install future tablet builds from this repository's releases. See [docs/debug-workflow.md](docs/debug-workflow.md) for the full test and feedback loop.
 
+Tester-reported polish items are tracked in [docs/nitpick-backlog.md](docs/nitpick-backlog.md) for a later focused pass.
+
 ## Development
 
 ```sh
