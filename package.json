@@ -1,6 +1,6 @@
 {
   "name": "canvas-scribe",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pen-first handwriting directly on Obsidian Canvas.",
   "main": "main.js",
   "type": "module",

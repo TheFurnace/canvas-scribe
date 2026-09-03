@@ -26,15 +26,15 @@ describe("DebugLogger", () => {
 
   it("throttles pointer moves while retaining button transitions", () => {
     const logger = new DebugLogger();
-    const pointer = (type: string, timeStamp: number) =>
+    const pointer = (type: string, timeStamp: number, button = -1, buttons = 1) =>
       ({
         type,
         timeStamp,
         pointerId: 7,
         pointerType: "pen",
         isPrimary: true,
-        button: type === "pointerdown" ? 0 : -1,
-        buttons: 1,
+        button: type === "pointerdown" ? 0 : button,
+        buttons,
         pressure: 0.5,
         tangentialPressure: 0,
         tiltX: 2,
@@ -45,16 +45,36 @@ describe("DebugLogger", () => {
         getCoalescedEvents: vi.fn(() => []),
       }) as unknown as PointerEvent;
 
-    logger.recordPointer(pointer("pointermove", 100));
-    logger.recordPointer(pointer("pointermove", 120));
-    logger.recordPointer(pointer("pointermove", 151));
+    logger.recordPointer(pointer("pointermove", 100, -1, 1));
+    logger.recordPointer(pointer("pointermove", 120, 2, 3));
+    logger.recordPointer(pointer("pointermove", 130, 2, 3));
+    logger.recordPointer(pointer("pointermove", 171, -1, 3));
     logger.recordPointer(pointer("pointerdown", 152));
 
-    expect(logger.snapshot().entries.map((entry) => entry.event)).toEqual([
-      "pointermove",
-      "pointermove",
-      "pointerdown",
-    ]);
+    const entries = logger.snapshot().entries;
+    expect(entries.map((entry) => entry.event)).toEqual(["pointermove", "pointermove", "pointermove", "pointerdown"]);
+    expect(entries.map((entry) => entry.data?.button)).toEqual([-1, 2, -1, 0]);
+    expect(entries.map((entry) => entry.data?.buttons)).toEqual([1, 3, 3, 1]);
+  });
+
+  it("records selection state without selected text", () => {
+    const logger = new DebugLogger();
+    const event = { type: "selectstart", cancelable: true, defaultPrevented: false } as Event;
+    const selection = { rangeCount: 1, isCollapsed: true, type: "Caret" } as Selection;
+
+    logger.recordSelection(event, selection);
+
+    expect(logger.snapshot().entries[0]).toMatchObject({
+      category: "selection",
+      event: "selectstart",
+      data: {
+        cancelable: true,
+        defaultPrevented: false,
+        rangeCount: 1,
+        isCollapsed: true,
+        selectionType: "Caret",
+      },
+    });
   });
 
   it("records secondary mouse-style input without coordinates", () => {

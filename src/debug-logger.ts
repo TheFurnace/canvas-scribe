@@ -18,6 +18,11 @@ export interface DebugSnapshot {
   entries: DebugEntry[];
 }
 
+interface PointerButtonState {
+  button: number;
+  buttons: number;
+}
+
 const DEFAULT_MAX_ENTRIES = 1200;
 const POINTER_MOVE_INTERVAL_MS = 50;
 
@@ -27,6 +32,7 @@ export class DebugLogger {
   private droppedEntries = 0;
   private sequence = 0;
   private lastPointerMoveAt = 0;
+  private readonly pointerButtonStates = new Map<number, PointerButtonState>();
 
   constructor(private readonly maxEntries = DEFAULT_MAX_ENTRIES) {
     if (!Number.isInteger(maxEntries) || maxEntries < 1) throw new Error("maxEntries must be a positive integer.");
@@ -50,10 +56,13 @@ export class DebugLogger {
   }
 
   recordPointer(event: PointerEvent): void {
+    const previousState = this.pointerButtonStates.get(event.pointerId);
+    const buttonStateChanged = previousState?.button !== event.button || previousState.buttons !== event.buttons;
     if (event.type === "pointermove") {
-      if (event.timeStamp - this.lastPointerMoveAt < POINTER_MOVE_INTERVAL_MS) return;
+      if (!buttonStateChanged && event.timeStamp - this.lastPointerMoveAt < POINTER_MOVE_INTERVAL_MS) return;
       this.lastPointerMoveAt = event.timeStamp;
     }
+    this.pointerButtonStates.set(event.pointerId, { button: event.button, buttons: event.buttons });
     const coalescedCount = typeof event.getCoalescedEvents === "function" ? event.getCoalescedEvents().length : 0;
     this.record("pointer", event.type, {
       pointerId: event.pointerId,
@@ -69,6 +78,17 @@ export class DebugLogger {
       width: round(event.width),
       height: round(event.height),
       coalescedCount,
+    });
+    if (event.type === "pointerup" || event.type === "pointercancel") this.pointerButtonStates.delete(event.pointerId);
+  }
+
+  recordSelection(event: Event, selection: Selection | null): void {
+    this.record("selection", event.type, {
+      cancelable: event.cancelable,
+      defaultPrevented: event.defaultPrevented,
+      rangeCount: selection?.rangeCount ?? 0,
+      isCollapsed: selection?.isCollapsed ?? true,
+      selectionType: selection?.type ?? "None",
     });
   }
 
@@ -103,6 +123,7 @@ export class DebugLogger {
     this.droppedEntries = 0;
     this.sequence = 0;
     this.lastPointerMoveAt = 0;
+    this.pointerButtonStates.clear();
     this.startedAtMs = Date.now();
     this.record("debug", "history_cleared");
   }

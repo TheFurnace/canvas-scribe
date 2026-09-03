@@ -25,8 +25,11 @@ Run **Canvas Scribe: Clear debug history**, then **Canvas Scribe: Toggle S Pen i
 - Write with light and heavy pressure.
 - Hold the barrel button while hovering.
 - Hold the barrel button and touch the screen.
+- With stylus input disabled, hold the barrel button and drag across text in a Canvas card.
+- With stylus input disabled, hold the barrel button and tap once to trigger the context menu.
+- Repeat those text-drag and context-menu gestures with stylus input enabled to show whether Canvas Scribe's event cancellation suppresses either signal.
 - Release the barrel button while the nib remains down.
 
-The important fields are `button`, `buttons`, and `pressure`. These mappings can differ across Galaxy model, Android version, and Obsidian's bundled WebView.
+The important fields are `button`, `buttons`, `pressure`, `selectstart`, `selectionchange`, and `contextmenu`. Note whether selection begins before the first contacting `pointermove`, and whether the context-menu event reports `pointerType=pen` or `button=2`. These mappings and event ordering can differ across Galaxy model, Android version, and Obsidian's bundled WebView.
 
 When finished, run **Canvas Scribe: Export debug report**. Fill in the generated report and let the `Canvas Scribe Debug` folder sync back to the development computer. The paired Markdown log contains structured JSON with the exact button and pressure mappings.

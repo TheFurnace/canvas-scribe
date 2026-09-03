@@ -9,6 +9,7 @@ const DIAGNOSTIC_EVENTS = [
 ] as const;
 
 const SECONDARY_INPUT_EVENTS = ["mousedown", "mouseup", "auxclick", "contextmenu"] as const;
+const SELECTION_EVENTS = ["selectstart", "selectionchange"] as const;
 
 export class InputDiagnostics {
   private overlay: HTMLElement | null = null;
@@ -46,12 +47,14 @@ export class InputDiagnostics {
     this.logger.record("diagnostics", "overlay_enabled");
     for (const eventName of DIAGNOSTIC_EVENTS) this.document.addEventListener(eventName, this.onPointerEvent, true);
     for (const eventName of SECONDARY_INPUT_EVENTS) this.document.addEventListener(eventName, this.onMouseEvent, true);
+    for (const eventName of SELECTION_EVENTS) this.document.addEventListener(eventName, this.onSelectionEvent, true);
   }
 
   private disable(): void {
     if (this.overlay) this.logger.record("diagnostics", "overlay_disabled");
     for (const eventName of DIAGNOSTIC_EVENTS) this.document.removeEventListener(eventName, this.onPointerEvent, true);
     for (const eventName of SECONDARY_INPUT_EVENTS) this.document.removeEventListener(eventName, this.onMouseEvent, true);
+    for (const eventName of SELECTION_EVENTS) this.document.removeEventListener(eventName, this.onSelectionEvent, true);
     this.overlay?.remove();
     this.overlay = null;
     this.lines.length = 0;
@@ -59,9 +62,9 @@ export class InputDiagnostics {
 
   private readonly onPointerEvent = (event: PointerEvent): void => {
     if (!this.overlay) return;
+    this.logger.recordPointer(event);
     if (event.type === "pointermove" && event.timeStamp - this.lastMoveAt < 80) return;
     if (event.type === "pointermove") this.lastMoveAt = event.timeStamp;
-    this.logger.recordPointer(event);
     const line = [
       event.type.padEnd(11),
       `#${event.pointerId}`,
@@ -88,6 +91,21 @@ export class InputDiagnostics {
       `buttons=${event.buttons}`,
       `detail=${event.detail}`,
       `class=${event.constructor.name}`,
+    ].join(" ");
+    this.lines.push(line);
+    if (this.lines.length > 14) this.lines.shift();
+    this.overlay.textContent = `Canvas Scribe input diagnostics\n${this.lines.join("\n")}`;
+  };
+
+  private readonly onSelectionEvent = (event: Event): void => {
+    if (!this.overlay) return;
+    const selection = this.document.getSelection();
+    this.logger.recordSelection(event, selection);
+    const line = [
+      event.type.padEnd(15),
+      `ranges=${selection?.rangeCount ?? 0}`,
+      `collapsed=${selection?.isCollapsed ?? true}`,
+      `cancelable=${event.cancelable}`,
     ].join(" ");
     this.lines.push(line);
     if (this.lines.length > 14) this.lines.shift();
