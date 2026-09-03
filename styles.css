@@ -18,6 +18,17 @@
   mix-blend-mode: multiply;
 }
 
+.canvas-scribe-eraser-cursor {
+  visibility: hidden;
+  fill: rgb(127 127 127 / 12%);
+  stroke: var(--text-muted);
+  stroke-width: 1.5px;
+}
+
+.canvas-scribe-eraser-cursor.is-visible {
+  visibility: visible;
+}
+
 .theme-dark .canvas-scribe-stroke.is-highlighter {
   mix-blend-mode: screen;
 }
