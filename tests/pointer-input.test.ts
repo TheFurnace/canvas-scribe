@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isPenContact, isTemporaryEraser, shouldAppendReleasePoint } from "../src/pointer-input";
+import { isStylusContact, isTemporaryEraser, shouldAppendReleasePoint } from "../src/pointer-input";
 
 function pointer(values: Partial<PointerEvent>): PointerEvent {
   return {
@@ -12,13 +12,13 @@ function pointer(values: Partial<PointerEvent>): PointerEvent {
   } as PointerEvent;
 }
 
-describe("S Pen input normalization", () => {
-  it("recognizes a contacting pen tip", () => {
-    expect(isPenContact(pointer({ pressure: 0.4, buttons: 1 }))).toBe(true);
+describe("stylus input normalization", () => {
+  it("recognizes a contacting stylus tip", () => {
+    expect(isStylusContact(pointer({ pressure: 0.4, buttons: 1 }))).toBe(true);
   });
 
   it("does not treat barrel-button hover as screen contact", () => {
-    expect(isPenContact(pointer({ button: 2, buttons: 2, pressure: 0 }))).toBe(false);
+    expect(isStylusContact(pointer({ button: 2, buttons: 2, pressure: 0 }))).toBe(false);
   });
 
   it("recognizes barrel-button and eraser-tip bitmasks", () => {

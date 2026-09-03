@@ -17,8 +17,8 @@ export default class CanvasScribePlugin extends Plugin {
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
     this.diagnostics = new InputDiagnostics(document, this.logger);
     this.addCommand({
-      id: "toggle-pen-input",
-      name: "Toggle pen input on active canvas",
+      id: "toggle-stylus-input",
+      name: "Toggle stylus input on active canvas",
       callback: () => this.withActiveLayer((layer) => layer.toggleEnabled()),
     });
     this.addCommand({
@@ -48,7 +48,7 @@ export default class CanvasScribePlugin extends Plugin {
     });
     this.addCommand({
       id: "toggle-input-diagnostics",
-      name: "Toggle S Pen input diagnostics",
+      name: "Toggle stylus input diagnostics",
       callback: () => {
         const enabled = this.diagnostics?.toggle() ?? false;
         new Notice(`Canvas Scribe input diagnostics ${enabled ? "enabled" : "disabled"}.`);

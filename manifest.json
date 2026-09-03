@@ -3,7 +3,7 @@
   "name": "Canvas Scribe",
   "version": "0.1.2",
   "minAppVersion": "1.6.0",
-  "description": "Pen-first handwriting directly on Obsidian Canvas.",
+  "description": "Stylus-first handwriting directly on Obsidian Canvas.",
   "author": "Canvas Scribe contributors",
   "isDesktopOnly": false
 }

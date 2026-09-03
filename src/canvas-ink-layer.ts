@@ -6,8 +6,8 @@ import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
 import {
-  isPenContact,
-  isPenEvent,
+  isStylusContact,
+  isStylusEvent,
   isTemporaryEraser,
   pointerSamples,
   pointerToInkPoint,
@@ -26,7 +26,7 @@ import {
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SAVE_DELAY_MS = 250;
 const MIN_SCREEN_POINT_DISTANCE = 0.35;
-const RECENT_PEN_CONTEXT_MENU_MS = 1000;
+const RECENT_STYLUS_CONTEXT_MENU_MS = 1000;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -59,7 +59,7 @@ export class CanvasInkLayer {
   private observer: MutationObserver | null = null;
   private gestureStartedAt = 0;
   private gestureTransform: CanvasTransform | null = null;
-  private lastPenEventAt = Number.NEGATIVE_INFINITY;
+  private lastStylusEventAt = Number.NEGATIVE_INFINITY;
   private erasedStrokeCount = 0;
 
   constructor(
@@ -89,7 +89,7 @@ export class CanvasInkLayer {
 
   toggleEnabled(): void {
     this.enabled = !this.enabled;
-    this.logger.record("canvas", "pen_input_toggled", { enabled: this.enabled });
+    this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
 
@@ -172,18 +172,18 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
-    this.notePenEvent(event);
+    this.noteStylusEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (!this.enabled || !isPenEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
-    if (isTemporaryEraser(event) && !isPenContact(event)) {
+    if (!this.enabled || !isStylusEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
+    if (isTemporaryEraser(event) && !isStylusContact(event)) {
       this.barrelButtonArmed = true;
       this.consume(event);
       return;
     }
-    if (!isPenContact(event)) return;
+    if (!isStylusContact(event)) return;
     this.beginGesture(event, this.barrelButtonArmed ? "eraser" : undefined);
   };
 
@@ -241,12 +241,18 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
-    this.notePenEvent(event);
+    this.noteStylusEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.enabled && this.barrelButtonArmed && isPenEvent(event) && isPenContact(event)) {
+    if (
+      this.activePointerId === null &&
+      this.enabled &&
+      this.barrelButtonArmed &&
+      isStylusEvent(event) &&
+      isStylusContact(event)
+    ) {
       this.beginGesture(event, "eraser");
       return;
     }
@@ -269,12 +275,12 @@ export class CanvasInkLayer {
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
-    this.notePenEvent(event);
+    this.noteStylusEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.barrelButtonArmed && isPenEvent(event)) {
+    if (this.activePointerId === null && this.barrelButtonArmed && isStylusEvent(event)) {
       this.barrelButtonArmed = false;
       this.consume(event);
       return;
@@ -289,8 +295,8 @@ export class CanvasInkLayer {
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
-    const followsPenInput = event.timeStamp - this.lastPenEventAt <= RECENT_PEN_CONTEXT_MENU_MS;
-    if (this.activePointerId !== null || this.barrelButtonArmed || (this.enabled && followsPenInput)) this.consume(event);
+    const followsStylusInput = event.timeStamp - this.lastStylusEventAt <= RECENT_STYLUS_CONTEXT_MENU_MS;
+    if (this.activePointerId !== null || this.barrelButtonArmed || (this.enabled && followsStylusInput)) this.consume(event);
   };
 
   private finishGesture(): void {
@@ -395,8 +401,8 @@ export class CanvasInkLayer {
     }
   }
 
-  private notePenEvent(event: PointerEvent): void {
-    if (isPenEvent(event)) this.lastPenEventAt = event.timeStamp;
+  private noteStylusEvent(event: PointerEvent): void {
+    if (isStylusEvent(event)) this.lastStylusEventAt = event.timeStamp;
   }
 
   private getDefaultPenColor(): string {
@@ -476,13 +482,13 @@ export class CanvasInkLayer {
     const group = document.createElement("div");
     group.className = "canvas-control-group mod-raised canvas-scribe-controls";
     group.append(
-      this.controlButton("pencil", "Pen", "pen", () => this.setTool("pen")),
+      this.controlButton("pen-tool", "Pen", "pen", () => this.setTool("pen")),
       this.controlButton("highlighter", "Highlighter", "highlighter", () => this.setTool("highlighter")),
       this.controlButton("eraser", "Eraser", "eraser", () => this.setTool("eraser")),
       this.controlButton("palette", "Choose pen color", "color", () => this.toggleColorPalette()),
       this.controlButton("undo-2", "Undo ink", "undo", () => this.undo()),
       this.controlButton("redo-2", "Redo ink", "redo", () => this.redo()),
-      this.controlButton("pen-tool", "Toggle pen input", "toggle", () => this.toggleEnabled()),
+      this.controlButton("pencil", "Toggle stylus input", "toggle", () => this.toggleEnabled()),
     );
     canvasControls.prepend(group);
     this.controlsEl = group;
