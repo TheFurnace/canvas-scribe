@@ -31,6 +31,7 @@ const MIN_SCREEN_POINT_DISTANCE = 0.35;
 const RECENT_STYLUS_CONTEXT_MENU_MS = 1000;
 const ERASER_SCREEN_RADIUS = 18;
 const SELECTION_SCREEN_PADDING = 8;
+const PALETTE_CLOSE_ANIMATION_MS = 180;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -64,6 +65,7 @@ export class CanvasInkLayer {
   private undoStack: InkStroke[][] = [];
   private redoStack: InkStroke[][] = [];
   private saveTimer: number | null = null;
+  private colorPaletteCloseTimer: number | null = null;
   private renderFrame: number | null = null;
   private domFrame: number | null = null;
   private disposed = false;
@@ -773,9 +775,13 @@ export class CanvasInkLayer {
       swatch.addEventListener("pointerdown", (event) => {
         this.consume(event);
         this.selectedColors[tool] = color;
+        palette.querySelectorAll<HTMLElement>(".canvas-scribe-color-swatch").forEach((item) => {
+          item.setAttribute("aria-pressed", String(item === swatch));
+        });
+        swatch.classList.add("is-selected");
         this.logger.record("canvas", "color_selected", { tool, color });
-        this.closeColorPalette();
         this.syncControls();
+        this.closeColorPalette(true);
       });
       palette.appendChild(swatch);
     }
@@ -793,9 +799,27 @@ export class CanvasInkLayer {
     this.syncControls();
   }
 
-  private closeColorPalette(): void {
-    this.colorPaletteEl?.remove();
-    this.colorPaletteEl = null;
+  private closeColorPalette(animate = false): void {
+    if (this.colorPaletteCloseTimer !== null) {
+      window.clearTimeout(this.colorPaletteCloseTimer);
+      this.colorPaletteCloseTimer = null;
+    }
+    const palette = this.colorPaletteEl;
+    if (!palette) return;
+    const prefersReducedMotion =
+      palette.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    if (!animate || prefersReducedMotion) {
+      palette.remove();
+      this.colorPaletteEl = null;
+      return;
+    }
+    palette.classList.add("is-closing");
+    this.colorPaletteCloseTimer = window.setTimeout(() => {
+      this.colorPaletteCloseTimer = null;
+      palette.remove();
+      if (this.colorPaletteEl === palette) this.colorPaletteEl = null;
+      this.syncControls();
+    }, PALETTE_CLOSE_ANIMATION_MS);
   }
 
   private listen<K extends keyof HTMLElementEventMap>(
