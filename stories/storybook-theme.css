@@ -43,6 +43,72 @@ body {
   position: static;
 }
 
+.canvas-scribe-story-backdrop {
+  position: absolute;
+  inset: 0;
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.canvas-scribe-story-backdrop .canvas-node,
+.canvas-scribe-story-backdrop .canvas-edges > * {
+  pointer-events: none;
+}
+
+.canvas-scribe-story-edges {
+  opacity: 0.62;
+}
+
+.canvas-scribe-story-node {
+  width: 220px;
+  height: 126px;
+  --canvas-node-height: 126px;
+}
+
+.canvas-scribe-story-node[data-slot="ideas"] {
+  left: 6%;
+  top: 11%;
+  transform: rotate(-1.5deg);
+}
+
+.canvas-scribe-story-node[data-slot="references"] {
+  right: 7%;
+  top: 16%;
+  transform: rotate(1deg);
+}
+
+.canvas-scribe-story-node[data-slot="device"] {
+  bottom: 11%;
+  left: 7%;
+  transform: rotate(1deg);
+}
+
+.canvas-scribe-story-node[data-slot="review"] {
+  right: 8%;
+  bottom: 13%;
+  transform: rotate(-1deg);
+}
+
+.canvas-scribe-story-node-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: var(--size-4-5);
+}
+
+.canvas-scribe-story-node-copy strong {
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+}
+
+.canvas-scribe-story-node-copy span {
+  margin-top: var(--size-4-2);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
 .canvas-scribe-story-content {
   position: absolute;
   inset: 0;
@@ -94,5 +160,21 @@ body {
 
   .canvas-scribe-story-content {
     padding: var(--size-4-4);
+  }
+
+  .canvas-scribe-story-node {
+    width: 164px;
+    height: 96px;
+    --canvas-node-height: 96px;
+  }
+
+  .canvas-scribe-story-node[data-slot="references"],
+  .canvas-scribe-story-node[data-slot="review"] {
+    right: -6%;
+  }
+
+  .canvas-scribe-story-node[data-slot="ideas"],
+  .canvas-scribe-story-node[data-slot="device"] {
+    left: -5%;
   }
 }

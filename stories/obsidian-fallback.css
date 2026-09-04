@@ -69,3 +69,35 @@
   stroke-linejoin: round;
   stroke-width: 2;
 }
+
+.canvas-node {
+  position: absolute;
+}
+
+.canvas-node-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+
+.canvas-node-content {
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-display-path {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 2px;
+}

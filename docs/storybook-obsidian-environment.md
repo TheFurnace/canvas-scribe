@@ -16,7 +16,7 @@ This matches Obsidian's own guidance that plugins should build against host CSS 
 2. The sync script discovers the newest versioned ASAR in Obsidian's application-data directory, then falls back to common Windows, macOS, and Linux install paths.
 3. It extracts `app.css` plus local `public/fonts` and `public/images` references into `.storybook/generated/`.
 4. `.storybook/main.ts` aliases `virtual:obsidian-app.css` to the generated stylesheet. If none is available, it aliases to the deliberately small `stories/obsidian-fallback.css` so CI can still build.
-5. The global decorator builds the host class structure used by a Canvas leaf: workspace, leaf, `view-content`, `canvas-wrapper`, SVG dot background, Canvas mover, and Canvas element.
+5. The global decorator builds the host class structure used by a Canvas leaf: workspace, leaf, `view-content`, `canvas-wrapper`, SVG dot background, Canvas mover, and Canvas element. A non-interactive backdrop of native `.canvas-node` cards and `.canvas-edges` gives every component spatial board context.
 6. The Storybook toolbar switches the real `theme-light`/`theme-dark` and `is-desktop`/`is-mobile` host classes.
 
 The toolbar and radial-menu stories also import the same DOM builders used by production. Story controls only supply state; they no longer duplicate production markup.
