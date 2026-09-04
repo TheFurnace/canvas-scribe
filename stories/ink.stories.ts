@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 
-import { storyCard, storyStage } from "./story-helpers";
-
 function createInkSample(): HTMLElement {
   const wrapper = document.createElement("div");
   wrapper.className = "canvas-scribe-story-ink";
@@ -34,18 +32,19 @@ function createInkSample(): HTMLElement {
   labels.append(penLabel, highlighterLabel);
 
   wrapper.append(svg, labels);
-  return storyStage(
-    storyCard(
-      "Ink on Rosé Pine Light",
-      "Production stroke classes rendered on the vault-inspired canvas surface.",
-      wrapper,
-    ),
-  );
+  return wrapper;
 }
 
 const meta = {
   title: "Canvas Scribe/Ink",
   tags: ["autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        component: "Production stroke classes rendered on the current Obsidian Canvas surface.",
+      },
+    },
+  },
   render: () => createInkSample(),
 } satisfies Meta;
 

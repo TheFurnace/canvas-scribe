@@ -29,31 +29,19 @@ const ICON_PATHS: Record<IconName, string> = {
 
 export function icon(name: IconName): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.classList.add("svg-icon");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("stroke-width", "2");
   svg.innerHTML = ICON_PATHS[name];
   return svg;
 }
 
-export function storyStage(child: Node, className = ""): HTMLElement {
-  const stage = document.createElement("section");
-  stage.className = `canvas-scribe-story-stage ${className}`.trim();
-  stage.append(child);
-  return stage;
-}
-
-export function storyCard(title: string, copy: string, child: Node): HTMLElement {
-  const card = document.createElement("div");
-  card.className = "canvas-scribe-story-card";
-
-  const heading = document.createElement("h2");
-  heading.className = "canvas-scribe-story-heading";
-  heading.textContent = title;
-
-  const description = document.createElement("p");
-  description.className = "canvas-scribe-story-copy";
-  description.textContent = copy;
-
-  card.append(heading, description, child);
-  return card;
+export function renderStoryIcon(container: HTMLElement, name: string): void {
+  if (!(name in ICON_PATHS)) throw new Error(`Missing Storybook icon fixture: ${name}`);
+  container.append(icon(name as IconName));
 }

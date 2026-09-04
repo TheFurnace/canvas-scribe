@@ -1,0 +1,71 @@
+/*
+ * CI-safe fallback for machines without a local Obsidian installation.
+ * Local Storybook commands replace this with Obsidian's own app.css via
+ * scripts/sync-obsidian-css.mjs. Keep this intentionally small: it is not a
+ * second implementation of Obsidian's design system.
+ */
+:root {
+  color-scheme: light;
+}
+
+.theme-light {
+  --background-primary: #ffffff;
+  --background-primary-alt: #f5f6f8;
+  --background-secondary: #f2f3f5;
+  --background-secondary-alt: #e9eaec;
+  --background-modifier-border: #dfe0e2;
+  --background-modifier-hover: rgb(0 0 0 / 7.5%);
+  --interactive-accent: #7c3aed;
+  --text-normal: #2e3338;
+  --text-muted: #6b6f76;
+  --text-faint: #9b9fa6;
+  --text-on-accent: #ffffff;
+  --canvas-background: #f7f7f8;
+  --canvas-dot-pattern: #c7c9cc;
+  --font-interface-theme: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.canvas-controls {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  display: flex;
+}
+
+.canvas-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+
+.canvas-control-group.mod-raised {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
+}
+
+.canvas-control-item {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  color: var(--text-muted);
+}
+
+.canvas-control-item:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.canvas-control-item svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}

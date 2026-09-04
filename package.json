@@ -15,8 +15,11 @@
   "packageManager": "pnpm@11.19.0",
   "scripts": {
     "dev": "node esbuild.config.mjs",
+    "prestorybook": "node scripts/sync-obsidian-css.mjs --optional",
     "storybook": "storybook dev -p 6006",
+    "prebuild:storybook": "node scripts/sync-obsidian-css.mjs --optional",
     "build:storybook": "tsc -p tsconfig.storybook.json --noEmit && storybook build",
+    "sync:obsidian-css": "node scripts/sync-obsidian-css.mjs",
     "build": "tsc --noEmit && node esbuild.config.mjs production",
     "test": "vitest run",
     "check:versions": "node scripts/check-versions.mjs",
@@ -36,6 +39,7 @@
     "perfect-freehand": "^1.2.2"
   },
   "devDependencies": {
+    "@electron/asar": "4.3.0",
     "@storybook/addon-a11y": "^10.6.0",
     "@storybook/addon-docs": "^10.6.0",
     "@storybook/web-components-vite": "^10.6.0",

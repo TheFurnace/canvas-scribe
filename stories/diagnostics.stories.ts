@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 
-import { storyCard, storyStage } from "./story-helpers";
-
 interface DiagnosticsArgs {
   pointerType: "pen" | "touch" | "mouse";
   pressure: number;
@@ -20,22 +18,20 @@ function createDiagnostics(args: DiagnosticsArgs): HTMLElement {
     `pointerup   #7 ${args.pointerType.padEnd(5)} button=0 buttons=0 pressure=0.000 tilt=${args.tiltX + 1},${args.tiltY} size=2x2`,
   ].join("\n");
 
-  const fixture = document.createElement("div");
-  fixture.className = "canvas-scribe-story-diagnostics";
-  fixture.append(overlay);
-
-  return storyStage(
-    storyCard(
-      "Input diagnostics",
-      "A compact event trace used while tuning S Pen and pointer behavior on-device.",
-      fixture,
-    ),
-  );
+  return overlay;
 }
 
 const meta: Meta<DiagnosticsArgs> = {
   title: "Canvas Scribe/Diagnostics",
   tags: ["autodocs"],
+  parameters: {
+    obsidian: { placement: "overlay" },
+    docs: {
+      description: {
+        component: "The production diagnostics overlay positioned over an Obsidian Canvas host.",
+      },
+    },
+  },
   render: (args) => createDiagnostics(args),
   args: {
     pointerType: "pen",

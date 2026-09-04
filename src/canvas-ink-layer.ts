@@ -1,5 +1,6 @@
 import { Notice, setIcon, type App } from "obsidian";
 
+import { createCanvasControls, syncCanvasControls } from "./canvas-controls";
 import type { CanvasTarget } from "./canvas-target";
 import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
@@ -742,64 +743,30 @@ export class CanvasInkLayer {
       return;
     }
     this.controlsEl?.remove();
-    const document = this.target.containerEl.ownerDocument;
-    const group = document.createElement("div");
-    group.className = "canvas-control-group mod-raised canvas-scribe-controls";
-    group.append(
-      this.controlButton("pen-tool", "Pen", "pen", () => this.setTool("pen")),
-      this.controlButton("highlighter", "Highlighter", "highlighter", () => this.setTool("highlighter")),
-      this.controlButton("eraser", "Eraser", "eraser", () => this.setTool("eraser")),
-      this.controlButton("lasso-select", "Lasso ink", "lasso", () => this.setTool("lasso")),
-      this.controlButton("palette", "Choose pen color", "color", () => this.toggleColorPalette()),
-      this.controlButton("undo-2", "Undo ink", "undo", () => this.undo()),
-      this.controlButton("redo-2", "Redo ink", "redo", () => this.redo()),
-      this.controlButton("pencil", "Toggle stylus input", "toggle", () => this.toggleEnabled()),
-    );
+    const group = createCanvasControls(this.target.containerEl.ownerDocument, setIcon, {
+      setTool: (tool) => this.setTool(tool),
+      toggleColorPalette: () => this.toggleColorPalette(),
+      undo: () => this.undo(),
+      redo: () => this.redo(),
+      toggleEnabled: () => this.toggleEnabled(),
+    });
     canvasControls.prepend(group);
     this.controlsEl = group;
     this.syncControls();
   }
 
-  private controlButton(icon: string, label: string, action: string, callback: () => void): HTMLElement {
-    const button = this.target.containerEl.ownerDocument.createElement("div");
-    button.className = "canvas-control-item canvas-scribe-control-item";
-    button.dataset.action = action;
-    button.setAttribute("aria-label", label);
-    button.setAttribute("role", "button");
-    button.tabIndex = 0;
-    setIcon(button, icon);
-    const activate = (event: Event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      callback();
-    };
-    button.addEventListener("pointerdown", activate);
-    button.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") activate(event);
-    });
-    return button;
-  }
-
   private syncControls(): void {
     if (!this.controlsEl) return;
-    for (const tool of ["pen", "highlighter", "eraser", "lasso"] as const) {
-      const button = this.controlsEl.querySelector<HTMLElement>(`[data-action="${tool}"]`);
-      button?.classList.toggle("is-active", this.activeTool === tool && this.enabled);
-      button?.setAttribute("aria-pressed", String(this.activeTool === tool && this.enabled));
-    }
-    const toggle = this.controlsEl.querySelector<HTMLElement>("[data-action=toggle]");
-    toggle?.classList.toggle("is-active", this.enabled);
-    toggle?.setAttribute("aria-pressed", String(this.enabled));
-    const color = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
     const colorTool: ColorTool | null =
       this.activeTool === "pen" || this.activeTool === "highlighter" ? this.activeTool : null;
-    color?.classList.toggle("is-disabled", colorTool === null);
-    color?.classList.toggle("is-active", this.colorPaletteEl !== null);
-    color?.setAttribute("aria-disabled", String(colorTool === null));
-    color?.setAttribute("aria-label", colorTool ? `Choose ${colorTool} color` : "Choose a pen or highlighter first");
-    if (colorTool) color?.style.setProperty("--canvas-scribe-active-color", this.getToolColor(colorTool));
-    this.controlsEl.querySelector<HTMLElement>("[data-action=undo]")?.classList.toggle("is-disabled", this.undoStack.length === 0);
-    this.controlsEl.querySelector<HTMLElement>("[data-action=redo]")?.classList.toggle("is-disabled", this.redoStack.length === 0);
+    syncCanvasControls(this.controlsEl, {
+      activeTool: this.activeTool,
+      activeColor: colorTool ? this.getToolColor(colorTool) : undefined,
+      paletteOpen: this.colorPaletteEl !== null,
+      enabled: this.enabled,
+      canUndo: this.undoStack.length > 0,
+      canRedo: this.redoStack.length > 0,
+    });
   }
 
   private ensureEraserCursor(): void {

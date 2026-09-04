@@ -32,13 +32,15 @@ pnpm install
 pnpm check
 ```
 
-Run the light-theme component workshop at `http://localhost:6006`:
+Run the Obsidian-hosted component workshop at `http://localhost:6006`:
 
 ```sh
 pnpm storybook
 ```
 
-Use `pnpm build:storybook` to type-check the stories and create a static build in `storybook-static/`.
+Storybook automatically extracts `app.css` and its referenced assets from the locally installed Obsidian build. The generated files are proprietary, machine-local, and git-ignored. Use `pnpm sync:obsidian-css -- --path <obsidian.asar-or-app.css>` when automatic discovery is unavailable, or set `CANVAS_SCRIBE_OBSIDIAN_STYLES` to that path. A small committed fallback keeps CI builds usable without pretending to reproduce Obsidian exactly.
+
+Use `pnpm build:storybook` to refresh the local Obsidian styles, type-check the stories, and create a static build in `storybook-static/`. See [docs/storybook-obsidian-environment.md](docs/storybook-obsidian-environment.md) for the fixture structure and story API.
 
 On Windows, build, test, and copy the plugin into a desktop or synced vault with:
 
