@@ -75,9 +75,8 @@
 }
 
 .canvas-scribe-color-palette {
-  position: absolute;
-  top: 0;
-  left: calc(100% + 8px);
+  position: fixed;
+  z-index: 10000;
   display: flex;
   gap: 6px;
   padding: 6px;
