@@ -30,6 +30,14 @@ pnpm install
 pnpm check
 ```
 
+Run the light-theme component workshop at `http://localhost:6006`:
+
+```sh
+pnpm storybook
+```
+
+Use `pnpm build:storybook` to type-check the stories and create a static build in `storybook-static/`.
+
 On Windows, build, test, and copy the plugin into a desktop or synced vault with:
 
 ```powershell

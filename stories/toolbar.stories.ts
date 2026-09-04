@@ -22,7 +22,7 @@ const controls: ReadonlyArray<{ action: string; label: string; iconName: IconNam
 
 function createToolbar(args: ToolbarArgs): HTMLElement {
   const canvasControls = document.createElement("div");
-  canvasControls.className = "canvas-controls";
+  canvasControls.className = "canvas-controls canvas-scribe-story-toolbar";
 
   const group = document.createElement("div");
   group.className = "canvas-control-group mod-raised canvas-scribe-controls";
