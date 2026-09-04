@@ -34,4 +34,9 @@ describe("strokeIntersectsCircle", () => {
   it("misses a distant point", () => {
     expect(strokeIntersectsCircle(stroke([[0, 0], [10, 0]]), 5, 20, 1)).toBe(false);
   });
+
+  it("includes the stroke's Canvas-space width in the eraser hit target", () => {
+    expect(strokeIntersectsCircle(stroke([[0, 0], [10, 0]]), 5, 2, 1)).toBe(true);
+    expect(strokeIntersectsCircle(stroke([[0, 0], [10, 0]]), 5, 2.1, 1)).toBe(false);
+  });
 });

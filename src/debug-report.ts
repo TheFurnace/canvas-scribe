@@ -48,7 +48,7 @@ export async function createDebugReport(
     schemaVersion: 1,
     device,
     log: logger.snapshot(),
-    privacy: "The recorder does not intentionally collect note text, canvas file names, vault name, or raw pen coordinates. Review before sharing publicly.",
+    privacy: "The recorder does not intentionally collect note text, canvas file names, vault name, or raw stylus coordinates. Review before sharing publicly.",
   };
   const log = await app.vault.create(logPath, logTemplate(bundle));
   const markdown = await app.vault.create(markdownPath, feedbackTemplate(device, log.name));
@@ -107,7 +107,11 @@ Describe the result you wanted.
 
 - Galaxy model:
 - Android version:
-- S Pen type (built-in / Pro / other):
+- One UI version:
+- Android System WebView version:
+- Keyboard / IME and version:
+- Samsung **S Pen to text** enabled: yes / no
+- Stylus model (built-in S Pen / S Pen Pro / other):
 - Obsidian version: ${device.obsidianVersion}
 - Canvas Scribe version: ${device.pluginVersion}
 - Build: ${device.buildId}
@@ -115,14 +119,14 @@ Describe the result you wanted.
 
 ## Optional notes
 
-Add screenshots or a short screen recording here. The diagnostic log intentionally excludes note text, canvas names, vault names, and raw pen coordinates.
+Add screenshots or a short screen recording here. The diagnostic log intentionally excludes note text, canvas names, vault names, and raw stylus coordinates.
 `;
 }
 
 function logTemplate(bundle: DebugBundle): string {
   return `# Canvas Scribe diagnostic log
 
-This Markdown wrapper keeps the structured log compatible with vault sync. The JSON block intentionally excludes note text, canvas names, vault names, and raw pen coordinates.
+This Markdown wrapper keeps the structured log compatible with vault sync. The JSON block intentionally excludes note text, canvas names, vault names, and raw stylus coordinates.
 
 \`\`\`json
 ${JSON.stringify(bundle, null, 2)}

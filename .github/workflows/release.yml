@@ -82,10 +82,15 @@ jobs:
         run: zip "canvas-scribe-${VERSION}.zip" main.js manifest.json styles.css
       - name: Publish GitHub release for BRAT
         if: steps.existing-release.outputs.exists == 'false'
-        run: >-
-          gh release create "$VERSION"
-          main.js manifest.json styles.css "canvas-scribe-${VERSION}.zip"
-          --verify-tag --generate-notes --title "Canvas Scribe $VERSION"
+        run: |
+          prerelease_flag=""
+          if [[ "$VERSION" == *-* ]]; then
+            prerelease_flag="--prerelease"
+          fi
+          gh release create "$VERSION" \
+            main.js manifest.json styles.css "canvas-scribe-${VERSION}.zip" \
+            --verify-tag --generate-notes --title "Canvas Scribe $VERSION" \
+            $prerelease_flag
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}

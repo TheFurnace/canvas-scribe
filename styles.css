@@ -18,6 +18,31 @@
   mix-blend-mode: multiply;
 }
 
+.canvas-scribe-eraser-cursor {
+  visibility: hidden;
+  fill: rgb(127 127 127 / 12%);
+  stroke: var(--text-muted);
+  stroke-width: 1.5px;
+}
+
+.canvas-scribe-eraser-cursor.is-visible {
+  visibility: visible;
+}
+
+.canvas-scribe-lasso-path,
+.canvas-scribe-selection-box {
+  fill: var(--interactive-accent);
+  fill-opacity: 0.08;
+  stroke: var(--interactive-accent);
+  stroke-opacity: 1;
+  stroke-width: 1.5px;
+  stroke-dasharray: 5 4;
+}
+
+.canvas-scribe-stroke.is-selected {
+  filter: drop-shadow(0 0 2px var(--interactive-accent));
+}
+
 .theme-dark .canvas-scribe-stroke.is-highlighter {
   mix-blend-mode: screen;
 }
@@ -29,6 +54,107 @@
 
 .canvas-scribe-controls .canvas-scribe-control-item.is-disabled {
   opacity: 0.35;
+}
+
+.canvas-scribe-controls {
+  position: relative;
+}
+
+.canvas-scribe-controls [data-action="color"] {
+  position: relative;
+}
+
+.canvas-scribe-controls [data-action="color"]::after {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--background-primary);
+  border-radius: 50%;
+  background: var(--canvas-scribe-active-color);
+  content: "";
+}
+
+.canvas-scribe-color-palette {
+  position: fixed;
+  z-index: 10000;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  box-shadow: var(--shadow-s);
+}
+
+.canvas-scribe-color-palette.is-closing {
+  pointer-events: none;
+  animation: canvas-scribe-palette-close 180ms ease-in forwards;
+}
+
+.canvas-scribe-color-palette > button.canvas-scribe-color-swatch {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  overflow: hidden;
+  padding: 0 !important;
+  border: 2px solid transparent;
+  border-radius: 50% !important;
+  background: transparent !important;
+  line-height: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+.canvas-scribe-color-swatch-preview {
+  position: absolute;
+  inset: 2px;
+  display: block;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.canvas-scribe-color-swatch[aria-pressed="true"] {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 2px var(--background-primary) inset;
+}
+
+.canvas-scribe-color-swatch.is-selected .canvas-scribe-color-swatch-preview {
+  animation: canvas-scribe-swatch-selected 180ms ease-out;
+}
+
+@keyframes canvas-scribe-palette-close {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes canvas-scribe-swatch-selected {
+  50% {
+    transform: scale(0.78);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-scribe-color-palette.is-closing,
+  .canvas-scribe-color-swatch.is-selected .canvas-scribe-color-swatch-preview {
+    animation: none;
+  }
 }
 
 .canvas-scribe-input-diagnostics {

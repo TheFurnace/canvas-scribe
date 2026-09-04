@@ -44,7 +44,12 @@ export function outlineToSvgPath(points: readonly Coordinate[]): string {
   return commands.join(" ");
 }
 
-export function strokeIntersectsCircle(stroke: InkStroke, x: number, y: number, radius: number): boolean {
+export function strokeIntersectsCircle(
+  stroke: InkStroke,
+  x: number,
+  y: number,
+  radius: number,
+): boolean {
   const hitRadius = radius + stroke.size / 2;
   const hitRadiusSquared = hitRadius * hitRadius;
   const points = stroke.points;

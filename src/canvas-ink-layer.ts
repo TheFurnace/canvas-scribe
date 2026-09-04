@@ -1,14 +1,17 @@
 import { Notice, setIcon, type App } from "obsidian";
 
 import type { CanvasTarget } from "./canvas-target";
+import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
+import { positionPopup } from "./popover";
+import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
 import {
   isEraserTip,
-  isPenBarrelButton,
-  isPenContact,
-  isPenEvent,
+  isStylusBarrelButton,
+  isStylusContact,
+  isStylusEvent,
   pointerSamples,
   pointerToInkPoint,
   shouldAppendReleasePoint,
@@ -27,6 +30,9 @@ import {
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SAVE_DELAY_MS = 250;
 const MIN_SCREEN_POINT_DISTANCE = 0.35;
+const ERASER_SCREEN_RADIUS = 18;
+const SELECTION_SCREEN_PADDING = 8;
+const PALETTE_CLOSE_ANIMATION_MS = 180;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -36,21 +42,34 @@ interface CanvasTransform {
 export class CanvasInkLayer {
   private data: CanvasInkData = createEmptyInkData();
   private svgEl: SVGSVGElement | null = null;
+  private eraserCursorEl: SVGCircleElement | null = null;
+  private lassoPathEl: SVGPathElement | null = null;
+  private selectionRectEl: SVGRectElement | null = null;
   private controlsEl: HTMLElement | null = null;
+  private colorPaletteEl: HTMLElement | null = null;
   private wrapperEl: HTMLElement | null = null;
   private activeStroke: InkStroke | null = null;
   private activePathEl: SVGPathElement | null = null;
   private activePointerId: number | null = null;
   private activeTool: DrawingTool = "pen";
+  private readonly selectedColors: Partial<Record<ColorTool, string>> = {};
+  private readonly selectedStrokeIds = new Set<string>();
+  private lassoPoints: InkPoint[] = [];
+  private lassoMode: "select" | "move" | null = null;
+  private moveOrigin: InkPoint | null = null;
+  private moveStartPoints = new Map<string, InkPoint[]>();
+  private didMoveSelection = false;
   private temporaryTool: DrawingTool | null = null;
   private enabled = true;
   private didEraseInGesture = false;
-  private penMenuArmed = false;
+  private stylusMenuArmed = false;
   private eraserTipArmed = false;
   private undoStack: InkStroke[][] = [];
   private redoStack: InkStroke[][] = [];
   private gestureRedoStack: InkStroke[][] | null = null;
+  private gestureHasUndoSnapshot = false;
   private saveTimer: number | null = null;
+  private colorPaletteCloseTimer: number | null = null;
   private renderFrame: number | null = null;
   private domFrame: number | null = null;
   private disposed = false;
@@ -83,13 +102,16 @@ export class CanvasInkLayer {
 
   setTool(tool: DrawingTool): void {
     this.activeTool = tool;
+    if (tool !== "eraser") this.hideEraserCursor();
+    if (tool !== "lasso") this.clearSelection();
+    this.closeColorPalette();
     this.logger.record("canvas", "tool_selected", { tool });
     this.syncControls();
   }
 
   toggleEnabled(): void {
     this.enabled = !this.enabled;
-    this.logger.record("canvas", "pen_input_toggled", { enabled: this.enabled });
+    this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
 
@@ -126,6 +148,10 @@ export class CanvasInkLayer {
     this.observer?.disconnect();
     this.observer = null;
     this.svgEl?.remove();
+    this.eraserCursorEl = null;
+    this.lassoPathEl = null;
+    this.selectionRectEl = null;
+    this.closeColorPalette();
     this.controlsEl?.remove();
     this.closeRadialMenu();
     this.logger.record("canvas", "layer_disposed", { strokeCount: this.data.strokes.length });
@@ -168,27 +194,36 @@ export class CanvasInkLayer {
     this.listen(wrapper, "pointermove", this.onPointerMove, true, this.inputDisposers);
     this.listen(wrapper, "pointerup", this.onPointerUp, true, this.inputDisposers);
     this.listen(wrapper, "pointercancel", this.onPointerUp, true, this.inputDisposers);
+    this.listen(wrapper, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
+    this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (!isPenEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
-    if (isPenBarrelButton(event)) {
-      this.penMenuArmed = true;
+    if (
+      !isStylusEvent(event) ||
+      this.activePointerId !== null ||
+      isControlTarget(event.target) ||
+      isEditableTarget(event.target)
+    ) {
+      return;
+    }
+    if (isStylusBarrelButton(event)) {
+      this.stylusMenuArmed = true;
       this.consume(event);
       return;
     }
     if (!this.enabled) return;
-    if (isEraserTip(event) && !isPenContact(event)) {
+    if (isEraserTip(event) && !isStylusContact(event)) {
       this.eraserTipArmed = true;
       this.consume(event);
       return;
     }
-    if (!isPenContact(event)) return;
+    if (!isStylusContact(event)) return;
     this.closeRadialMenu();
     this.beginGesture(event, this.eraserTipArmed ? "eraser" : undefined);
   };
@@ -221,9 +256,10 @@ export class CanvasInkLayer {
       temporaryTool: this.temporaryTool !== null,
     });
     this.gestureRedoStack = this.redoStack;
-    this.pushUndoSnapshot();
-
+    this.gestureHasUndoSnapshot = false;
     if (tool === "eraser") {
+      this.pushUndoSnapshot();
+      this.gestureHasUndoSnapshot = true;
       this.didEraseInGesture = false;
       this.eraseSamples(event);
       return;
@@ -231,12 +267,17 @@ export class CanvasInkLayer {
 
     const point = this.eventToPoint(event);
     if (!point) return;
-    const scale = this.getScreenScale();
+    if (tool === "lasso") {
+      this.beginLassoGesture(point);
+      return;
+    }
+    this.pushUndoSnapshot();
+    this.gestureHasUndoSnapshot = true;
     this.activeStroke = {
       id: createStrokeId(),
       tool,
-      color: tool === "pen" ? this.getDefaultPenColor() : "#fde047",
-      size: (tool === "pen" ? 3.5 : 17) / scale,
+      color: this.getToolColor(tool),
+      size: tool === "pen" ? 3.5 : 17,
       opacity: tool === "pen" ? 1 : 0.38,
       points: [point],
       hasPressure: event.pressure > 0 && event.pressure !== 0.5,
@@ -249,21 +290,22 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (event.pointerId === this.activePointerId && isPenEvent(event) && isPenBarrelButton(event)) {
+    if (event.pointerId === this.activePointerId && isStylusEvent(event) && isStylusBarrelButton(event)) {
       this.consume(event);
       this.cancelGesture("barrel_button");
-      this.penMenuArmed = true;
+      this.stylusMenuArmed = true;
       return;
     }
-    if (this.activePointerId === null && this.penMenuArmed && isPenEvent(event)) {
+    if (this.activePointerId === null && this.stylusMenuArmed && isStylusEvent(event)) {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.enabled && this.eraserTipArmed && isPenEvent(event) && isPenContact(event)) {
+    if (this.activePointerId === null && this.enabled && this.eraserTipArmed && isStylusEvent(event) && isStylusContact(event)) {
       this.beginGesture(event, "eraser");
       return;
     }
@@ -273,6 +315,10 @@ export class CanvasInkLayer {
     const tool = this.temporaryTool ?? this.activeTool;
     if (tool === "eraser") {
       this.eraseSamples(event);
+      return;
+    }
+    if (tool === "lasso") {
+      this.updateLassoGesture(event);
       return;
     }
     if (!this.activeStroke) return;
@@ -290,23 +336,30 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.penMenuArmed && isPenEvent(event)) {
-      this.penMenuArmed = false;
+    if (this.activePointerId === null && this.stylusMenuArmed && isStylusEvent(event)) {
+      this.stylusMenuArmed = false;
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.eraserTipArmed && isPenEvent(event)) {
+    if (this.activePointerId === null && this.eraserTipArmed && isStylusEvent(event)) {
       this.eraserTipArmed = false;
       this.consume(event);
       return;
     }
     if (event.pointerId !== this.activePointerId) return;
     this.consume(event);
-    if ((this.temporaryTool ?? this.activeTool) !== "eraser" && shouldAppendReleasePoint(event)) {
+    const tool = this.temporaryTool ?? this.activeTool;
+    if (tool === "lasso" && shouldAppendReleasePoint(event)) {
+      this.updateLassoGesture(event);
+    } else if (tool !== "eraser" && shouldAppendReleasePoint(event)) {
       this.appendReleasePoint(event);
     }
     if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
     this.finishGesture();
+  };
+
+  private readonly onPointerLeave = (event: PointerEvent): void => {
+    if (event.pointerId !== this.activePointerId) this.hideEraserCursor();
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
@@ -314,10 +367,11 @@ export class CanvasInkLayer {
       this.allowNextContextMenu = false;
       return;
     }
+    if (isEditableTarget(event.target)) return;
     if (!this.enabled) return;
     this.consume(event);
     if (this.activePointerId !== null) this.cancelGesture("context_menu");
-    this.penMenuArmed = false;
+    this.stylusMenuArmed = false;
     this.showRadialMenu(event.clientX, event.clientY, event.target);
   };
 
@@ -328,10 +382,13 @@ export class CanvasInkLayer {
     }
     const pointerId = this.activePointerId;
     if (pointerId !== null && this.wrapperEl?.hasPointerCapture(pointerId)) this.wrapperEl.releasePointerCapture(pointerId);
-    const previous = this.undoStack.pop();
-    if (previous) this.data.strokes = previous;
+    if (this.gestureHasUndoSnapshot) {
+      const previous = this.undoStack.pop();
+      if (previous) this.data.strokes = previous;
+    }
     if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
     this.gestureRedoStack = null;
+    this.gestureHasUndoSnapshot = false;
     this.activeStroke = null;
     this.activePathEl = null;
     this.activePointerId = null;
@@ -339,6 +396,13 @@ export class CanvasInkLayer {
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.erasedStrokeCount = 0;
+    this.lassoPathEl?.remove();
+    this.lassoPathEl = null;
+    this.lassoMode = null;
+    this.lassoPoints = [];
+    this.moveOrigin = null;
+    this.moveStartPoints.clear();
+    this.didMoveSelection = false;
     this.renderAll();
     this.syncControls();
     this.logger.record("ink", "gesture_cancelled", { reason });
@@ -351,7 +415,9 @@ export class CanvasInkLayer {
     }
     const completedStroke = this.activeStroke;
     const completedTool = this.temporaryTool ?? this.activeTool;
-    if (this.activeStroke) {
+    if (completedTool === "lasso") {
+      this.finishLassoGesture();
+    } else if (this.activeStroke) {
       if (this.activeStroke.points.length === 1) {
         const first = this.activeStroke.points[0];
         if (first) this.activeStroke.points.push({ ...first, x: first.x + 0.01, time: first.time + 1 });
@@ -360,14 +426,14 @@ export class CanvasInkLayer {
       this.scheduleSave();
     } else if (this.didEraseInGesture) {
       this.scheduleSave();
-    } else {
+    } else if (this.gestureHasUndoSnapshot) {
       this.undoStack.pop();
       if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
     }
     this.logger.record("ink", "gesture_finished", {
       tool: completedTool,
       durationMs: Math.round(performance.now() - this.gestureStartedAt),
-      pointCount: completedStroke?.points.length ?? 0,
+      pointCount: completedStroke?.points.length ?? this.lassoPoints.length,
       erasedStrokeCount: this.erasedStrokeCount,
       pressureDetected: completedStroke?.hasPressure ?? false,
     });
@@ -378,6 +444,13 @@ export class CanvasInkLayer {
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.gestureRedoStack = null;
+    this.gestureHasUndoSnapshot = false;
+    this.lassoMode = null;
+    this.lassoPoints = [];
+    this.moveOrigin = null;
+    this.moveStartPoints.clear();
+    this.didMoveSelection = false;
+    if (this.activeTool !== "eraser") this.hideEraserCursor();
     this.syncControls();
   }
 
@@ -385,9 +458,12 @@ export class CanvasInkLayer {
     for (const sample of pointerSamples(event)) {
       const point = this.eventToPoint(sample);
       if (!point) continue;
-      const radius = 11 / this.getScreenScale();
+      const screenScale = this.getScreenScale();
+      const radius = ERASER_SCREEN_RADIUS / screenScale;
       const before = this.data.strokes.length;
-      this.data.strokes = this.data.strokes.filter((stroke) => !strokeIntersectsCircle(stroke, point.x, point.y, radius));
+      this.data.strokes = this.data.strokes.filter(
+        (stroke) => !strokeIntersectsCircle(stroke, point.x, point.y, radius),
+      );
       if (this.data.strokes.length !== before) {
         this.erasedStrokeCount += before - this.data.strokes.length;
         this.didEraseInGesture = true;
@@ -540,11 +616,87 @@ export class CanvasInkLayer {
   private renderAll(): void {
     if (!this.svgEl) return;
     this.svgEl.replaceChildren(...this.data.strokes.map((stroke) => this.createPath(stroke, true)));
+    this.updateSelectionRect();
+    this.ensureEraserCursor();
+  }
+
+  private beginLassoGesture(point: InkPoint): void {
+    const bounds = boundsForStrokes(this.selectedStrokes());
+    const padding = SELECTION_SCREEN_PADDING / this.getScreenScale();
+    if (bounds && pointInBounds(point, bounds, padding)) {
+      this.lassoMode = "move";
+      this.moveOrigin = point;
+      this.moveStartPoints = new Map(
+        this.selectedStrokes().map((stroke) => [stroke.id, stroke.points.map((candidate) => ({ ...candidate }))]),
+      );
+      this.pushUndoSnapshot();
+      this.gestureHasUndoSnapshot = true;
+      return;
+    }
+
+    this.clearSelection();
+    this.lassoMode = "select";
+    this.lassoPoints = [point];
+    this.ensureLassoPath();
+    this.updateLassoPath();
+  }
+
+  private updateLassoGesture(event: PointerEvent): void {
+    if (this.lassoMode === "select") {
+      for (const sample of pointerSamples(event)) {
+        const point = this.eventToPoint(sample);
+        const previous = this.lassoPoints[this.lassoPoints.length - 1];
+        if (!point || (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < 1 / this.getScreenScale())) {
+          continue;
+        }
+        this.lassoPoints.push(point);
+      }
+      this.updateLassoPath();
+      return;
+    }
+    if (this.lassoMode !== "move" || !this.moveOrigin) return;
+    const samples = pointerSamples(event);
+    const point = this.eventToPoint(samples[samples.length - 1] ?? event);
+    if (!point) return;
+    const deltaX = point.x - this.moveOrigin.x;
+    const deltaY = point.y - this.moveOrigin.y;
+    this.didMoveSelection = this.didMoveSelection || Math.hypot(deltaX, deltaY) >= 1 / this.getScreenScale();
+    for (const stroke of this.data.strokes) {
+      const startPoints = this.moveStartPoints.get(stroke.id);
+      if (startPoints) stroke.points = translatePoints(startPoints, deltaX, deltaY);
+    }
+    this.renderAll();
+  }
+
+  private finishLassoGesture(): void {
+    if (this.lassoMode === "select") {
+      this.selectedStrokeIds.clear();
+      for (const stroke of this.data.strokes) {
+        if (strokeInsidePolygon(stroke, this.lassoPoints)) this.selectedStrokeIds.add(stroke.id);
+      }
+      this.logger.record("ink", "lasso_selected", { strokeCount: this.selectedStrokeIds.size });
+      this.lassoPathEl?.remove();
+      this.lassoPathEl = null;
+      this.renderAll();
+      return;
+    }
+    if (this.lassoMode === "move" && this.didMoveSelection) {
+      this.logger.record("ink", "lasso_moved", { strokeCount: this.selectedStrokeIds.size });
+      this.scheduleSave();
+    } else if (this.lassoMode === "move") {
+      this.undoStack.pop();
+      if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
+    }
+  }
+
+  private getToolColor(tool: ColorTool): string {
+    return this.selectedColors[tool] ?? (tool === "pen" ? this.getDefaultPenColor() : "#fde047");
   }
 
   private createPath(stroke: InkStroke, complete: boolean): SVGPathElement {
     const path = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "path");
     path.classList.add("canvas-scribe-stroke", `is-${stroke.tool}`);
+    path.classList.toggle("is-selected", this.selectedStrokeIds.has(stroke.id));
     path.dataset.strokeId = stroke.id;
     path.setAttribute("d", strokeToSvgPath(stroke, complete));
     path.setAttribute("fill", stroke.color);
@@ -594,12 +746,14 @@ export class CanvasInkLayer {
     const group = document.createElement("div");
     group.className = "canvas-control-group mod-raised canvas-scribe-controls";
     group.append(
-      this.controlButton("pencil", "Pen", "pen", () => this.setTool("pen")),
+      this.controlButton("pen-tool", "Pen", "pen", () => this.setTool("pen")),
       this.controlButton("highlighter", "Highlighter", "highlighter", () => this.setTool("highlighter")),
       this.controlButton("eraser", "Eraser", "eraser", () => this.setTool("eraser")),
+      this.controlButton("lasso-select", "Lasso ink", "lasso", () => this.setTool("lasso")),
+      this.controlButton("palette", "Choose pen color", "color", () => this.toggleColorPalette()),
       this.controlButton("undo-2", "Undo ink", "undo", () => this.undo()),
       this.controlButton("redo-2", "Redo ink", "redo", () => this.redo()),
-      this.controlButton("pen-tool", "Toggle pen input", "toggle", () => this.toggleEnabled()),
+      this.controlButton("pencil", "Toggle stylus input", "toggle", () => this.toggleEnabled()),
     );
     canvasControls.prepend(group);
     this.controlsEl = group;
@@ -628,7 +782,7 @@ export class CanvasInkLayer {
 
   private syncControls(): void {
     if (!this.controlsEl) return;
-    for (const tool of ["pen", "highlighter", "eraser"] as const) {
+    for (const tool of ["pen", "highlighter", "eraser", "lasso"] as const) {
       const button = this.controlsEl.querySelector<HTMLElement>(`[data-action="${tool}"]`);
       button?.classList.toggle("is-active", this.activeTool === tool && this.enabled);
       button?.setAttribute("aria-pressed", String(this.activeTool === tool && this.enabled));
@@ -636,8 +790,175 @@ export class CanvasInkLayer {
     const toggle = this.controlsEl.querySelector<HTMLElement>("[data-action=toggle]");
     toggle?.classList.toggle("is-active", this.enabled);
     toggle?.setAttribute("aria-pressed", String(this.enabled));
+    const color = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
+    const colorTool: ColorTool | null =
+      this.activeTool === "pen" || this.activeTool === "highlighter" ? this.activeTool : null;
+    color?.classList.toggle("is-disabled", colorTool === null);
+    color?.classList.toggle("is-active", this.colorPaletteEl !== null);
+    color?.setAttribute("aria-disabled", String(colorTool === null));
+    color?.setAttribute("aria-label", colorTool ? `Choose ${colorTool} color` : "Choose a pen or highlighter first");
+    if (colorTool) color?.style.setProperty("--canvas-scribe-active-color", this.getToolColor(colorTool));
     this.controlsEl.querySelector<HTMLElement>("[data-action=undo]")?.classList.toggle("is-disabled", this.undoStack.length === 0);
     this.controlsEl.querySelector<HTMLElement>("[data-action=redo]")?.classList.toggle("is-disabled", this.redoStack.length === 0);
+  }
+
+  private ensureEraserCursor(): void {
+    if (!this.svgEl) return;
+    if (!this.eraserCursorEl) {
+      this.eraserCursorEl = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "circle");
+      this.eraserCursorEl.classList.add("canvas-scribe-eraser-cursor");
+      this.eraserCursorEl.setAttribute("vector-effect", "non-scaling-stroke");
+    }
+    this.eraserCursorEl.setAttribute("r", (ERASER_SCREEN_RADIUS / this.getScreenScale()).toString());
+    this.svgEl.appendChild(this.eraserCursorEl);
+  }
+
+  private updateEraserCursor(event: PointerEvent): void {
+    if (!this.enabled || !isStylusEvent(event) || isControlTarget(event.target) || isEditableTarget(event.target)) {
+      this.hideEraserCursor();
+      return;
+    }
+    const tool = this.activePointerId === null ? this.activeTool : (this.temporaryTool ?? this.activeTool);
+    if (tool !== "eraser" && !isEraserTip(event) && !this.eraserTipArmed) {
+      this.hideEraserCursor();
+      return;
+    }
+    const point = this.eventToPoint(event);
+    if (!point) return;
+    this.ensureEraserCursor();
+    this.eraserCursorEl?.setAttribute("cx", point.x.toString());
+    this.eraserCursorEl?.setAttribute("cy", point.y.toString());
+    this.eraserCursorEl?.classList.add("is-visible");
+  }
+
+  private hideEraserCursor(): void {
+    this.eraserCursorEl?.classList.remove("is-visible");
+  }
+
+  private ensureLassoPath(): void {
+    if (!this.svgEl) return;
+    if (!this.lassoPathEl) {
+      this.lassoPathEl = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "path");
+      this.lassoPathEl.classList.add("canvas-scribe-lasso-path");
+      this.lassoPathEl.setAttribute("vector-effect", "non-scaling-stroke");
+    }
+    this.svgEl.appendChild(this.lassoPathEl);
+  }
+
+  private updateLassoPath(): void {
+    this.ensureLassoPath();
+    if (!this.lassoPathEl) return;
+    const commands = this.lassoPoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`);
+    if (this.lassoPoints.length > 2) commands.push("Z");
+    this.lassoPathEl.setAttribute("d", commands.join(" "));
+  }
+
+  private selectedStrokes(): InkStroke[] {
+    return this.data.strokes.filter((stroke) => this.selectedStrokeIds.has(stroke.id));
+  }
+
+  private updateSelectionRect(): void {
+    if (!this.svgEl) return;
+    const bounds = boundsForStrokes(this.selectedStrokes());
+    if (!bounds) {
+      this.selectionRectEl?.remove();
+      this.selectionRectEl = null;
+      return;
+    }
+    if (!this.selectionRectEl) {
+      this.selectionRectEl = this.target.containerEl.ownerDocument.createElementNS(SVG_NS, "rect");
+      this.selectionRectEl.classList.add("canvas-scribe-selection-box");
+      this.selectionRectEl.setAttribute("vector-effect", "non-scaling-stroke");
+    }
+    const padding = SELECTION_SCREEN_PADDING / this.getScreenScale();
+    this.selectionRectEl.setAttribute("x", (bounds.minX - padding).toString());
+    this.selectionRectEl.setAttribute("y", (bounds.minY - padding).toString());
+    this.selectionRectEl.setAttribute("width", (bounds.maxX - bounds.minX + padding * 2).toString());
+    this.selectionRectEl.setAttribute("height", (bounds.maxY - bounds.minY + padding * 2).toString());
+    this.svgEl.appendChild(this.selectionRectEl);
+  }
+
+  private clearSelection(): void {
+    if (this.selectedStrokeIds.size === 0 && !this.selectionRectEl) return;
+    this.selectedStrokeIds.clear();
+    this.selectionRectEl?.remove();
+    this.selectionRectEl = null;
+    this.renderAll();
+  }
+
+  private toggleColorPalette(): void {
+    if (this.colorPaletteEl) {
+      this.closeColorPalette();
+      this.syncControls();
+      return;
+    }
+    if (!this.controlsEl || (this.activeTool !== "pen" && this.activeTool !== "highlighter")) return;
+    const colorButton = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
+    if (!colorButton) return;
+    const tool = this.activeTool;
+    const document = this.target.containerEl.ownerDocument;
+    const palette = document.createElement("div");
+    palette.className = "canvas-scribe-color-palette";
+    palette.setAttribute("role", "toolbar");
+    palette.setAttribute("aria-label", `${tool} colors`);
+    for (const color of paletteColors(tool, this.getToolColor(tool))) {
+      const swatch = document.createElement("button");
+      swatch.type = "button";
+      swatch.className = "canvas-scribe-color-swatch";
+      swatch.setAttribute("aria-label", `Use ${color} for ${tool}`);
+      swatch.setAttribute("aria-pressed", String(color.toLowerCase() === this.getToolColor(tool).toLowerCase()));
+      const preview = document.createElement("span");
+      preview.className = "canvas-scribe-color-swatch-preview";
+      preview.style.backgroundColor = color;
+      swatch.appendChild(preview);
+      swatch.addEventListener("pointerdown", (event) => {
+        this.consume(event);
+        this.selectedColors[tool] = color;
+        palette.querySelectorAll<HTMLElement>(".canvas-scribe-color-swatch").forEach((item) => {
+          item.setAttribute("aria-pressed", String(item === swatch));
+        });
+        swatch.classList.add("is-selected");
+        this.logger.record("canvas", "color_selected", { tool, color });
+        this.syncControls();
+        this.closeColorPalette(true);
+      });
+      palette.appendChild(swatch);
+    }
+    document.body.appendChild(palette);
+    const viewport = document.defaultView;
+    const position = positionPopup(
+      colorButton.getBoundingClientRect(),
+      palette.getBoundingClientRect(),
+      viewport?.innerWidth ?? document.documentElement.clientWidth,
+      viewport?.innerHeight ?? document.documentElement.clientHeight,
+    );
+    palette.style.left = `${position.left}px`;
+    palette.style.top = `${position.top}px`;
+    this.colorPaletteEl = palette;
+    this.syncControls();
+  }
+
+  private closeColorPalette(animate = false): void {
+    if (this.colorPaletteCloseTimer !== null) {
+      window.clearTimeout(this.colorPaletteCloseTimer);
+      this.colorPaletteCloseTimer = null;
+    }
+    const palette = this.colorPaletteEl;
+    if (!palette) return;
+    const prefersReducedMotion =
+      palette.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    if (!animate || prefersReducedMotion) {
+      palette.remove();
+      this.colorPaletteEl = null;
+      return;
+    }
+    palette.classList.add("is-closing");
+    this.colorPaletteCloseTimer = window.setTimeout(() => {
+      this.colorPaletteCloseTimer = null;
+      palette.remove();
+      if (this.colorPaletteEl === palette) this.colorPaletteEl = null;
+      this.syncControls();
+    }, PALETTE_CLOSE_ANIMATION_MS);
   }
 
   private listen<K extends keyof HTMLElementEventMap>(
@@ -659,6 +980,13 @@ export class CanvasInkLayer {
 
 function isControlTarget(target: EventTarget | null): boolean {
   return target instanceof Element && Boolean(target.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'))
+  );
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {
