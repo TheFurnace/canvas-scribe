@@ -31,8 +31,10 @@
 
 .canvas-scribe-lasso-path,
 .canvas-scribe-selection-box {
-  fill: rgb(var(--interactive-accent-rgb) / 8%);
+  fill: var(--interactive-accent);
+  fill-opacity: 0.08;
   stroke: var(--interactive-accent);
+  stroke-opacity: 1;
   stroke-width: 1.5px;
   stroke-dasharray: 5 4;
 }

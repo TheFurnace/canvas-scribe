@@ -36,6 +36,8 @@ Add stylus-friendly lasso selection for existing ink. The first pass should supp
 
 Selection should operate in Canvas coordinates and remain accurate at different pan and zoom levels.
 
+Tablet follow-up: moving a selection currently requires the stylus. Decide whether lasso mode should also let one finger move selected ink or preserve the global interaction rule that a finger always pans the Canvas. Until that choice is tested, keep stylus-only movement.
+
 ## Samsung scribble-to-text integration
 
 Investigate integration with Samsung's S Pen handwriting-to-text behavior, commonly exposed as “S Pen to text” or scribble-to-text. Determine which behavior is available to Obsidian's Android WebView and whether handwritten input can be directed into Canvas text cards without compromising normal drawing.
