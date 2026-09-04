@@ -51,14 +51,7 @@ body.canvas-scribe-storybook-docs {
 }
 
 .canvas-scribe-story-toolbar-preview {
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: flex-start;
-  gap: var(--size-4-3);
-}
-
-.canvas-scribe-color-palette.canvas-scribe-story-color-palette {
-  position: static;
+  display: contents;
 }
 
 .canvas-scribe-story-backdrop {

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/web-components-vite";
 
 import { paletteColors, type ColorTool } from "../src/colors";
 import { createCanvasControls, syncCanvasControls } from "../src/canvas-controls";
+import { positionPopup } from "../src/popover";
 import { renderStoryIcon } from "./story-helpers";
 
 type Tool = "pen" | "highlighter" | "eraser" | "lasso";
@@ -29,8 +30,40 @@ function createToolbar(args: ToolbarArgs): HTMLElement {
   preview.append(group);
 
   const colorTool = toolWithColor(args.activeTool);
-  if (colorTool && args.paletteOpen) preview.append(createColorPalette(colorTool, args.activeColor));
+  if (colorTool && args.paletteOpen) {
+    mountColorPalette(preview, group, createColorPalette(colorTool, args.activeColor));
+  }
   return preview;
+}
+
+function mountColorPalette(preview: HTMLElement, group: HTMLElement, palette: HTMLElement): void {
+  preview.ownerDocument.defaultView?.requestAnimationFrame(() => {
+    if (!preview.isConnected) return;
+    const canvas = preview.closest<HTMLElement>(".canvas-wrapper");
+    const colorButton = group.querySelector<HTMLElement>("[data-action=color]");
+    if (!canvas || !colorButton) return;
+
+    palette.style.position = "absolute";
+    canvas.append(palette);
+    const canvasRect = canvas.getBoundingClientRect();
+    const buttonRect = colorButton.getBoundingClientRect();
+    const popupRect = palette.getBoundingClientRect();
+    const position = positionPopup(
+      {
+        top: buttonRect.top - canvasRect.top,
+        right: buttonRect.right - canvasRect.left,
+        bottom: buttonRect.bottom - canvasRect.top,
+        left: buttonRect.left - canvasRect.left,
+        width: buttonRect.width,
+        height: buttonRect.height,
+      },
+      popupRect,
+      canvasRect.width,
+      canvasRect.height,
+    );
+    palette.style.left = `${position.left}px`;
+    palette.style.top = `${position.top}px`;
+  });
 }
 
 function createColorPalette(tool: ColorTool, activeColor: string): HTMLElement {
