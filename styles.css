@@ -88,6 +88,11 @@
   box-shadow: var(--shadow-s);
 }
 
+.canvas-scribe-color-palette.is-closing {
+  pointer-events: none;
+  animation: canvas-scribe-palette-close 180ms ease-in forwards;
+}
+
 .canvas-scribe-color-swatch {
   box-sizing: border-box;
   flex: 0 0 32px;
@@ -115,6 +120,35 @@
 .canvas-scribe-color-swatch[aria-pressed="true"] {
   border-color: var(--text-accent);
   box-shadow: 0 0 0 2px var(--background-primary) inset;
+}
+
+.canvas-scribe-color-swatch.is-selected .canvas-scribe-color-swatch-preview {
+  animation: canvas-scribe-swatch-selected 180ms ease-out;
+}
+
+@keyframes canvas-scribe-palette-close {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes canvas-scribe-swatch-selected {
+  50% {
+    transform: scale(0.78);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-scribe-color-palette.is-closing,
+  .canvas-scribe-color-swatch.is-selected .canvas-scribe-color-swatch-preview {
+    animation: none;
+  }
 }
 
 .canvas-scribe-input-diagnostics {
