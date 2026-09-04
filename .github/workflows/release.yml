@@ -1,19 +1,14 @@
-name: Publish beta release
+name: Publish plugin release
 
 on:
   push:
-    branches: [main]
     tags: ["*"]
-    paths:
-      - package.json
-      - manifest.json
-      - versions.json
 
 permissions:
   contents: write
 
 concurrency:
-  group: publish-beta-release
+  group: publish-plugin-release
   cancel-in-progress: false
 
 jobs:
@@ -33,21 +28,23 @@ jobs:
         run: |
           node scripts/check-versions.mjs
           version="$(node -p "require('./manifest.json').version")"
-          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "$version" ]]; then
+          if [[ "$GITHUB_REF_NAME" != "$version" ]]; then
             echo "Tag $GITHUB_REF_NAME does not match manifest version $version." >&2
             exit 1
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Create version tag when missing
-        if: github.ref_type == 'branch'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          if git show-ref --verify --quiet "refs/tags/$VERSION"; then
-            echo "Tag $VERSION already exists."
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
           else
-            git tag "$VERSION" "$GITHUB_SHA"
-            git push origin "refs/tags/$VERSION"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Require stable releases to come from main
+        if: steps.version.outputs.prerelease == 'false'
+        run: |
+          git fetch origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo "Stable releases must be tagged from a commit contained in main." >&2
+            exit 1
           fi
       - name: Use the tagged release source
         id: release-source
@@ -83,14 +80,15 @@ jobs:
       - name: Publish GitHub release for BRAT
         if: steps.existing-release.outputs.exists == 'false'
         run: |
-          prerelease_flag=""
-          if [[ "$VERSION" == *-* ]]; then
-            prerelease_flag="--prerelease"
+          release_flags=()
+          if [[ "$PRERELEASE" == "true" ]]; then
+            release_flags+=(--prerelease)
           fi
           gh release create "$VERSION" \
             main.js manifest.json styles.css "canvas-scribe-${VERSION}.zip" \
             --verify-tag --generate-notes --title "Canvas Scribe $VERSION" \
-            $prerelease_flag
+            "${release_flags[@]}"
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}

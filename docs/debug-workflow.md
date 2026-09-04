@@ -11,16 +11,18 @@ The recommended loop is **GitHub release → BRAT update on the Galaxy tablet �
 
 BRAT 1.1 or newer installs from GitHub Releases. Each release must use the same version as `manifest.json` and contain `main.js`, `manifest.json`, and `styles.css`. This repository's release workflow creates those assets automatically when a matching version tag is pushed.
 
-## Publish a tablet build
+## Publish a beta tablet build
 
-1. Update the version in `package.json` and `manifest.json`, and add that version to `versions.json`.
+Publish routine test builds from their feature branches with a prerelease version such as `0.1.3-beta.1`. Reserve stable versions such as `0.1.3` for completed changes released deliberately from `main`. See [CONTRIBUTING.md](../CONTRIBUTING.md) for the complete policy.
+
+1. Choose the next unused `MAJOR.MINOR.PATCH-beta.N` version. Update the version in `package.json` and `manifest.json`, and add that exact version to `versions.json`.
 2. Run `pnpm check`.
-3. Commit and push the change.
-4. Tag the commit with the exact version, without a `v` prefix—for example, `git tag 0.1.1`—and push the tag.
-5. Wait for **Publish beta release** in GitHub Actions. It creates the release BRAT consumes.
+3. Commit and push the change on its feature branch.
+4. Tag the commit with the exact version, without a `v` prefix—for example, `git tag 0.1.3-beta.1`—and push the tag.
+5. Wait for **Publish plugin release** in GitHub Actions. It creates the GitHub prerelease BRAT consumes.
 6. On the Galaxy tablet, run **BRAT: Check for updates to all beta plugins and UPDATE**, then confirm Canvas Scribe is enabled.
 
-Use a new semantic version for every tablet build. This makes every report identify the precise code that produced it.
+Use a new beta number for every changed tablet build. Never move or reuse a tag. This makes every report identify the precise code that produced it without consuming stable version increments during development.
 
 ## Run a focused stylus test
 
