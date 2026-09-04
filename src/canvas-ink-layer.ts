@@ -5,6 +5,7 @@ import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
+import { positionPopup } from "./popover";
 import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
 import {
   isEraserTip,
@@ -890,6 +891,8 @@ export class CanvasInkLayer {
       return;
     }
     if (!this.controlsEl || (this.activeTool !== "pen" && this.activeTool !== "highlighter")) return;
+    const colorButton = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
+    if (!colorButton) return;
     const tool = this.activeTool;
     const document = this.target.containerEl.ownerDocument;
     const palette = document.createElement("div");
@@ -912,7 +915,16 @@ export class CanvasInkLayer {
       });
       palette.appendChild(swatch);
     }
-    this.controlsEl.appendChild(palette);
+    document.body.appendChild(palette);
+    const viewport = document.defaultView;
+    const position = positionPopup(
+      colorButton.getBoundingClientRect(),
+      palette.getBoundingClientRect(),
+      viewport?.innerWidth ?? document.documentElement.clientWidth,
+      viewport?.innerHeight ?? document.documentElement.clientHeight,
+    );
+    palette.style.left = `${position.left}px`;
+    palette.style.top = `${position.top}px`;
     this.colorPaletteEl = palette;
     this.syncControls();
   }
