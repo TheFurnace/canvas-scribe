@@ -18,6 +18,17 @@ body {
   overflow: hidden;
 }
 
+body.canvas-scribe-storybook-docs,
+body.canvas-scribe-storybook-docs #storybook-root {
+  height: auto;
+  min-height: 100%;
+}
+
+body.canvas-scribe-storybook-docs {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 .canvas-scribe-obsidian-host {
   position: relative;
   min-height: 520px;
@@ -25,6 +36,12 @@ body {
   color: var(--text-normal);
   background: var(--background-primary);
   font-family: var(--font-interface-theme);
+}
+
+/* Docs stories live in an auto-height wrapper. Give percentage-height Obsidian
+ * workspace descendants a definite containing block instead of only a minimum. */
+.canvas-scribe-obsidian-host[data-view-mode="docs"] {
+  height: 520px;
 }
 
 .canvas-scribe-obsidian-host[data-platform="mobile"] {
@@ -156,6 +173,10 @@ body {
 @media (max-width: 620px) {
   .canvas-scribe-obsidian-host {
     min-height: 460px;
+  }
+
+  .canvas-scribe-obsidian-host[data-view-mode="docs"] {
+    height: 460px;
   }
 
   .canvas-scribe-story-content {

@@ -1,11 +1,13 @@
 export type ObsidianStoryPlacement = "canvas" | "controls" | "overlay";
 export type ObsidianStoryPlatform = "desktop" | "mobile";
 export type ObsidianStoryTheme = "light" | "dark";
+export type ObsidianStoryViewMode = "docs" | "story";
 
 export interface ObsidianStoryEnvironmentOptions {
   placement?: ObsidianStoryPlacement;
   platform?: ObsidianStoryPlatform;
   theme?: ObsidianStoryTheme;
+  viewMode?: ObsidianStoryViewMode;
 }
 
 let patternId = 0;
@@ -18,11 +20,13 @@ export function createObsidianStoryEnvironment(
   const theme = options.theme ?? "light";
   const platform = options.platform ?? "desktop";
   const placement = options.placement ?? "canvas";
-  applyBodyClasses(document, theme, platform);
+  const viewMode = options.viewMode ?? "story";
+  applyBodyClasses(document, theme, platform, viewMode);
 
   const host = element(document, `canvas-scribe-obsidian-host theme-${theme} is-${platform}`);
   host.dataset.platform = platform;
   host.dataset.placement = placement;
+  host.dataset.viewMode = viewMode;
 
   const appContainer = element(document, "app-container");
   const workspace = element(document, "workspace");
@@ -128,11 +132,13 @@ function applyBodyClasses(
   document: Document,
   theme: ObsidianStoryTheme,
   platform: ObsidianStoryPlatform,
+  viewMode: ObsidianStoryViewMode,
 ): void {
   document.body.classList.toggle("theme-light", theme === "light");
   document.body.classList.toggle("theme-dark", theme === "dark");
   document.body.classList.toggle("is-desktop", platform === "desktop");
   document.body.classList.toggle("is-mobile", platform === "mobile");
+  document.body.classList.toggle("canvas-scribe-storybook-docs", viewMode === "docs");
 }
 
 function createCanvasBackground(document: Document): SVGSVGElement {

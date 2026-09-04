@@ -58,6 +58,7 @@ const preview: Preview = {
         ...storyOptions,
         theme: context.globals.obsidianTheme as ObsidianStoryTheme,
         platform: context.globals.obsidianPlatform as ObsidianStoryPlatform,
+        viewMode: context.viewMode === "docs" ? "docs" : "story",
       });
     },
   ],
