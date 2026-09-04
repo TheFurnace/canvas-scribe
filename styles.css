@@ -48,3 +48,105 @@
   white-space: pre-wrap;
   pointer-events: none;
 }
+
+.canvas-scribe-radial-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  background: transparent;
+  touch-action: none;
+}
+
+.canvas-scribe-radial-palette {
+  position: fixed;
+  width: 208px;
+  height: 208px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, var(--background-primary) 0 30px, transparent 31px),
+    var(--background-secondary);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 24%), 0 2px 8px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.88);
+  transform-origin: center;
+  transition: opacity 100ms ease-out, transform 140ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+
+.canvas-scribe-radial-menu.is-open .canvas-scribe-radial-palette {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.canvas-scribe-radial-action,
+.canvas-scribe-radial-close {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 50%;
+  color: var(--text-normal);
+  background: var(--background-primary);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.canvas-scribe-radial-action {
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--canvas-scribe-radial-angle))
+    translateY(-72px)
+    rotate(var(--canvas-scribe-radial-angle-inverse));
+}
+
+.canvas-scribe-radial-close {
+  width: 48px;
+  height: 48px;
+  color: var(--text-muted);
+  transform: translate(-50%, -50%);
+}
+
+.canvas-scribe-radial-action svg,
+.canvas-scribe-radial-close svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2;
+}
+
+.canvas-scribe-radial-action.is-active {
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+}
+
+.canvas-scribe-radial-action:disabled {
+  color: var(--text-faint);
+  background: var(--background-secondary);
+  box-shadow: none;
+  opacity: 0.55;
+}
+
+.canvas-scribe-radial-action:not(:disabled):active,
+.canvas-scribe-radial-close:active {
+  filter: brightness(0.9);
+}
+
+.canvas-scribe-radial-action:focus-visible,
+.canvas-scribe-radial-close:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-scribe-radial-palette {
+    transition: none;
+  }
+}

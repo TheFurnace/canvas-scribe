@@ -8,9 +8,12 @@ export function isPenContact(event: PointerEvent): boolean {
   return event.pressure > 0 || (event.buttons & 1) !== 0 || (event.type === "pointerdown" && event.button === 0);
 }
 
-export function isTemporaryEraser(event: PointerEvent): boolean {
-  // Pointer Events: button 2 is the barrel button; button 5 / bit 32 is an eraser tip.
-  return event.button === 2 || event.button === 5 || (event.buttons & 2) !== 0 || (event.buttons & 32) !== 0;
+export function isPenBarrelButton(event: PointerEvent): boolean {
+  return event.button === 2 || (event.buttons & 2) !== 0;
+}
+
+export function isEraserTip(event: PointerEvent): boolean {
+  return event.button === 5 || (event.buttons & 32) !== 0;
 }
 
 export function pointerSamples(event: PointerEvent): PointerEvent[] {

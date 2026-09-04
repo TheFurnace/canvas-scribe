@@ -13,7 +13,7 @@
 2. Vary pressure. The pen width should respond without abrupt jumps.
 3. Rest a palm after starting a pen stroke. It should not pan the Canvas or create ink.
 4. Pan with one finger and pinch with two fingers when the pen is not touching. Native Canvas navigation should remain available.
-5. Hold the S Pen button, then touch and drag across ink. Whole strokes should erase and releasing the button should restore the selected tool for the next contact.
+5. With stylus input enabled, trigger the context menu with the S Pen button and with a mouse or touch long-press. The Canvas Scribe radial palette should replace each context menu, every radial action should respond, and **Open Canvas menu** should reveal Obsidian's original menu.
 6. Switch among pen, highlighter, and eraser in the Canvas toolbar, then verify ink undo and redo.
 7. Close and reopen the Canvas. All strokes should reload at the same positions.
 

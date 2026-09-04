@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isPenContact, isTemporaryEraser, shouldAppendReleasePoint } from "../src/pointer-input";
+import { isEraserTip, isPenBarrelButton, isPenContact, shouldAppendReleasePoint } from "../src/pointer-input";
 
 function pointer(values: Partial<PointerEvent>): PointerEvent {
   return {
@@ -21,9 +21,10 @@ describe("S Pen input normalization", () => {
     expect(isPenContact(pointer({ button: 2, buttons: 2, pressure: 0 }))).toBe(false);
   });
 
-  it("recognizes barrel-button and eraser-tip bitmasks", () => {
-    expect(isTemporaryEraser(pointer({ buttons: 2 }))).toBe(true);
-    expect(isTemporaryEraser(pointer({ buttons: 32 }))).toBe(true);
+  it("distinguishes the barrel button from an eraser tip", () => {
+    expect(isPenBarrelButton(pointer({ buttons: 2 }))).toBe(true);
+    expect(isEraserTip(pointer({ buttons: 2 }))).toBe(false);
+    expect(isEraserTip(pointer({ buttons: 32 }))).toBe(true);
   });
 
   it("does not append the invalid terminal coordinates from pointer cancellation", () => {

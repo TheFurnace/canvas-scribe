@@ -1,6 +1,7 @@
 node_modules/
 .pnpm-store/
 dist/
+storybook-static/
 main.js
 *.map
 .DS_Store

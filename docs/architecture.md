@@ -9,7 +9,7 @@ The interaction contract is based on Samsung Notes:
 1. Pen contact writes immediately; there is no open-to-edit step.
 2. Finger input navigates and never creates ink.
 3. Stylus pressure affects the stroke, and coalesced pointer samples preserve fast handwriting detail.
-4. The stylus barrel button is a momentary eraser when the platform exposes it.
+4. While stylus input is enabled, Canvas context-menu gestures open a radial palette of ink actions with an escape hatch to the original Canvas menu.
 5. Tool state is persistent and reachable from a compact Canvas toolbar.
 
 ## Components
@@ -38,5 +38,5 @@ Ink is stored in the `.canvas` file rather than a plugin settings folder or opaq
 1. Device-input harness: record `pointerType`, `button`, `buttons`, pressure, tilt, hover, and event timing on a Galaxy Tab.
 2. Pen fidelity: pressure curves, stabilization presets, predicted-event preview, tilt-aware pencil, and zoom-normalized tool sizes.
 3. Editing: lasso/rectangle selection, move/scale/recolor, area eraser, and highlighter-only erase.
-4. Samsung Notes parity: favorite pens, momentary eraser, shape cleanup, handwriting straighten, and zoom lock/easy writing pad.
+4. Samsung Notes parity: favorite pens, radial action refinements, shape cleanup, handwriting straighten, and zoom lock/easy writing pad.
 5. Obsidian synthesis: convert selected ink to a Canvas card, link ink selections to notes, OCR/search metadata, and portable SVG/PDF export.

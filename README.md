@@ -5,7 +5,7 @@ Canvas Scribe is an experimental, pen-first handwriting layer for Obsidian Canva
 - A stylus writes directly on the Canvas, including over cards.
 - A finger keeps Obsidian's native pan and pinch-zoom behavior.
 - A mouse keeps Obsidian's native Canvas behavior.
-- Holding a stylus barrel button temporarily erases whole strokes when the browser exposes that button through Pointer Events.
+- While stylus input is enabled, Canvas context-menu gestures open a radial palette for pen, highlighter, eraser, undo, redo, and the original Canvas menu.
 
 The initial release includes a pressure-aware pen, highlighter, whole-stroke eraser, and ink-specific undo/redo. Ink is stored as structured JSON under the `canvasScribe` property in the existing `.canvas` file.
 

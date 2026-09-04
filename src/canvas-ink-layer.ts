@@ -5,13 +5,15 @@ import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
 import {
+  isEraserTip,
+  isPenBarrelButton,
   isPenContact,
   isPenEvent,
-  isTemporaryEraser,
   pointerSamples,
   pointerToInkPoint,
   shouldAppendReleasePoint,
 } from "./pointer-input";
+import { RadialMenu, type RadialMenuAction } from "./radial-menu";
 import {
   cloneStrokes,
   createEmptyInkData,
@@ -25,7 +27,6 @@ import {
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SAVE_DELAY_MS = 250;
 const MIN_SCREEN_POINT_DISTANCE = 0.35;
-const RECENT_PEN_CONTEXT_MENU_MS = 1000;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -44,9 +45,11 @@ export class CanvasInkLayer {
   private temporaryTool: DrawingTool | null = null;
   private enabled = true;
   private didEraseInGesture = false;
-  private barrelButtonArmed = false;
+  private penMenuArmed = false;
+  private eraserTipArmed = false;
   private undoStack: InkStroke[][] = [];
   private redoStack: InkStroke[][] = [];
+  private gestureRedoStack: InkStroke[][] | null = null;
   private saveTimer: number | null = null;
   private renderFrame: number | null = null;
   private domFrame: number | null = null;
@@ -56,8 +59,9 @@ export class CanvasInkLayer {
   private observer: MutationObserver | null = null;
   private gestureStartedAt = 0;
   private gestureTransform: CanvasTransform | null = null;
-  private lastPenEventAt = Number.NEGATIVE_INFINITY;
   private erasedStrokeCount = 0;
+  private radialMenu: RadialMenu | null = null;
+  private allowNextContextMenu = false;
 
   constructor(
     private readonly app: App,
@@ -123,6 +127,7 @@ export class CanvasInkLayer {
     this.observer = null;
     this.svgEl?.remove();
     this.controlsEl?.remove();
+    this.closeRadialMenu();
     this.logger.record("canvas", "layer_disposed", { strokeCount: this.data.strokes.length });
   }
 
@@ -167,19 +172,25 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
-    this.notePenEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (!this.enabled || !isPenEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
-    if (isTemporaryEraser(event) && !isPenContact(event)) {
-      this.barrelButtonArmed = true;
+    if (!isPenEvent(event) || this.activePointerId !== null || isControlTarget(event.target)) return;
+    if (isPenBarrelButton(event)) {
+      this.penMenuArmed = true;
+      this.consume(event);
+      return;
+    }
+    if (!this.enabled) return;
+    if (isEraserTip(event) && !isPenContact(event)) {
+      this.eraserTipArmed = true;
       this.consume(event);
       return;
     }
     if (!isPenContact(event)) return;
-    this.beginGesture(event, this.barrelButtonArmed ? "eraser" : undefined);
+    this.closeRadialMenu();
+    this.beginGesture(event, this.eraserTipArmed ? "eraser" : undefined);
   };
 
   private beginGesture(event: PointerEvent, forcedTool?: DrawingTool): void {
@@ -196,8 +207,8 @@ export class CanvasInkLayer {
     trySetPointerCapture(this.wrapperEl, event.pointerId);
     this.activePointerId = event.pointerId;
     this.gestureTransform = transform;
-    this.temporaryTool = forcedTool ?? (isTemporaryEraser(event) ? "eraser" : null);
-    this.barrelButtonArmed = false;
+    this.temporaryTool = forcedTool ?? (isEraserTip(event) ? "eraser" : null);
+    this.eraserTipArmed = false;
     const tool = this.temporaryTool ?? this.activeTool;
     this.gestureStartedAt = performance.now();
     this.erasedStrokeCount = 0;
@@ -209,6 +220,7 @@ export class CanvasInkLayer {
       pressure: Math.round(event.pressure * 1000) / 1000,
       temporaryTool: this.temporaryTool !== null,
     });
+    this.gestureRedoStack = this.redoStack;
     this.pushUndoSnapshot();
 
     if (tool === "eraser") {
@@ -237,12 +249,21 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
-    this.notePenEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.enabled && this.barrelButtonArmed && isPenEvent(event) && isPenContact(event)) {
+    if (event.pointerId === this.activePointerId && isPenEvent(event) && isPenBarrelButton(event)) {
+      this.consume(event);
+      this.cancelGesture("barrel_button");
+      this.penMenuArmed = true;
+      return;
+    }
+    if (this.activePointerId === null && this.penMenuArmed && isPenEvent(event)) {
+      this.consume(event);
+      return;
+    }
+    if (this.activePointerId === null && this.enabled && this.eraserTipArmed && isPenEvent(event) && isPenContact(event)) {
       this.beginGesture(event, "eraser");
       return;
     }
@@ -265,13 +286,17 @@ export class CanvasInkLayer {
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
-    this.notePenEvent(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (this.activePointerId === null && this.barrelButtonArmed && isPenEvent(event)) {
-      this.barrelButtonArmed = false;
+    if (this.activePointerId === null && this.penMenuArmed && isPenEvent(event)) {
+      this.penMenuArmed = false;
+      this.consume(event);
+      return;
+    }
+    if (this.activePointerId === null && this.eraserTipArmed && isPenEvent(event)) {
+      this.eraserTipArmed = false;
       this.consume(event);
       return;
     }
@@ -285,9 +310,39 @@ export class CanvasInkLayer {
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
-    const followsPenInput = event.timeStamp - this.lastPenEventAt <= RECENT_PEN_CONTEXT_MENU_MS;
-    if (this.activePointerId !== null || this.barrelButtonArmed || (this.enabled && followsPenInput)) this.consume(event);
+    if (this.allowNextContextMenu) {
+      this.allowNextContextMenu = false;
+      return;
+    }
+    if (!this.enabled) return;
+    this.consume(event);
+    if (this.activePointerId !== null) this.cancelGesture("context_menu");
+    this.penMenuArmed = false;
+    this.showRadialMenu(event.clientX, event.clientY, event.target);
   };
+
+  private cancelGesture(reason: string): void {
+    if (this.renderFrame !== null) {
+      window.cancelAnimationFrame(this.renderFrame);
+      this.renderFrame = null;
+    }
+    const pointerId = this.activePointerId;
+    if (pointerId !== null && this.wrapperEl?.hasPointerCapture(pointerId)) this.wrapperEl.releasePointerCapture(pointerId);
+    const previous = this.undoStack.pop();
+    if (previous) this.data.strokes = previous;
+    if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
+    this.gestureRedoStack = null;
+    this.activeStroke = null;
+    this.activePathEl = null;
+    this.activePointerId = null;
+    this.gestureTransform = null;
+    this.temporaryTool = null;
+    this.didEraseInGesture = false;
+    this.erasedStrokeCount = 0;
+    this.renderAll();
+    this.syncControls();
+    this.logger.record("ink", "gesture_cancelled", { reason });
+  }
 
   private finishGesture(): void {
     if (this.renderFrame !== null) {
@@ -307,6 +362,7 @@ export class CanvasInkLayer {
       this.scheduleSave();
     } else {
       this.undoStack.pop();
+      if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
     }
     this.logger.record("ink", "gesture_finished", {
       tool: completedTool,
@@ -321,6 +377,7 @@ export class CanvasInkLayer {
     this.gestureTransform = null;
     this.temporaryTool = null;
     this.didEraseInGesture = false;
+    this.gestureRedoStack = null;
     this.syncControls();
   }
 
@@ -391,8 +448,77 @@ export class CanvasInkLayer {
     }
   }
 
-  private notePenEvent(event: PointerEvent): void {
-    if (isPenEvent(event)) this.lastPenEventAt = event.timeStamp;
+  private showRadialMenu(clientX: number, clientY: number, contextTarget: EventTarget | null): void {
+    this.closeRadialMenu();
+    const actions: RadialMenuAction[] = [
+      this.radialToolAction("pen", "pencil", "Pen"),
+      this.radialToolAction("highlighter", "highlighter", "Highlighter"),
+      this.radialToolAction("eraser", "eraser", "Eraser"),
+      {
+        id: "canvas-menu",
+        label: "Open Canvas menu",
+        icon: "menu",
+        run: () => this.openCanvasContextMenu(contextTarget, clientX, clientY),
+      },
+      {
+        id: "redo",
+        label: "Redo ink",
+        icon: "redo-2",
+        disabled: this.redoStack.length === 0,
+        run: () => this.redo(),
+      },
+      {
+        id: "undo",
+        label: "Undo ink",
+        icon: "undo-2",
+        disabled: this.undoStack.length === 0,
+        run: () => this.undo(),
+      },
+    ];
+    this.logger.record("canvas", "radial_menu_opened", { activeTool: this.activeTool });
+    this.radialMenu = new RadialMenu(this.target.containerEl.ownerDocument, actions, () => {
+      this.radialMenu = null;
+    });
+    this.radialMenu.open(clientX, clientY);
+  }
+
+  private openCanvasContextMenu(target: EventTarget | null, clientX: number, clientY: number): void {
+    const document = this.target.containerEl.ownerDocument;
+    const view = document.defaultView;
+    const NodeConstructor = view?.Node;
+    const connectedTarget = NodeConstructor && target instanceof NodeConstructor && target.isConnected ? target : this.wrapperEl;
+    if (!view || !connectedTarget) return;
+
+    this.allowNextContextMenu = true;
+    connectedTarget.dispatchEvent(new view.MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      view,
+      clientX,
+      clientY,
+      button: 2,
+    }));
+    this.allowNextContextMenu = false;
+    this.logger.record("canvas", "native_context_menu_requested");
+  }
+
+  private radialToolAction(tool: DrawingTool, icon: string, label: string): RadialMenuAction {
+    return {
+      id: tool,
+      label,
+      icon,
+      active: this.enabled && this.activeTool === tool,
+      run: () => {
+        if (!this.enabled) this.toggleEnabled();
+        this.setTool(tool);
+      },
+    };
+  }
+
+  private closeRadialMenu(): void {
+    const menu = this.radialMenu;
+    this.radialMenu = null;
+    menu?.close();
   }
 
   private getDefaultPenColor(): string {
@@ -532,7 +658,7 @@ export class CanvasInkLayer {
 }
 
 function isControlTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest(".canvas-controls, .canvas-menu, .canvas-card-menu"));
+  return target instanceof Element && Boolean(target.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {
