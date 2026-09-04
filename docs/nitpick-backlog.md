@@ -45,3 +45,11 @@ Investigate integration with Samsung's S Pen handwriting-to-text behavior, commo
 This item requires device-level capability testing before choosing an implementation. Record Android, One UI, Obsidian, and WebView versions during that investigation.
 
 Investigation status: [platform findings, the non-invasive editor pass-through, and the device matrix](stylus-to-text.md) are documented. Real-device combinations remain intentionally unverified until the matrix is run on Galaxy hardware.
+
+## Handwriting and drawing affordances
+
+Tablet testing confirms that handwriting-to-text works in an active Canvas text editor while Canvas Scribe draws outside editable areas, but the boundary between those behaviors is not visually obvious before the stylus touches the screen.
+
+Add a lightweight hover or focus affordance that distinguishes the active handwriting region from the surrounding drawing surface. Consider outlining the editable card, changing the hover cursor, or showing a short mode hint. The indicator must not cover text, compete with native Canvas selection, or intercept the handwriting gesture.
+
+Acceptance check: before making contact, a user should be able to tell whether the next stylus gesture will become text or ink. The indication should update when editor focus changes and remain accurate while the Canvas is panned or zoomed; it should include a non-color-only cue.
