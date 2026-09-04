@@ -903,9 +903,12 @@ export class CanvasInkLayer {
       const swatch = document.createElement("button");
       swatch.type = "button";
       swatch.className = "canvas-scribe-color-swatch";
-      swatch.style.setProperty("--canvas-scribe-swatch-color", color);
       swatch.setAttribute("aria-label", `Use ${color} for ${tool}`);
       swatch.setAttribute("aria-pressed", String(color.toLowerCase() === this.getToolColor(tool).toLowerCase()));
+      const preview = document.createElement("span");
+      preview.className = "canvas-scribe-color-swatch-preview";
+      preview.style.backgroundColor = color;
+      swatch.appendChild(preview);
       swatch.addEventListener("pointerdown", (event) => {
         this.consume(event);
         this.selectedColors[tool] = color;
