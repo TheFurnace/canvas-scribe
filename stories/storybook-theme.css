@@ -89,6 +89,17 @@ body {
   justify-content: flex-end;
 }
 
+.canvas-scribe-story-toolbar-preview {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.canvas-scribe-color-palette.canvas-scribe-story-color-palette {
+  position: static;
+}
+
 .canvas-control-group {
   display: flex;
   flex-direction: column;
@@ -136,6 +147,11 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;
+}
+
+.canvas-control-item svg circle[fill] {
+  fill: currentColor;
+  stroke: none;
 }
 
 .canvas-scribe-radial-menu.canvas-scribe-story-radial {
