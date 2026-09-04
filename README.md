@@ -25,6 +25,8 @@ Tester-reported polish items are tracked in [docs/nitpick-backlog.md](docs/nitpi
 
 ## Development
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch/worktree convention and the beta-versus-stable release policy.
+
 ```sh
 pnpm install
 pnpm check
