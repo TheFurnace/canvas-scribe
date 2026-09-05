@@ -56,4 +56,6 @@ Record one of these outcomes for each case: **works**, **not offered**, **gestur
 
 ## Decision gate
 
+Progress and ownership are tracked in [FER-9: Validate Samsung handwriting-to-text on Galaxy hardware](https://linear.app/fdqr/issue/FER-9/validate-samsung-handwriting-to-text-on-galaxy-hardware).
+
 No broader integration should be added until the matrix confirms behavior on at least one Android 14+ device and one Samsung One UI 5.1+ device. If focused editors still cannot receive handwriting with Canvas Scribe disabled, the limitation is outside the plugin. If disabled works but the narrow pass-through does not, update only the editable-target detection for the observed Obsidian DOM.

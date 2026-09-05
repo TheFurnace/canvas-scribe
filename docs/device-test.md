@@ -1,5 +1,7 @@
 # Galaxy device test
 
+Track device-input results and follow-up work in [FER-11: Validate Galaxy stylus input mappings](https://linear.app/fdqr/issue/FER-11/validate-galaxy-stylus-input-mappings). Samsung handwriting-to-text validation is tracked separately in [FER-9](https://linear.app/fdqr/issue/FER-9/validate-samsung-handwriting-to-text-on-galaxy-hardware).
+
 ## Install
 
 1. Follow the BRAT or synced-vault setup in [debug-workflow.md](debug-workflow.md).

@@ -33,10 +33,8 @@ Ink is stored in the `.canvas` file rather than a plugin settings folder or opaq
 - Directly rewriting the Canvas JSON can race with native Canvas saves. A future adapter should coordinate with the internal `requestSave()` lifecycle or use an atomic vault processing API where supported.
 - SVG is ideal for an MVP and editable strokes. Dense boards will eventually need viewport culling and raster tile caching.
 
-## Next milestones
+## Roadmap
 
-1. Device-input harness: record `pointerType`, `button`, `buttons`, pressure, tilt, hover, and event timing on a Galaxy Tab.
-2. Stylus fidelity: pressure curves, stabilization presets, predicted-event preview, tilt-aware pencil, and zoom-normalized tool sizes.
-3. Editing: lasso/rectangle selection, move/scale/recolor, area eraser, and highlighter-only erase.
-4. Samsung Notes parity: favorite pens, radial action refinements, shape cleanup, handwriting straighten, and zoom lock/easy writing pad.
-5. Obsidian synthesis: convert selected ink to a Canvas card, link ink selections to notes, OCR/search metadata, and portable SVG/PDF export.
+The product and engineering roadmap is tracked in the [Draw on Canvas v1 Linear project](https://linear.app/fdqr/project/draw-on-canvas-v1-7dae1cdf674c). Its milestones cover device validation and radial-menu hardening, stylus fidelity, ink editing, Samsung Notes parity, and Obsidian integration and export.
+
+This document records durable architecture and product direction. Status, priority, ownership, and implementation scope belong in Linear.
