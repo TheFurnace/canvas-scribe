@@ -21,6 +21,18 @@ Before creating or reusing a worktree:
 
 Read-only investigation, emergency fixes, and genuinely trivial edits do not require another worktree. If a task is already on a dedicated branch and worktree, do not create an extra one.
 
+## Linear tracking and Git links
+
+Linear is the source of truth for planned work, status, priority, ownership, and acceptance criteria. Create or identify the Linear issue before beginning a substantive change.
+
+Include the issue identifier in Git metadata so Linear and GitHub can associate future work automatically:
+
+- Codex branches use `codex/<issue-id>-<topic>`, such as `codex/FER-13-brush-width`.
+- Put the issue identifier in the pull request title or description.
+- When a commit maps cleanly to one issue, start its subject with the identifier, such as `FER-13: Keep brush widths constant across zoom`.
+
+Move an issue to **In Progress** when implementation begins, **In Review** when the change is ready for review or device validation, and **Done** only after the change is merged and its acceptance criteria are satisfied. If a commit or pull request predates its issue, add the canonical GitHub URL to the Linear issue manually.
+
 ## Verification
 
 Run the complete local check before requesting review or publishing a test build:
