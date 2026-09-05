@@ -7,7 +7,7 @@ Use a dedicated branch and linked Git worktree for each substantive change. This
 From the primary checkout, create a worktree with a short, unique topic name:
 
 ```powershell
-git worktree add "dist/worktrees/<topic>" -b "codex/<topic>" <start-point>
+git worktree add "dist/worktrees/<topic>" -b "codex/FER-123/<topic>" <start-point>
 ```
 
 Use `main` or the agreed integration branch as `<start-point>`. Codex-created branches use the `codex/` prefix; human contributors may follow the repository's normal branch naming conventions.
@@ -20,6 +20,18 @@ Before creating or reusing a worktree:
 4. Give long-running development processes unique ports when multiple worktrees are active.
 
 Read-only investigation, emergency fixes, and genuinely trivial edits do not require another worktree. If a task is already on a dedicated branch and worktree, do not create an extra one.
+
+## Linear tracking and Git links
+
+Linear is the source of truth for planned work, status, priority, ownership, and acceptance criteria. Create or identify the Linear issue before beginning a substantive change.
+
+Include the issue identifier in Git metadata so Linear and GitHub can associate future work automatically:
+
+- Codex branches use `codex/<issue-id>/<topic>`, such as `codex/FER-13/brush-width`.
+- Put the issue identifier in the pull request title or description.
+- When a commit maps cleanly to one issue, start its subject with the identifier, such as `FER-13: Keep brush widths constant across zoom`.
+
+Move an issue to **In Progress** when implementation begins, **In Review** when the change is ready for review or device validation, and **Done** only after the change is merged and its acceptance criteria are satisfied. If a commit or pull request predates its issue, add the canonical GitHub URL to the Linear issue manually.
 
 ## Verification
 

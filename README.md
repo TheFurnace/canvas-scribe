@@ -23,7 +23,7 @@ https://github.com/TheFurnace/canvas-scribe
 
 BRAT can then install future tablet builds from this repository's releases. See [docs/debug-workflow.md](docs/debug-workflow.md) for the full test and feedback loop.
 
-Tester-reported polish items are tracked in [docs/nitpick-backlog.md](docs/nitpick-backlog.md) for a later focused pass.
+Project work is tracked in Linear. Use [Draw on Canvas v1](https://linear.app/fdqr/project/draw-on-canvas-v1-7dae1cdf674c) for planned product and engineering work, and [Canvas Scribe User Feedback](https://linear.app/fdqr/project/canvas-scribe-user-feedback-3b845a98c8ed) for pain points and feature requests discovered through real use.
 
 ## Development
 

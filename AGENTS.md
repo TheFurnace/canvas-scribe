@@ -5,7 +5,7 @@ Follow [CONTRIBUTING.md](CONTRIBUTING.md) for the complete development and relea
 ## Isolate changes by default
 
 - Before making a substantive change, create a dedicated branch and linked worktree from the appropriate integration point. If the current checkout is already a dedicated worktree for that change, keep using it.
-- Use `dist/worktrees/<topic>` for local linked worktrees. Use `codex/<topic>` for branches created by Codex.
+- Use `dist/worktrees/<topic>` for local linked worktrees. Use `codex/FER-123/<topic>` for branches created by Codex, replacing `FER-123` with the Linear issue identifier.
 - Keep `main` available for integration and release work. Do not mix unrelated tasks in one worktree or reuse a worktree that has uncommitted changes belonging to someone else.
 - Read-only investigation and genuinely trivial edits may stay in the current checkout. Explicit user instructions override this default.
 
