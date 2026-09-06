@@ -35,6 +35,7 @@ const MIN_SCREEN_POINT_DISTANCE = 0.35;
 const ERASER_SCREEN_RADIUS = 18;
 const SELECTION_SCREEN_PADDING = 8;
 const PALETTE_CLOSE_ANIMATION_MS = 180;
+const PEN_CLICK_SUPPRESSION_MS = 750;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -80,6 +81,8 @@ export class CanvasInkLayer {
   private observer: MutationObserver | null = null;
   private gestureStartedAt = 0;
   private gestureTransform: CanvasTransform | null = null;
+  private gestureOriginTarget: Element | null = null;
+  private pendingPenClick: { expiresAt: number; target: Element | null } | null = null;
   private erasedStrokeCount = 0;
   private radialMenu: RadialMenu | null = null;
   private allowNextContextMenu = false;
@@ -113,6 +116,7 @@ export class CanvasInkLayer {
 
   toggleEnabled(): void {
     this.enabled = !this.enabled;
+    if (!this.enabled) this.pendingPenClick = null;
     this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
@@ -198,6 +202,7 @@ export class CanvasInkLayer {
     this.listen(pointerRoot, "pointerup", this.onPointerUp, true, this.inputDisposers);
     this.listen(pointerRoot, "pointercancel", this.onPointerUp, true, this.inputDisposers);
     this.listen(pointerRoot, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
+    this.listen(pointerRoot, "click", this.onClick, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
   }
 
@@ -246,6 +251,7 @@ export class CanvasInkLayer {
     trySetPointerCapture(this.wrapperEl, event.pointerId);
     this.activePointerId = event.pointerId;
     this.gestureTransform = transform;
+    this.gestureOriginTarget = event.target instanceof Element ? event.target : null;
     this.temporaryTool = forcedTool ?? (isEraserTip(event) ? "eraser" : null);
     this.eraserTipArmed = false;
     const tool = this.temporaryTool ?? this.activeTool;
@@ -361,6 +367,10 @@ export class CanvasInkLayer {
       this.appendReleasePoint(event);
     }
     if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
+    this.pendingPenClick = {
+      expiresAt: performance.now() + PEN_CLICK_SUPPRESSION_MS,
+      target: this.gestureOriginTarget,
+    };
     this.finishGesture();
   };
 
@@ -371,6 +381,28 @@ export class CanvasInkLayer {
 
   private isPointerEventForLayer(event: PointerEvent): boolean {
     if (event.pointerId === this.activePointerId) return true;
+    const wrapper = this.wrapperEl;
+    if (!wrapper) return false;
+    if (typeof event.composedPath === "function" && event.composedPath().includes(wrapper)) return true;
+    return event.target instanceof Element && wrapper.contains(event.target);
+  }
+
+  private readonly onClick = (event: MouseEvent): void => {
+    if (!this.enabled || isControlTarget(event.target) || !this.isEventForLayer(event)) return;
+    const pointerType = event instanceof PointerEvent ? event.pointerType : "";
+    const pending = this.pendingPenClick;
+    const isCurrentPenClick = pointerType === "pen";
+    const isLegacyPenClick =
+      pointerType === "" &&
+      pending !== null &&
+      performance.now() <= pending.expiresAt &&
+      clickTargetsMatch(pending.target, event.target);
+    if (!isCurrentPenClick && !isLegacyPenClick) return;
+    this.pendingPenClick = null;
+    this.consume(event);
+  };
+
+  private isEventForLayer(event: Event): boolean {
     const wrapper = this.wrapperEl;
     if (!wrapper) return false;
     if (typeof event.composedPath === "function" && event.composedPath().includes(wrapper)) return true;
@@ -408,6 +440,7 @@ export class CanvasInkLayer {
     this.activePathEl = null;
     this.activePointerId = null;
     this.gestureTransform = null;
+    this.gestureOriginTarget = null;
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.erasedStrokeCount = 0;
@@ -456,6 +489,7 @@ export class CanvasInkLayer {
     this.activePathEl = null;
     this.activePointerId = null;
     this.gestureTransform = null;
+    this.gestureOriginTarget = null;
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.gestureRedoStack = null;
@@ -968,6 +1002,14 @@ function isEditableTarget(target: EventTarget | null): boolean {
     target instanceof Element &&
     Boolean(target.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'))
   );
+}
+
+function clickTargetsMatch(origin: Element | null, target: EventTarget | null): boolean {
+  if (!origin || !(target instanceof Element)) return false;
+  const originCard = origin.closest(".canvas-node");
+  const targetCard = target.closest(".canvas-node");
+  if (originCard || targetCard) return originCard !== null && originCard === targetCard;
+  return origin === target || origin.contains(target) || target.contains(origin);
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {

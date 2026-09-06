@@ -14,10 +14,12 @@ afterEach(() => {
 });
 
 describe("Canvas drawing input ordering", () => {
-  it("owns a pen gesture before an existing Canvas card capture handler", async () => {
+  it("owns a pen gesture and its click before existing Canvas card capture handlers", async () => {
     const { wrapper, card } = fixture();
     const nativeCardPointerDown = vi.fn();
+    const nativeCardClick = vi.fn();
     wrapper.addEventListener("pointerdown", nativeCardPointerDown, true);
+    wrapper.addEventListener("click", nativeCardClick, true);
     stubPointerCapture(wrapper);
 
     const layer = await mountLayer();
@@ -44,11 +46,53 @@ describe("Canvas drawing input ordering", () => {
       clientY: 33,
     });
     card.dispatchEvent(up);
+    const click = pointerEvent("click", {
+      pointerId: 7,
+      pointerType: "pen",
+      button: 0,
+      buttons: 0,
+      pressure: 0,
+    });
+    card.dispatchEvent(click);
 
     expect(down.defaultPrevented).toBe(true);
     expect(up.defaultPrevented).toBe(true);
+    expect(click.defaultPrevented).toBe(true);
     expect(nativeCardPointerDown).not.toHaveBeenCalled();
+    expect(nativeCardClick).not.toHaveBeenCalled();
     expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(1);
+
+    layer.dispose();
+  });
+
+  it("suppresses a legacy click immediately following an owned pen gesture", async () => {
+    const { wrapper, card } = fixture();
+    const nativeCardClick = vi.fn();
+    wrapper.addEventListener("click", nativeCardClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    card.dispatchEvent(pointerEvent("pointerdown", {
+      pointerId: 9,
+      pointerType: "pen",
+      button: 0,
+      buttons: 1,
+      pressure: 0.5,
+    }));
+    card.dispatchEvent(pointerEvent("pointerup", {
+      pointerId: 9,
+      pointerType: "pen",
+      button: 0,
+      buttons: 0,
+      pressure: 0,
+    }));
+
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+    card.dispatchEvent(click);
+
+    expect(click.defaultPrevented).toBe(true);
+    expect(nativeCardClick).not.toHaveBeenCalled();
 
     layer.dispose();
   });
@@ -56,7 +100,9 @@ describe("Canvas drawing input ordering", () => {
   it("leaves touch input inside the Canvas to native handlers", async () => {
     const { wrapper, card } = fixture();
     const nativeCardPointerDown = vi.fn();
+    const nativeCardClick = vi.fn();
     wrapper.addEventListener("pointerdown", nativeCardPointerDown, true);
+    wrapper.addEventListener("click", nativeCardClick, true);
 
     const layer = await mountLayer();
     card.dispatchEvent(pointerEvent("pointerdown", {
@@ -66,8 +112,16 @@ describe("Canvas drawing input ordering", () => {
       buttons: 1,
       pressure: 1,
     }));
+    card.dispatchEvent(pointerEvent("click", {
+      pointerId: 8,
+      pointerType: "touch",
+      button: 0,
+      buttons: 0,
+      pressure: 0,
+    }));
 
     expect(nativeCardPointerDown).toHaveBeenCalledOnce();
+    expect(nativeCardClick).toHaveBeenCalledOnce();
 
     layer.dispose();
   });
