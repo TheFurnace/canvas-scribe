@@ -11,7 +11,7 @@ The initial release includes a pressure-aware pen, highlighter, whole-stroke era
 
 For device testing, run **Canvas Scribe: Toggle stylus input diagnostics** from the command palette. The overlay reports the browser's stylus pointer type, pressure, tilt, and button mappings without changing input behavior. Run **Canvas Scribe: Export debug report** afterward to create a fill-in report and structured log in the vault's `Canvas Scribe Debug` folder. Logs exclude note text, canvas names, vault names, and raw stylus coordinates.
 
-Android handwriting-to-text support and the Galaxy test matrix are documented in [docs/stylus-to-text.md](docs/stylus-to-text.md). Stylus events that begin inside an active HTML editor are left to Obsidian and Android's input method instead of being captured as ink.
+Android handwriting-to-text support and the Galaxy test matrix are documented in [docs/stylus-to-text.md](docs/stylus-to-text.md). While Canvas Scribe stylus input is enabled, pen gestures throughout the Canvas—including over active card editors—are owned by the drawing layer. Disable stylus input before using Android or Samsung handwriting-to-text inside a card.
 
 ## Galaxy tablet installation
 

@@ -6,7 +6,7 @@ Completion update: 2026-09-05
 
 ## Finding
 
-Canvas Scribe should not implement handwriting recognition. The compatible path is to let Android's input method receive stylus gestures that begin in a real, focused HTML editor while Canvas Scribe continues handling gestures everywhere else on the Canvas.
+Canvas Scribe should not implement handwriting recognition. Its drawing mode owns pen gestures throughout the Canvas; users disable stylus input when they want Android's input method to receive gestures in a real, focused HTML editor.
 
 Device testing confirmed the expected platform boundary: handwriting recognition is handled by the operating system and selected input method, similarly to an Android software keyboard. Obsidian receives recognized text rather than the handwriting strokes. The editable surface supplies the location, bounds, selection, and caret context that the platform needs to choose the target and position handwriting operations.
 
@@ -43,18 +43,18 @@ Chromium marks regions that are not eligible for stylus writing internally. Its 
 
 An [Obsidian HandTranscriptMd report](https://github.com/gabriele-cusato/HandTranscriptMd/issues/1) attributes a persistent handwriting-to-text failure to `touch-action: none` in a drawing view. The regional `touch-action` conflict is consistent with Chromium source, but the report's stronger claim that it poisons the entire shared WebView has not been independently corroborated. Its cited Ink issue concerns interrupted pen drawing rather than handwriting-to-text, so the persistent-state explanation remains a regression hypothesis rather than an established platform fact.
 
-Canvas Scribe's render SVG uses `pointer-events: none`, allowing hit testing to reach the underlying Obsidian editor. Its capture listeners also return without cancellation for `input`, `textarea`, enabled `contenteditable`, and CodeMirror content. The full-screen radial menu temporarily uses `touch-action: none`; regression testing should verify handwriting before and after opening that menu.
+Canvas Scribe's render SVG uses `pointer-events: none`, so it does not change hit testing by itself. While stylus input is enabled, however, the plugin's capture listeners deliberately own pen gestures throughout the Canvas, including gestures over `input`, `textarea`, enabled `contenteditable`, and CodeMirror content. Disable Canvas Scribe stylus input before using the operating system's handwriting-to-text feature. The full-screen radial menu temporarily uses `touch-action: none`; regression testing should verify handwriting before and after opening that menu.
 
 ## Integration in Canvas Scribe
 
-Canvas Scribe previously captured every contacting stylus `pointerdown` in the Canvas wrapper. That prevented Obsidian's WebView editor and the active keyboard from seeing the gesture.
+Canvas Scribe captures contacting pen input across the Canvas so a stroke remains continuous when it begins on, crosses, or ends over a card. The same gesture cannot safely be offered to both the ink layer and an editor without also allowing card focus, selection, or dragging to interrupt the stroke.
 
-The input router now leaves events alone when they begin in an `input`, `textarea`, enabled `contenteditable` element, or CodeMirror editor content. This is deliberately narrow:
+The interaction modes are therefore explicit:
 
-- An open Canvas text editor can receive Android or Samsung handwriting behavior.
-- A gesture elsewhere still draws with the selected Canvas Scribe tool.
+- With Canvas Scribe stylus input enabled, pen gestures create ink over both the Canvas background and cards.
+- Finger and mouse input retain Obsidian's native Canvas behavior.
+- Disable **Canvas Scribe: Toggle stylus input** before using Android or Samsung handwriting-to-text in an editor.
 - Canvas Scribe does not synthesize text, inspect recognized content, or change keyboard settings.
-- **Toggle stylus input** remains the fallback when a particular Obsidian version uses an editor DOM that is not recognized.
 
 Obsidian's Canvas DOM is not a public API, so this routing must be checked after Obsidian updates.
 
@@ -78,7 +78,7 @@ For each device combination, test these cases in order:
 
 1. In another WebView-based app or browser page, verify handwriting-to-text in a plain HTML text field. If this fails, the device or keyboard configuration is the blocker.
 2. In Obsidian, create a Canvas text card, enter edit mode, focus its editor, and write inside it. Record whether a handwriting toolbar or hover indicator appears and whether recognized text is committed.
-3. Enable Canvas Scribe and repeat while its pen tool is selected. The editor should receive text and no ink stroke should be created.
+3. Enable Canvas Scribe and repeat while its pen tool is selected. The gesture should create ink; the editor should not receive handwriting input or become selected by that gesture.
 4. Start just outside the active editor. Canvas Scribe should create ink and no text should be committed.
 5. Repeat with Canvas Scribe stylus input disabled. This distinguishes plugin routing from Obsidian/WebView behavior.
 6. Repeat after changing Canvas zoom and after closing and reopening the text card.
@@ -89,6 +89,6 @@ Record one of these outcomes for each case: **works**, **not offered**, **gestur
 
 Progress and ownership are tracked in [FER-9: Validate Samsung handwriting-to-text on Galaxy hardware](https://linear.app/fdqr/issue/FER-9/validate-samsung-handwriting-to-text-on-galaxy-hardware).
 
-FER-9 is complete. Device testing and the platform documentation agree that recognition is owned by Android/Samsung and Chromium, while Canvas Scribe is responsible only for allowing the appropriate events to reach a real Obsidian editor. No broader handwriting-recognition integration should be added.
+FER-9 is complete. Device testing and the platform documentation agree that recognition is owned by Android/Samsung and Chromium. Canvas Scribe does not integrate with that recognition path; users switch explicitly between plugin-owned ink and operating-system handwriting by toggling stylus input. No broader handwriting-recognition integration should be added.
 
-For future regressions, record the full device matrix above. If focused editors cannot receive handwriting with Canvas Scribe disabled, the limitation is outside the plugin. If disabled works but the narrow pass-through does not, update only the editable-target detection for the observed Obsidian DOM. Also compare behavior before and after opening any drawing surface or overlay that uses `touch-action: none`.
+For future regressions, record the full device matrix above. If focused editors cannot receive handwriting with Canvas Scribe disabled, the limitation is outside the plugin. If disabling stylus input restores handwriting, the explicit mode boundary is working as designed. Also compare behavior before and after opening any drawing surface or overlay that uses `touch-action: none`.
