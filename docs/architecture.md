@@ -25,12 +25,13 @@ The interaction contract is based on Samsung Notes:
 
 Ink is stored in the `.canvas` file rather than a plugin settings folder or opaque database. This keeps the spatial board and its handwriting atomic for sync, backup, duplication, and version control. Standard JSON Canvas readers ignore the additional top-level property.
 
+When a Canvas view is open, ink updates its in-memory document and uses the native Canvas save lifecycle so card and ink changes share one writer. The persistence fallback uses `Vault.process()` to update closed or unsupported Canvas files atomically.
+
 ## Known MVP risks
 
 - Obsidian does not expose a stable public Canvas extension API; DOM selectors may change.
 - Android/WebView mappings for stylus barrel buttons vary by device. Input diagnostics and real-device event traces are the next priority.
 - A palm that lands before stylus contact can begin a native Canvas gesture. Stylus-hover detection and a short palm-suppression window should be evaluated on-device.
-- Directly rewriting the Canvas JSON can race with native Canvas saves. A future adapter should coordinate with the internal `requestSave()` lifecycle or use an atomic vault processing API where supported.
 - SVG is ideal for an MVP and editable strokes. Dense boards will eventually need viewport culling and raster tile caching.
 
 ## Roadmap
