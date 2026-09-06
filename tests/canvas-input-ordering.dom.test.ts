@@ -369,6 +369,47 @@ describe("Canvas drawing input ordering", () => {
   });
 });
 
+describe("Canvas full color picker integration", () => {
+  it("opens from quick colors, commits only Done, scopes tools, and cleans up on dispose", async () => {
+    fixture();
+    const layer = await mountLayer();
+    const activate = (action: string) => requiredElement<HTMLElement>(`[data-action=${action}]`).dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", pointerId: 51 }));
+    const open = () => {
+      activate("color");
+      requiredElement<HTMLButtonElement>(".canvas-scribe-color-palette > button:last-child").click();
+    };
+    const click = (name: string) => Array.from(document.querySelectorAll<HTMLButtonElement>(".canvas-scribe-picker button")).find((b) => b.textContent === name)!.click();
+    const colorControl = () => requiredElement<HTMLElement>("[data-action=color]").style.getPropertyValue("--canvas-scribe-active-color");
+    const initial = colorControl();
+    open();
+    const input = requiredElement<HTMLInputElement>(".canvas-scribe-picker-inputs input");
+    dispatchPenGesture(input, 52);
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(0);
+    input.value = "#abcdef";
+    input.dispatchEvent(new Event("input"));
+    expect(colorControl()).toBe(initial);
+    click("Done");
+    expect(colorControl()).toBe("#abcdef");
+    open();
+    click("Reset to default");
+    click("Cancel");
+    expect(colorControl()).toBe("#abcdef");
+    activate("highlighter");
+    open();
+    expect(document.querySelectorAll(".canvas-scribe-picker-recent button")).toHaveLength(0);
+    click("Cancel");
+    activate("pen");
+    open();
+    expect(document.querySelectorAll(".canvas-scribe-picker-recent button")).toHaveLength(1);
+    click("Reset to default");
+    click("Done");
+    expect(colorControl()).toBe(initial);
+    open();
+    layer.dispose();
+    expect(document.querySelector(".canvas-scribe-picker-backdrop")).toBeNull();
+  });
+});
+
 function fixture(): { wrapper: HTMLElement; card: HTMLElement } {
   document.body.innerHTML = `
     <div id="container">
