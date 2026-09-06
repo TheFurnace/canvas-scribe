@@ -43,13 +43,13 @@ Chromium marks regions that are not eligible for stylus writing internally. Its 
 
 An [Obsidian HandTranscriptMd report](https://github.com/gabriele-cusato/HandTranscriptMd/issues/1) attributes a persistent handwriting-to-text failure to `touch-action: none` in a drawing view. The regional `touch-action` conflict is consistent with Chromium source, but the report's stronger claim that it poisons the entire shared WebView has not been independently corroborated. Its cited Ink issue concerns interrupted pen drawing rather than handwriting-to-text, so the persistent-state explanation remains a regression hypothesis rather than an established platform fact.
 
-Canvas Scribe's render SVG uses `pointer-events: none`, allowing hit testing to reach the underlying Obsidian editor. Its capture listeners also return without cancellation for `input`, `textarea`, enabled `contenteditable`, and CodeMirror content. The full-screen radial menu temporarily uses `touch-action: none`; regression testing should verify handwriting before and after opening that menu.
+Canvas Scribe's render SVG uses `pointer-events: none`, allowing hit testing to reach the underlying Obsidian editor. Its capture listeners also return without cancellation for `input`, `textarea`, enabled `contenteditable`, CodeMirror content, and the iframe-backed editor inside a Canvas node marked `is-editing`. The full-screen radial menu temporarily uses `touch-action: none`; regression testing should verify handwriting before and after opening that menu.
 
 ## Integration in Canvas Scribe
 
 Canvas Scribe previously captured every contacting stylus `pointerdown` in the Canvas wrapper. That prevented Obsidian's WebView editor and the active keyboard from seeing the gesture.
 
-The input router now leaves events alone when they begin in an `input`, `textarea`, enabled `contenteditable` element, or CodeMirror editor content. This is deliberately narrow:
+The input router now leaves events alone when they begin in an `input`, `textarea`, enabled `contenteditable` element, CodeMirror editor content, or the iframe-backed body editor of a Canvas node in edit mode. This is deliberately narrow:
 
 - An open Canvas text editor can receive Android or Samsung handwriting behavior.
 - A gesture elsewhere still draws with the selected Canvas Scribe tool.

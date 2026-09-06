@@ -5,7 +5,11 @@ import type { CanvasTarget } from "./canvas-target";
 import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
-import { createHandwritingHint, resolveHandwritingRegion } from "./handwriting-affordance";
+import {
+  createHandwritingHint,
+  isHandwritingRegionTarget,
+  resolveHandwritingRegion,
+} from "./handwriting-affordance";
 import { loadInkData, saveInkData } from "./persistence";
 import { positionPopup } from "./popover";
 import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
@@ -184,21 +188,34 @@ export class CanvasInkLayer {
   }
 
   private observeDom(): void {
-    this.observer = new MutationObserver(() => {
+    this.observer = new MutationObserver((mutations) => {
+      const canvasStructureOrEditingStateChanged = mutations.some(
+        (mutation) =>
+          mutation.type === "childList" ||
+          (mutation.target instanceof Element && mutation.target.classList.contains("canvas-node")),
+      );
+      if (!canvasStructureOrEditingStateChanged) return;
       if (this.domFrame !== null) return;
       this.domFrame = window.requestAnimationFrame(() => {
         this.domFrame = null;
         this.ensureDom();
       });
     });
-    this.observer.observe(this.target.containerEl, { childList: true, subtree: true });
+    this.observer.observe(this.target.containerEl, {
+      attributes: true,
+      attributeFilter: ["class"],
+      childList: true,
+      subtree: true,
+    });
   }
 
   private bindInput(wrapper: HTMLElement): void {
     if (this.wrapperEl === wrapper) return;
     for (const dispose of this.inputDisposers.splice(0)) dispose();
     this.wrapperEl = wrapper;
-    this.listen(wrapper, "pointerdown", this.onPointerDown, true, this.inputDisposers);
+    // Listen above Obsidian's Canvas wrapper so a claimed stylus gesture is
+    // cancelled before the card selection/drag handlers can observe it.
+    this.listen(this.target.containerEl, "pointerdown", this.onPointerDown, true, this.inputDisposers);
     this.listen(wrapper, "pointermove", this.onPointerMove, true, this.inputDisposers);
     this.listen(wrapper, "pointerup", this.onPointerUp, true, this.inputDisposers);
     this.listen(wrapper, "pointercancel", this.onPointerUp, true, this.inputDisposers);
@@ -1030,8 +1047,17 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 function handwritingRegionFromTarget(target: EventTarget | null): HTMLElement | null {
-  if (!(target instanceof Element) || !isEditableTarget(target)) return null;
-  return target.closest<HTMLElement>(".canvas-node");
+  if (!(target instanceof Element)) return null;
+  const region = target.closest<HTMLElement>(".canvas-node");
+  if (!region) return null;
+  const targetIsEmbeddedEditor = Boolean(target.closest("iframe, .markdown-embed"));
+  return isHandwritingRegionTarget(
+    isEditableTarget(target),
+    region.classList.contains("is-editing"),
+    targetIsEmbeddedEditor,
+  )
+    ? region
+    : null;
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {
