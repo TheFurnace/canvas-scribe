@@ -77,11 +77,11 @@ Record every version; a result without the full version set is not conclusive.
 For each device combination, test these cases in order:
 
 1. In another WebView-based app or browser page, verify handwriting-to-text in a plain HTML text field. If this fails, the device or keyboard configuration is the blocker.
-2. In Obsidian, create a Canvas text card, enter edit mode, focus its editor, and write inside it. Record whether a handwriting toolbar or hover indicator appears and whether recognized text is committed.
-3. Enable Canvas Scribe and repeat while its pen tool is selected. The editor should receive text and no ink stroke should be created.
-4. Start just outside the active editor. Canvas Scribe should create ink and no text should be committed.
+2. In Obsidian, create a Canvas text card and enter edit mode. The card should gain a dashed inner edge and a **Handwriting → text** label when its editor receives focus.
+3. With Canvas Scribe enabled and its pen tool selected, hover the stylus over the editor. The same cue should identify that card before contact; writing there should commit text without creating an ink stroke.
+4. Move the hovering stylus just outside the editor. The cue should clear before contact; writing there should create ink and commit no text.
 5. Repeat with Canvas Scribe stylus input disabled. This distinguishes plugin routing from Obsidian/WebView behavior.
-6. Repeat after changing Canvas zoom and after closing and reopening the text card.
+6. Pan and zoom the Canvas while the editor remains focused. The cue should remain attached to the correct card, then update after closing or focusing a different editor.
 
 Record one of these outcomes for each case: **works**, **not offered**, **gesture became ink**, **gesture was ignored**, or **text committed to the wrong editor**. Attach an exported Canvas Scribe debug report, but do not include private note text.
 
