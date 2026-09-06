@@ -25,6 +25,10 @@ class FakeElement {
     return child;
   }
 
+  contains(target: FakeElement): boolean {
+    return target === this || this.children.some((child) => child.contains(target));
+  }
+
   replaceChildren(...children: FakeElement[]): void {
     this.children.splice(0, this.children.length, ...children);
   }
@@ -135,6 +139,7 @@ describe("Canvas drawing input ownership", () => {
     const wrapper = new FakeElement(document);
     const world = new FakeElement(document);
     const cardEditor = new FakeElement(document, true);
+    wrapper.appendChild(cardEditor);
     const container = new FakeElement(document) as FakeElement & {
       querySelector(selector: string): FakeElement | null;
     };

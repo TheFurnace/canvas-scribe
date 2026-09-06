@@ -192,15 +192,17 @@ export class CanvasInkLayer {
     if (this.wrapperEl === wrapper) return;
     for (const dispose of this.inputDisposers.splice(0)) dispose();
     this.wrapperEl = wrapper;
-    this.listen(wrapper, "pointerdown", this.onPointerDown, true, this.inputDisposers);
-    this.listen(wrapper, "pointermove", this.onPointerMove, true, this.inputDisposers);
-    this.listen(wrapper, "pointerup", this.onPointerUp, true, this.inputDisposers);
-    this.listen(wrapper, "pointercancel", this.onPointerUp, true, this.inputDisposers);
-    this.listen(wrapper, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
+    const pointerRoot = wrapper.ownerDocument.defaultView ?? wrapper;
+    this.listen(pointerRoot, "pointerdown", this.onPointerDown, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointermove", this.onPointerMove, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointerup", this.onPointerUp, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointercancel", this.onPointerUp, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
+    if (!this.isPointerEventForLayer(event)) return;
     this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
@@ -292,6 +294,7 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    if (!this.isPointerEventForLayer(event)) return;
     this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
@@ -334,6 +337,7 @@ export class CanvasInkLayer {
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
+    if (!this.isPointerEventForLayer(event)) return;
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
@@ -361,8 +365,17 @@ export class CanvasInkLayer {
   };
 
   private readonly onPointerLeave = (event: PointerEvent): void => {
+    if (!this.isPointerEventForLayer(event)) return;
     if (event.pointerId !== this.activePointerId) this.hideEraserCursor();
   };
+
+  private isPointerEventForLayer(event: PointerEvent): boolean {
+    if (event.pointerId === this.activePointerId) return true;
+    const wrapper = this.wrapperEl;
+    if (!wrapper) return false;
+    if (typeof event.composedPath === "function" && event.composedPath().includes(wrapper)) return true;
+    return event.target instanceof Element && wrapper.contains(event.target);
+  }
 
   private readonly onContextMenu = (event: MouseEvent): void => {
     if (this.allowNextContextMenu) {
@@ -930,7 +943,7 @@ export class CanvasInkLayer {
   }
 
   private listen<K extends keyof HTMLElementEventMap>(
-    element: HTMLElement,
+    element: EventTarget,
     type: K,
     listener: (event: HTMLElementEventMap[K]) => void,
     capture = false,
