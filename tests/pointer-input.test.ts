@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isEraserTip, isStylusBarrelButton, isStylusContact, shouldAppendReleasePoint } from "../src/pointer-input";
+import {
+  isEraserTip,
+  isStylusBarrelButton,
+  isStylusContact,
+  shouldAppendReleasePoint,
+  stylusPointerDownAction,
+} from "../src/pointer-input";
 
 function pointer(values: Partial<PointerEvent>): PointerEvent {
   return {
@@ -30,5 +36,39 @@ describe("stylus input normalization", () => {
   it("does not append the invalid terminal coordinates from pointer cancellation", () => {
     expect(shouldAppendReleasePoint(pointer({ type: "pointerup" }))).toBe(true);
     expect(shouldAppendReleasePoint(pointer({ type: "pointercancel" }))).toBe(false);
+  });
+
+  it("owns exactly one short pen gesture over editable card content", () => {
+    const down = pointer({ type: "pointerdown", pointerType: "pen", button: 0, buttons: 1, pressure: 0.5 });
+
+    expect(stylusPointerDownAction(down, {
+      enabled: true,
+      gestureActive: false,
+      controlTarget: false,
+    })).toBe("begin-gesture");
+    expect(stylusPointerDownAction(down, {
+      enabled: true,
+      gestureActive: true,
+      controlTarget: false,
+    })).toBe("consume");
+    expect(shouldAppendReleasePoint(pointer({ type: "pointerup", pointerType: "pen" }))).toBe(true);
+  });
+
+  it("leaves inactive-mode and non-pen pointer downs to Canvas", () => {
+    expect(stylusPointerDownAction(pointer({ type: "pointerdown", pointerType: "pen", button: 0 }), {
+      enabled: false,
+      gestureActive: false,
+      controlTarget: false,
+    })).toBe("ignore");
+    expect(stylusPointerDownAction(pointer({ type: "pointerdown", pointerType: "mouse", button: 0 }), {
+      enabled: true,
+      gestureActive: false,
+      controlTarget: false,
+    })).toBe("ignore");
+    expect(stylusPointerDownAction(pointer({ type: "pointerdown", pointerType: "touch", button: 0 }), {
+      enabled: true,
+      gestureActive: false,
+      controlTarget: false,
+    })).toBe("ignore");
   });
 });

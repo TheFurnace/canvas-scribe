@@ -1,5 +1,13 @@
 import type { InkPoint } from "./types";
 
+export type StylusPointerDownAction = "ignore" | "consume" | "barrel-button" | "eraser-tip" | "begin-gesture";
+
+interface StylusPointerDownState {
+  enabled: boolean;
+  gestureActive: boolean;
+  controlTarget: boolean;
+}
+
 export function isStylusEvent(event: PointerEvent): boolean {
   return event.pointerType === "pen";
 }
@@ -14,6 +22,18 @@ export function isStylusBarrelButton(event: PointerEvent): boolean {
 
 export function isEraserTip(event: PointerEvent): boolean {
   return event.button === 5 || (event.buttons & 32) !== 0;
+}
+
+export function stylusPointerDownAction(
+  event: PointerEvent,
+  { enabled, gestureActive, controlTarget }: StylusPointerDownState,
+): StylusPointerDownAction {
+  if (!isStylusEvent(event) || controlTarget) return "ignore";
+  if (gestureActive) return "consume";
+  if (isStylusBarrelButton(event)) return "barrel-button";
+  if (!enabled) return "ignore";
+  if (isEraserTip(event) && !isStylusContact(event)) return "eraser-tip";
+  return isStylusContact(event) ? "begin-gesture" : "ignore";
 }
 
 export function pointerSamples(event: PointerEvent): PointerEvent[] {

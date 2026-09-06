@@ -16,6 +16,7 @@ import {
   pointerSamples,
   pointerToInkPoint,
   shouldAppendReleasePoint,
+  stylusPointerDownAction,
 } from "./pointer-input";
 import { RadialMenu, type RadialMenuAction } from "./radial-menu";
 import {
@@ -205,26 +206,26 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
-    if (
-      !isStylusEvent(event) ||
-      this.activePointerId !== null ||
-      isControlTarget(event.target) ||
-      isEditableTarget(event.target)
-    ) {
+    const action = stylusPointerDownAction(event, {
+      enabled: this.enabled,
+      gestureActive: this.activePointerId !== null,
+      controlTarget: isControlTarget(event.target),
+    });
+    if (action === "ignore") return;
+    if (action === "consume") {
+      this.consume(event);
       return;
     }
-    if (isStylusBarrelButton(event)) {
+    if (action === "barrel-button") {
       this.stylusMenuArmed = true;
       this.consume(event);
       return;
     }
-    if (!this.enabled) return;
-    if (isEraserTip(event) && !isStylusContact(event)) {
+    if (action === "eraser-tip") {
       this.eraserTipArmed = true;
       this.consume(event);
       return;
     }
-    if (!isStylusContact(event)) return;
     this.closeRadialMenu();
     this.beginGesture(event, this.eraserTipArmed ? "eraser" : undefined);
   };
