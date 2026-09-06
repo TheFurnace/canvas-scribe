@@ -5,6 +5,11 @@ import type { CanvasTarget } from "./canvas-target";
 import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
+import {
+  createHandwritingHint,
+  isHandwritingRegionTarget,
+  resolveHandwritingRegion,
+} from "./handwriting-affordance";
 import { loadInkData, saveInkData } from "./persistence";
 import { PenActivationGuard } from "./pen-activation";
 import { positionPopup } from "./popover";
@@ -86,6 +91,10 @@ export class CanvasInkLayer {
   private erasedStrokeCount = 0;
   private radialMenu: RadialMenu | null = null;
   private allowNextContextMenu = false;
+  private focusedHandwritingRegion: HTMLElement | null = null;
+  private hoveredHandwritingRegion: HTMLElement | null = null;
+  private indicatedHandwritingRegion: HTMLElement | null = null;
+  private stylusIsHovering = false;
 
   constructor(
     private readonly app: App,
@@ -160,6 +169,7 @@ export class CanvasInkLayer {
     this.closeColorPalette();
     this.controlsEl?.remove();
     this.closeRadialMenu();
+    this.setIndicatedHandwritingRegion(null);
     this.logger.record("canvas", "layer_disposed", { strokeCount: this.data.strokes.length });
   }
 
@@ -178,18 +188,30 @@ export class CanvasInkLayer {
       world.appendChild(this.svgEl);
       this.renderAll();
     }
+    this.syncHandwritingFocus();
     this.mountControls();
   }
 
   private observeDom(): void {
-    this.observer = new MutationObserver(() => {
+    this.observer = new MutationObserver((mutations) => {
+      const canvasStructureOrEditingStateChanged = mutations.some(
+        (mutation) =>
+          mutation.type === "childList" ||
+          (mutation.target instanceof Element && mutation.target.classList.contains("canvas-node")),
+      );
+      if (!canvasStructureOrEditingStateChanged) return;
       if (this.domFrame !== null) return;
       this.domFrame = window.requestAnimationFrame(() => {
         this.domFrame = null;
         this.ensureDom();
       });
     });
-    this.observer.observe(this.target.containerEl, { childList: true, subtree: true });
+    this.observer.observe(this.target.containerEl, {
+      attributes: true,
+      attributeFilter: ["class"],
+      childList: true,
+      subtree: true,
+    });
   }
 
   private bindInput(wrapper: HTMLElement): void {
@@ -205,10 +227,13 @@ export class CanvasInkLayer {
     this.listen(pointerRoot, "click", this.onActivation, true, this.inputDisposers);
     this.listen(pointerRoot, "dblclick", this.onActivation, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
+    this.listen(wrapper, "focusin", this.onFocusIn, true, this.inputDisposers);
+    this.listen(wrapper, "focusout", this.onFocusOut, true, this.inputDisposers);
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (!this.isPointerEventForLayer(event)) return;
+    this.updateHandwritingHover(event);
     this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
@@ -303,6 +328,7 @@ export class CanvasInkLayer {
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     if (!this.isPointerEventForLayer(event)) return;
+    this.updateHandwritingHover(event);
     this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
@@ -378,9 +404,70 @@ export class CanvasInkLayer {
   };
 
   private readonly onPointerLeave = (event: PointerEvent): void => {
-    if (!this.isPointerEventForLayer(event)) return;
+    if (isStylusEvent(event)) {
+      this.stylusIsHovering = false;
+      this.hoveredHandwritingRegion = null;
+      this.syncHandwritingAffordance();
+    }
     if (event.pointerId !== this.activePointerId) this.hideEraserCursor();
   };
+
+  private readonly onFocusIn = (event: FocusEvent): void => {
+    this.focusedHandwritingRegion = handwritingRegionFromTarget(event.target);
+    this.syncHandwritingAffordance();
+  };
+
+  private readonly onFocusOut = (event: FocusEvent): void => {
+    this.focusedHandwritingRegion = handwritingRegionFromTarget(event.relatedTarget);
+    this.syncHandwritingAffordance();
+  };
+
+  private updateHandwritingHover(event: PointerEvent): void {
+    if (!isStylusEvent(event)) return;
+    this.stylusIsHovering = !isStylusContact(event);
+    this.hoveredHandwritingRegion = this.stylusIsHovering ? handwritingRegionFromTarget(event.target) : null;
+    this.syncHandwritingAffordance();
+  }
+
+  private syncHandwritingFocus(): void {
+    this.focusedHandwritingRegion = handwritingRegionFromTarget(this.target.containerEl.ownerDocument.activeElement);
+    this.syncHandwritingAffordance();
+  }
+
+  private syncHandwritingAffordance(): void {
+    if (this.focusedHandwritingRegion && !this.focusedHandwritingRegion.isConnected) {
+      this.focusedHandwritingRegion = null;
+    }
+    if (this.hoveredHandwritingRegion && !this.hoveredHandwritingRegion.isConnected) {
+      this.hoveredHandwritingRegion = null;
+    }
+    this.setIndicatedHandwritingRegion(
+      resolveHandwritingRegion(
+        this.stylusIsHovering,
+        this.hoveredHandwritingRegion,
+        this.focusedHandwritingRegion,
+      ),
+    );
+  }
+
+  private setIndicatedHandwritingRegion(region: HTMLElement | null): void {
+    if (this.indicatedHandwritingRegion === region) {
+      this.ensureHandwritingHint(region);
+      return;
+    }
+    this.indicatedHandwritingRegion?.classList.remove("canvas-scribe-handwriting-region");
+    this.indicatedHandwritingRegion
+      ?.querySelector(":scope > .canvas-scribe-handwriting-hint")
+      ?.remove();
+    this.indicatedHandwritingRegion = region;
+    region?.classList.add("canvas-scribe-handwriting-region");
+    this.ensureHandwritingHint(region);
+  }
+
+  private ensureHandwritingHint(region: HTMLElement | null): void {
+    if (!region || region.querySelector(":scope > .canvas-scribe-handwriting-hint")) return;
+    region.appendChild(createHandwritingHint(region.ownerDocument));
+  }
 
   private isPointerEventForLayer(event: PointerEvent): boolean {
     if (event.pointerId === this.activePointerId) return true;
@@ -1028,6 +1115,21 @@ export function asElement(target: EventTarget | null): Element | null {
   const ownerDocument = (target as Node).ownerDocument;
   const ElementConstructor = ownerDocument?.defaultView?.Element;
   return ElementConstructor && target instanceof ElementConstructor ? (target as Element) : null;
+}
+
+function handwritingRegionFromTarget(target: EventTarget | null): HTMLElement | null {
+  const targetElement = asElement(target);
+  if (!targetElement) return null;
+  const region = targetElement.closest<HTMLElement>(".canvas-node");
+  if (!region) return null;
+  const targetIsEmbeddedEditor = Boolean(targetElement.closest("iframe, .markdown-embed"));
+  return isHandwritingRegionTarget(
+    isEditableTarget(targetElement),
+    region.classList.contains("is-editing"),
+    targetIsEmbeddedEditor,
+  )
+    ? region
+    : null;
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {
