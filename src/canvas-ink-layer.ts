@@ -11,6 +11,7 @@ import {
   resolveHandwritingRegion,
 } from "./handwriting-affordance";
 import { loadInkData, saveInkData } from "./persistence";
+import { PenActivationGuard } from "./pen-activation";
 import { positionPopup } from "./popover";
 import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
 import {
@@ -21,6 +22,7 @@ import {
   pointerSamples,
   pointerToInkPoint,
   shouldAppendReleasePoint,
+  stylusPointerDownAction,
 } from "./pointer-input";
 import { RadialMenu, type RadialMenuAction } from "./radial-menu";
 import {
@@ -84,6 +86,8 @@ export class CanvasInkLayer {
   private observer: MutationObserver | null = null;
   private gestureStartedAt = 0;
   private gestureTransform: CanvasTransform | null = null;
+  private gestureOriginTarget: Element | null = null;
+  private readonly penActivationGuard = new PenActivationGuard();
   private erasedStrokeCount = 0;
   private radialMenu: RadialMenu | null = null;
   private allowNextContextMenu = false;
@@ -121,6 +125,7 @@ export class CanvasInkLayer {
 
   toggleEnabled(): void {
     this.enabled = !this.enabled;
+    if (!this.enabled) this.penActivationGuard.reset();
     this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
@@ -213,45 +218,48 @@ export class CanvasInkLayer {
     if (this.wrapperEl === wrapper) return;
     for (const dispose of this.inputDisposers.splice(0)) dispose();
     this.wrapperEl = wrapper;
-    // Listen above Obsidian's Canvas wrapper so a claimed stylus gesture is
-    // cancelled before the card selection/drag handlers can observe it.
-    this.listen(this.target.containerEl, "pointerdown", this.onPointerDown, true, this.inputDisposers);
-    this.listen(wrapper, "pointermove", this.onPointerMove, true, this.inputDisposers);
-    this.listen(wrapper, "pointerup", this.onPointerUp, true, this.inputDisposers);
-    this.listen(wrapper, "pointercancel", this.onPointerUp, true, this.inputDisposers);
-    this.listen(wrapper, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
+    const pointerRoot = wrapper.ownerDocument.defaultView ?? wrapper;
+    this.listen(pointerRoot, "pointerdown", this.onPointerDown, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointermove", this.onPointerMove, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointerup", this.onPointerUp, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointercancel", this.onPointerUp, true, this.inputDisposers);
+    this.listen(pointerRoot, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
+    this.listen(pointerRoot, "click", this.onActivation, true, this.inputDisposers);
+    this.listen(pointerRoot, "dblclick", this.onActivation, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
     this.listen(wrapper, "focusin", this.onFocusIn, true, this.inputDisposers);
     this.listen(wrapper, "focusout", this.onFocusOut, true, this.inputDisposers);
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
+    if (!this.isPointerEventForLayer(event)) return;
     this.updateHandwritingHover(event);
     this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
     }
-    if (
-      !isStylusEvent(event) ||
-      this.activePointerId !== null ||
-      isControlTarget(event.target) ||
-      isEditableTarget(event.target)
-    ) {
+    if (event.pointerType !== "pen") this.penActivationGuard.recordNonPenPointerDown();
+    const action = stylusPointerDownAction(event, {
+      enabled: this.enabled,
+      gestureActive: this.activePointerId !== null,
+      controlTarget: isControlTarget(event.target),
+    });
+    if (action === "ignore") return;
+    if (action === "consume") {
+      this.consume(event);
       return;
     }
-    if (isStylusBarrelButton(event)) {
+    if (action === "barrel-button") {
       this.stylusMenuArmed = true;
       this.consume(event);
       return;
     }
-    if (!this.enabled) return;
-    if (isEraserTip(event) && !isStylusContact(event)) {
+    if (action === "eraser-tip") {
       this.eraserTipArmed = true;
       this.consume(event);
       return;
     }
-    if (!isStylusContact(event)) return;
     this.closeRadialMenu();
     this.beginGesture(event, this.eraserTipArmed ? "eraser" : undefined);
   };
@@ -270,6 +278,7 @@ export class CanvasInkLayer {
     trySetPointerCapture(this.wrapperEl, event.pointerId);
     this.activePointerId = event.pointerId;
     this.gestureTransform = transform;
+    this.gestureOriginTarget = asElement(event.target);
     this.temporaryTool = forcedTool ?? (isEraserTip(event) ? "eraser" : null);
     this.eraserTipArmed = false;
     const tool = this.temporaryTool ?? this.activeTool;
@@ -318,6 +327,7 @@ export class CanvasInkLayer {
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
+    if (!this.isPointerEventForLayer(event)) return;
     this.updateHandwritingHover(event);
     this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
@@ -361,6 +371,7 @@ export class CanvasInkLayer {
   };
 
   private readonly onPointerUp = (event: PointerEvent): void => {
+    if (!this.isPointerEventForLayer(event)) return;
     if (event.pointerType === "touch" && this.activePointerId !== null) {
       this.consume(event);
       return;
@@ -384,6 +395,11 @@ export class CanvasInkLayer {
       this.appendReleasePoint(event);
     }
     if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
+    if (event.type === "pointerup") {
+      this.penActivationGuard.recordPenRelease(event.pointerId, this.gestureOriginTarget, performance.now());
+    } else {
+      this.penActivationGuard.recordPenCancellation();
+    }
     this.finishGesture();
   };
 
@@ -453,6 +469,43 @@ export class CanvasInkLayer {
     region.appendChild(createHandwritingHint(region.ownerDocument));
   }
 
+  private isPointerEventForLayer(event: PointerEvent): boolean {
+    if (event.pointerId === this.activePointerId) return true;
+    const wrapper = this.wrapperEl;
+    if (!wrapper) return false;
+    if (typeof event.composedPath === "function" && event.composedPath().includes(wrapper)) return true;
+    const target = asElement(event.target);
+    return target !== null && wrapper.contains(target);
+  }
+
+  private readonly onActivation = (event: MouseEvent): void => {
+    if (!this.enabled || isControlTarget(event.target) || !this.isEventForLayer(event)) return;
+    const now = performance.now();
+    const pointerType = "pointerType" in event && typeof event.pointerType === "string" ? event.pointerType : "";
+    const pointerId = "pointerId" in event && typeof event.pointerId === "number" ? event.pointerId : null;
+    const shouldSuppress = this.penActivationGuard.shouldSuppress(
+      {
+        detail: event.detail,
+        kind: event.type === "dblclick" ? "dblclick" : "click",
+        pointerId,
+        pointerType,
+        target: event.target,
+        timestamp: now,
+      },
+      clickTargetsMatch,
+    );
+    if (!shouldSuppress) return;
+    this.consume(event);
+  };
+
+  private isEventForLayer(event: Event): boolean {
+    const wrapper = this.wrapperEl;
+    if (!wrapper) return false;
+    if (typeof event.composedPath === "function" && event.composedPath().includes(wrapper)) return true;
+    const target = asElement(event.target);
+    return target !== null && wrapper.contains(target);
+  }
+
   private readonly onContextMenu = (event: MouseEvent): void => {
     if (this.allowNextContextMenu) {
       this.allowNextContextMenu = false;
@@ -484,6 +537,7 @@ export class CanvasInkLayer {
     this.activePathEl = null;
     this.activePointerId = null;
     this.gestureTransform = null;
+    this.gestureOriginTarget = null;
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.erasedStrokeCount = 0;
@@ -532,6 +586,7 @@ export class CanvasInkLayer {
     this.activePathEl = null;
     this.activePointerId = null;
     this.gestureTransform = null;
+    this.gestureOriginTarget = null;
     this.temporaryTool = null;
     this.didEraseInGesture = false;
     this.gestureRedoStack = null;
@@ -1019,7 +1074,7 @@ export class CanvasInkLayer {
   }
 
   private listen<K extends keyof HTMLElementEventMap>(
-    element: HTMLElement,
+    element: EventTarget,
     type: K,
     listener: (event: HTMLElementEventMap[K]) => void,
     capture = false,
@@ -1036,23 +1091,40 @@ export class CanvasInkLayer {
 }
 
 function isControlTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
+  return Boolean(asElement(target)?.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
-  return (
-    target instanceof Element &&
-    Boolean(target.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'))
-  );
+  return Boolean(asElement(target)?.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'));
+}
+
+function clickTargetsMatch(origin: EventTarget | null, target: EventTarget | null): boolean {
+  const originElement = asElement(origin);
+  const targetElement = asElement(target);
+  if (!originElement || !targetElement) return false;
+  const originCard = originElement.closest(".canvas-node");
+  const targetCard = targetElement.closest(".canvas-node");
+  if (originCard && targetCard) return originCard === targetCard;
+  if (originCard && targetElement.contains(originCard)) return true;
+  if (targetCard && originElement.contains(targetCard)) return true;
+  return originElement === targetElement || originElement.contains(targetElement) || targetElement.contains(originElement);
+}
+
+export function asElement(target: EventTarget | null): Element | null {
+  if (!target || typeof target !== "object" || !("ownerDocument" in target)) return null;
+  const ownerDocument = (target as Node).ownerDocument;
+  const ElementConstructor = ownerDocument?.defaultView?.Element;
+  return ElementConstructor && target instanceof ElementConstructor ? (target as Element) : null;
 }
 
 function handwritingRegionFromTarget(target: EventTarget | null): HTMLElement | null {
-  if (!(target instanceof Element)) return null;
-  const region = target.closest<HTMLElement>(".canvas-node");
+  const targetElement = asElement(target);
+  if (!targetElement) return null;
+  const region = targetElement.closest<HTMLElement>(".canvas-node");
   if (!region) return null;
-  const targetIsEmbeddedEditor = Boolean(target.closest("iframe, .markdown-embed"));
+  const targetIsEmbeddedEditor = Boolean(targetElement.closest("iframe, .markdown-embed"));
   return isHandwritingRegionTarget(
-    isEditableTarget(target),
+    isEditableTarget(targetElement),
     region.classList.contains("is-editing"),
     targetIsEmbeddedEditor,
   )
