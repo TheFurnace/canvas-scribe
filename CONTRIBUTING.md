@@ -25,6 +25,8 @@ Read-only investigation, emergency fixes, and genuinely trivial edits do not req
 
 Linear is the source of truth for planned work, status, priority, ownership, and acceptance criteria. Create or identify the Linear issue before beginning a substantive change.
 
+When new work is discovered, create a new Linear issue for it rather than expanding the scope of the current issue. Link the issues when the new work is related or depends on the current change.
+
 Include the issue identifier in Git metadata so Linear and GitHub can associate future work automatically:
 
 - Codex branches use `codex/<issue-id>/<topic>`, such as `codex/FER-13/brush-width`.
