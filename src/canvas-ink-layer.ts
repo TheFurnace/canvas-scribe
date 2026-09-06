@@ -203,6 +203,7 @@ export class CanvasInkLayer {
     this.listen(pointerRoot, "pointercancel", this.onPointerUp, true, this.inputDisposers);
     this.listen(pointerRoot, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
     this.listen(pointerRoot, "click", this.onClick, true, this.inputDisposers);
+    this.listen(pointerRoot, "dblclick", this.onClick, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
   }
 
@@ -398,7 +399,6 @@ export class CanvasInkLayer {
       performance.now() <= pending.expiresAt &&
       clickTargetsMatch(pending.target, event.target);
     if (!isCurrentPenClick && !isLegacyPenClick) return;
-    this.pendingPenClick = null;
     this.consume(event);
   };
 

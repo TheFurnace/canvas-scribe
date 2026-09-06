@@ -97,6 +97,47 @@ describe("Canvas drawing input ordering", () => {
     layer.dispose();
   });
 
+  it("suppresses dblclick after two owned pen taps", async () => {
+    const { wrapper, card } = fixture();
+    const nativeCardDoubleClick = vi.fn();
+    wrapper.addEventListener("dblclick", nativeCardDoubleClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    for (const pointerId of [10, 11]) {
+      card.dispatchEvent(pointerEvent("pointerdown", {
+        pointerId,
+        pointerType: "pen",
+        button: 0,
+        buttons: 1,
+        pressure: 0.5,
+      }));
+      card.dispatchEvent(pointerEvent("pointerup", {
+        pointerId,
+        pointerType: "pen",
+        button: 0,
+        buttons: 0,
+        pressure: 0,
+      }));
+      card.dispatchEvent(pointerEvent("click", {
+        pointerId,
+        pointerType: "pen",
+        button: 0,
+        buttons: 0,
+        pressure: 0,
+      }));
+    }
+
+    const doubleClick = new MouseEvent("dblclick", { bubbles: true, cancelable: true, button: 0 });
+    card.dispatchEvent(doubleClick);
+
+    expect(doubleClick.defaultPrevented).toBe(true);
+    expect(nativeCardDoubleClick).not.toHaveBeenCalled();
+
+    layer.dispose();
+  });
+
   it("leaves touch input inside the Canvas to native handlers", async () => {
     const { wrapper, card } = fixture();
     const nativeCardPointerDown = vi.fn();
