@@ -1,4 +1,4 @@
-import type { App, TFile } from "obsidian";
+import type { App, TFile, View } from "obsidian";
 
 import {
   CANVAS_INK_KEY,
@@ -15,10 +15,29 @@ export async function loadInkData(app: App, file: TFile): Promise<CanvasInkData>
   return normalizeInkData(document[CANVAS_INK_KEY]);
 }
 
-export async function saveInkData(app: App, file: TFile, data: CanvasInkData): Promise<void> {
-  const document = parseCanvasDocument(await app.vault.read(file));
-  document[CANVAS_INK_KEY] = normalizeInkData(data);
-  await app.vault.modify(file, `${JSON.stringify(document, null, "\t")}\n`);
+type CanvasSaveView = View & {
+  canvas?: {
+    data?: JsonCanvasDocument;
+    requestSave?: (pushHistory?: boolean) => void;
+  };
+  saveImmediately?: () => Promise<void> | void;
+};
+
+export async function saveInkData(app: App, file: TFile, data: CanvasInkData, view?: View): Promise<void> {
+  const canvasView = view as CanvasSaveView | undefined;
+  const canvas = canvasView?.canvas;
+  if (canvas && isRecord(canvas.data) && typeof canvas.requestSave === "function") {
+    canvas.data[CANVAS_INK_KEY] = normalizeInkData(data);
+    canvas.requestSave(false);
+    await canvasView.saveImmediately?.();
+    return;
+  }
+
+  await app.vault.process(file, (raw) => {
+    const document = parseCanvasDocument(raw);
+    document[CANVAS_INK_KEY] = normalizeInkData(data);
+    return `${JSON.stringify(document, null, "\t")}\n`;
+  });
 }
 
 function parseCanvasDocument(raw: string): JsonCanvasDocument {

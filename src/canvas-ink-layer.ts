@@ -877,7 +877,7 @@ export class CanvasInkLayer {
       this.saveTimer = null;
     }
     try {
-      await saveInkData(this.app, this.target.file, this.data);
+      await saveInkData(this.app, this.target.file, this.data, this.target.view);
       this.logger.record("storage", "ink_saved", { strokeCount: this.data.strokes.length });
     } catch (error) {
       this.logger.recordError("ink_save_failed", error);

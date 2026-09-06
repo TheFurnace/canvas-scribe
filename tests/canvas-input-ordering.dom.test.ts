@@ -433,7 +433,7 @@ async function mountLayer(): Promise<CanvasInkLayer> {
   const app = {
     vault: {
       read: vi.fn(async () => "{}"),
-      modify: vi.fn(async () => undefined),
+      process: vi.fn(async (_file: unknown, update: (raw: string) => string) => update("{}")),
     },
   } as unknown as App;
   const target = {
