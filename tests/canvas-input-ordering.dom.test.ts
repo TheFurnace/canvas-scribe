@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { App } from "obsidian";
 
-import { CanvasInkLayer } from "../src/canvas-ink-layer";
+import { asElement, CanvasInkLayer } from "../src/canvas-ink-layer";
 import type { CanvasTarget } from "../src/canvas-target";
 import { DebugLogger } from "../src/debug-logger";
 
@@ -14,6 +14,14 @@ afterEach(() => {
 });
 
 describe("Canvas drawing input ordering", () => {
+  it("recognizes an element using its owner document's realm", () => {
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    const foreignElement = iframe.contentDocument?.createElement("div");
+    expect(foreignElement).toBeTruthy();
+    expect(asElement(foreignElement ?? null)).toBe(foreignElement);
+  });
+
   it("owns a pen gesture and its click before existing Canvas card capture handlers", async () => {
     const { wrapper, card } = fixture();
     const nativeCardPointerDown = vi.fn();
@@ -156,6 +164,79 @@ describe("Canvas drawing input ordering", () => {
     layer.dispose();
   });
 
+  it.each(["mouse", "touch"])("invalidates legacy pen correlation on intervening %s input", async (pointerType) => {
+    const { wrapper, card } = fixture();
+    const nativeCardClick = vi.fn();
+    wrapper.addEventListener("click", nativeCardClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    dispatchPenGesture(card, 16);
+    card.dispatchEvent(pointerEvent("pointerdown", {
+      pointerId: 17,
+      pointerType,
+      button: 0,
+      buttons: 1,
+      pressure: pointerType === "touch" ? 1 : 0.5,
+    }));
+    card.dispatchEvent(pointerEvent("pointerup", {
+      pointerId: 17,
+      pointerType,
+      button: 0,
+      buttons: 0,
+      pressure: 0,
+    }));
+    const legacyClick = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 });
+    card.dispatchEvent(legacyClick);
+
+    expect(legacyClick.defaultPrevented).toBe(false);
+    expect(nativeCardClick).toHaveBeenCalledOnce();
+
+    layer.dispose();
+  });
+
+  it("does not correlate a legacy click on another card", async () => {
+    const { wrapper, card } = fixture();
+    const otherCard = requiredElement<HTMLElement>(".other-card");
+    const nativeCardClick = vi.fn();
+    wrapper.addEventListener("click", nativeCardClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    dispatchPenGesture(card, 18);
+    const legacyClick = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 });
+    otherCard.dispatchEvent(legacyClick);
+
+    expect(legacyClick.defaultPrevented).toBe(false);
+    expect(nativeCardClick).toHaveBeenCalledOnce();
+
+    layer.dispose();
+  });
+
+  it("leaves plugin control activation native", async () => {
+    fixture();
+    const control = requiredElement<HTMLElement>(".canvas-controls");
+    const nativeControlClick = vi.fn();
+    control.addEventListener("click", nativeControlClick);
+
+    const layer = await mountLayer();
+    const click = pointerEvent("click", {
+      pointerId: 19,
+      pointerType: "pen",
+      button: 0,
+      buttons: 0,
+      detail: 1,
+    });
+    control.dispatchEvent(click);
+
+    expect(click.defaultPrevented).toBe(false);
+    expect(nativeControlClick).toHaveBeenCalledOnce();
+
+    layer.dispose();
+  });
+
   it("does not arm click suppression after pointer cancellation", async () => {
     const { wrapper, card } = fixture();
     const nativeCardClick = vi.fn();
@@ -294,6 +375,7 @@ function fixture(): { wrapper: HTMLElement; card: HTMLElement } {
       <div class="canvas-wrapper">
         <div class="canvas">
           <div class="canvas-node"><div class="cm-content" contenteditable="true"></div></div>
+          <div class="canvas-node other-card"></div>
         </div>
       </div>
       <div class="canvas-controls"></div>

@@ -6,6 +6,7 @@ import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { loadInkData, saveInkData } from "./persistence";
+import { PenActivationGuard } from "./pen-activation";
 import { positionPopup } from "./popover";
 import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
 import {
@@ -35,7 +36,6 @@ const MIN_SCREEN_POINT_DISTANCE = 0.35;
 const ERASER_SCREEN_RADIUS = 18;
 const SELECTION_SCREEN_PADDING = 8;
 const PALETTE_CLOSE_ANIMATION_MS = 180;
-const PEN_CLICK_SUPPRESSION_MS = 750;
 
 interface CanvasTransform {
   screenToCanvas: DOMMatrix;
@@ -82,8 +82,7 @@ export class CanvasInkLayer {
   private gestureStartedAt = 0;
   private gestureTransform: CanvasTransform | null = null;
   private gestureOriginTarget: Element | null = null;
-  private pendingPenClick: { expiresAt: number; pointerId: number; target: Element | null } | null = null;
-  private pendingPenDoubleClick: { expiresAt: number; target: Element | null } | null = null;
+  private readonly penActivationGuard = new PenActivationGuard();
   private erasedStrokeCount = 0;
   private radialMenu: RadialMenu | null = null;
   private allowNextContextMenu = false;
@@ -117,10 +116,7 @@ export class CanvasInkLayer {
 
   toggleEnabled(): void {
     this.enabled = !this.enabled;
-    if (!this.enabled) {
-      this.pendingPenClick = null;
-      this.pendingPenDoubleClick = null;
-    }
+    if (!this.enabled) this.penActivationGuard.reset();
     this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
@@ -218,6 +214,7 @@ export class CanvasInkLayer {
       this.consume(event);
       return;
     }
+    if (event.pointerType !== "pen") this.penActivationGuard.recordNonPenPointerDown();
     const action = stylusPointerDownAction(event, {
       enabled: this.enabled,
       gestureActive: this.activePointerId !== null,
@@ -256,7 +253,7 @@ export class CanvasInkLayer {
     trySetPointerCapture(this.wrapperEl, event.pointerId);
     this.activePointerId = event.pointerId;
     this.gestureTransform = transform;
-    this.gestureOriginTarget = event.target instanceof Element ? event.target : null;
+    this.gestureOriginTarget = asElement(event.target);
     this.temporaryTool = forcedTool ?? (isEraserTip(event) ? "eraser" : null);
     this.eraserTipArmed = false;
     const tool = this.temporaryTool ?? this.activeTool;
@@ -373,14 +370,9 @@ export class CanvasInkLayer {
     }
     if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
     if (event.type === "pointerup") {
-      this.pendingPenClick = {
-        expiresAt: performance.now() + PEN_CLICK_SUPPRESSION_MS,
-        pointerId: event.pointerId,
-        target: this.gestureOriginTarget,
-      };
+      this.penActivationGuard.recordPenRelease(event.pointerId, this.gestureOriginTarget, performance.now());
     } else {
-      this.pendingPenClick = null;
-      this.pendingPenDoubleClick = null;
+      this.penActivationGuard.recordPenCancellation();
     }
     this.finishGesture();
   };
@@ -395,7 +387,8 @@ export class CanvasInkLayer {
     const wrapper = this.wrapperEl;
     if (!wrapper) return false;
     if (typeof event.composedPath === "function" && event.composedPath().includes(wrapper)) return true;
-    return event.target instanceof Element && wrapper.contains(event.target);
+    const target = asElement(event.target);
+    return target !== null && wrapper.contains(target);
   }
 
   private readonly onActivation = (event: MouseEvent): void => {
@@ -403,34 +396,18 @@ export class CanvasInkLayer {
     const now = performance.now();
     const pointerType = "pointerType" in event && typeof event.pointerType === "string" ? event.pointerType : "";
     const pointerId = "pointerId" in event && typeof event.pointerId === "number" ? event.pointerId : null;
-    const isCurrentPenActivation = pointerType === "pen";
-    if (event.type === "dblclick") {
-      const pending = this.pendingPenDoubleClick;
-      const isCorrelatedDoubleClick =
-        pending !== null && now <= pending.expiresAt && clickTargetsMatch(pending.target, event.target);
-      if (!isCurrentPenActivation && !isCorrelatedDoubleClick) return;
-      this.pendingPenDoubleClick = null;
-      this.consume(event);
-      return;
-    }
-
-    const pending = this.pendingPenClick;
-    const isCorrelatedPenClick =
-      pending !== null &&
-      pointerType !== "touch" &&
-      (pointerId === pending.pointerId || (pointerId === null && event.detail > 0)) &&
-      now <= pending.expiresAt &&
-      clickTargetsMatch(pending.target, event.target);
-    if (!isCurrentPenActivation && !isCorrelatedPenClick) {
-      this.pendingPenClick = null;
-      this.pendingPenDoubleClick = null;
-      return;
-    }
-    this.pendingPenClick = null;
-    this.pendingPenDoubleClick = {
-      expiresAt: now + PEN_CLICK_SUPPRESSION_MS,
-      target: event.target instanceof Element ? event.target : pending?.target ?? null,
-    };
+    const shouldSuppress = this.penActivationGuard.shouldSuppress(
+      {
+        detail: event.detail,
+        kind: event.type === "dblclick" ? "dblclick" : "click",
+        pointerId,
+        pointerType,
+        target: event.target,
+        timestamp: now,
+      },
+      clickTargetsMatch,
+    );
+    if (!shouldSuppress) return;
     this.consume(event);
   };
 
@@ -438,7 +415,8 @@ export class CanvasInkLayer {
     const wrapper = this.wrapperEl;
     if (!wrapper) return false;
     if (typeof event.composedPath === "function" && event.composedPath().includes(wrapper)) return true;
-    return event.target instanceof Element && wrapper.contains(event.target);
+    const target = asElement(event.target);
+    return target !== null && wrapper.contains(target);
   }
 
   private readonly onContextMenu = (event: MouseEvent): void => {
@@ -1026,24 +1004,30 @@ export class CanvasInkLayer {
 }
 
 function isControlTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
+  return Boolean(asElement(target)?.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
-  return (
-    target instanceof Element &&
-    Boolean(target.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'))
-  );
+  return Boolean(asElement(target)?.closest('input, textarea, [contenteditable]:not([contenteditable="false"]), .cm-content'));
 }
 
-function clickTargetsMatch(origin: Element | null, target: EventTarget | null): boolean {
-  if (!origin || !(target instanceof Element)) return false;
-  const originCard = origin.closest(".canvas-node");
-  const targetCard = target.closest(".canvas-node");
+function clickTargetsMatch(origin: EventTarget | null, target: EventTarget | null): boolean {
+  const originElement = asElement(origin);
+  const targetElement = asElement(target);
+  if (!originElement || !targetElement) return false;
+  const originCard = originElement.closest(".canvas-node");
+  const targetCard = targetElement.closest(".canvas-node");
   if (originCard && targetCard) return originCard === targetCard;
-  if (originCard && target.contains(originCard)) return true;
-  if (targetCard && origin.contains(targetCard)) return true;
-  return origin === target || origin.contains(target) || target.contains(origin);
+  if (originCard && targetElement.contains(originCard)) return true;
+  if (targetCard && originElement.contains(targetCard)) return true;
+  return originElement === targetElement || originElement.contains(targetElement) || targetElement.contains(originElement);
+}
+
+export function asElement(target: EventTarget | null): Element | null {
+  if (!target || typeof target !== "object" || !("ownerDocument" in target)) return null;
+  const ownerDocument = (target as Node).ownerDocument;
+  const ElementConstructor = ownerDocument?.defaultView?.Element;
+  return ElementConstructor && target instanceof ElementConstructor ? (target as Element) : null;
 }
 
 function trySetPointerCapture(element: Element, pointerId: number): void {
