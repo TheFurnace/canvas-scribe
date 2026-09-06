@@ -164,6 +164,41 @@ body.canvas-scribe-storybook-docs {
   font-size: var(--font-ui-smaller);
 }
 
+.canvas-scribe-story-handwriting {
+  display: grid;
+  justify-items: center;
+  gap: var(--size-4-4);
+  width: min(82vw, 440px);
+}
+
+.canvas-scribe-story-handwriting-node {
+  position: relative;
+  inset: auto;
+  width: min(100%, 380px);
+  height: 180px;
+  --canvas-node-height: 180px;
+}
+
+.canvas-scribe-story-handwriting-editor {
+  box-sizing: border-box;
+  height: 100%;
+  padding: var(--size-4-5);
+  color: var(--text-normal);
+  background: var(--background-primary);
+  font-size: var(--font-text-size);
+  line-height: var(--line-height-normal);
+  outline: none;
+}
+
+.canvas-scribe-story-handwriting-caption {
+  padding: var(--size-4-2) var(--size-4-3);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  background: var(--background-primary);
+  font-size: var(--font-ui-smaller);
+}
+
 @media (max-width: 620px) {
   .canvas-scribe-obsidian-host {
     min-height: 460px;

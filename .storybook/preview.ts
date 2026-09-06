@@ -21,7 +21,7 @@ const preview: Preview = {
     layout: "fullscreen",
     options: {
       storySort: {
-        order: ["Canvas Scribe", ["Overview", "Toolbar", "Radial Menu", "Ink", "Diagnostics"]],
+        order: ["Canvas Scribe", ["Overview", "Toolbar", "Radial Menu", "Ink", "Handwriting Affordance", "Diagnostics"]],
       },
     },
   },

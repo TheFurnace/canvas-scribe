@@ -5,7 +5,7 @@ import type { CanvasTarget } from "./canvas-target";
 import { paletteColors, type ColorTool } from "./colors";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
-import { resolveHandwritingRegion } from "./handwriting-affordance";
+import { createHandwritingHint, resolveHandwritingRegion } from "./handwriting-affordance";
 import { loadInkData, saveInkData } from "./persistence";
 import { positionPopup } from "./popover";
 import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
@@ -433,11 +433,7 @@ export class CanvasInkLayer {
 
   private ensureHandwritingHint(region: HTMLElement | null): void {
     if (!region || region.querySelector(":scope > .canvas-scribe-handwriting-hint")) return;
-    const hint = region.ownerDocument.createElement("div");
-    hint.className = "canvas-scribe-handwriting-hint";
-    hint.setAttribute("aria-hidden", "true");
-    hint.textContent = "Handwriting → text";
-    region.appendChild(hint);
+    region.appendChild(createHandwritingHint(region.ownerDocument));
   }
 
   private readonly onContextMenu = (event: MouseEvent): void => {
