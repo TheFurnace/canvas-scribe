@@ -1,0 +1,52 @@
+{
+	"nodes": [
+		{
+			"id": "instructions",
+			"type": "text",
+			"text": "# Canvas Scribe smoke test\n\nUse the neighboring cards to check ink over cards and empty canvas space.",
+			"x": -360,
+			"y": -180,
+			"width": 320,
+			"height": 220
+		},
+		{
+			"id": "writing-target",
+			"type": "text",
+			"text": "## Writing target\n\nDraw across this card, then pan and zoom with touch or mouse.",
+			"x": 80,
+			"y": -100,
+			"width": 320,
+			"height": 180
+		},
+		{
+			"id": "persistence-target",
+			"type": "text",
+			"text": "## Persistence target\n\nA dark sample stroke should be visible below this card when the plugin loads.",
+			"x": -120,
+			"y": 220,
+			"width": 360,
+			"height": 180
+		}
+	],
+	"edges": [],
+	"canvasScribe": {
+		"version": 1,
+		"strokes": [
+			{
+				"id": "fixture-stroke",
+				"tool": "pen",
+				"color": "#1f2937",
+				"size": 5,
+				"opacity": 1,
+				"points": [
+					{ "x": -20, "y": 450, "pressure": 0.25, "time": 0 },
+					{ "x": 40, "y": 420, "pressure": 0.5, "time": 16 },
+					{ "x": 110, "y": 455, "pressure": 0.8, "time": 32 },
+					{ "x": 180, "y": 425, "pressure": 0.55, "time": 48 }
+				],
+				"hasPressure": true,
+				"createdAt": 1
+			}
+		]
+	}
+}
