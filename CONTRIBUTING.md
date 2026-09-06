@@ -43,6 +43,17 @@ Run the complete local check before requesting review or publishing a test build
 pnpm check
 ```
 
+## Pull requests and CI
+
+Push the feature branch and open the pull request only after the local check passes. A newly opened or updated pull request may temporarily report an unknown mergeability result while GitHub computes the merge and starts its checks.
+
+After opening or updating a pull request:
+
+1. Wait for GitHub to finish computing mergeability.
+2. Wait for every required CI check to complete.
+3. Do not describe the pull request as ready or mergeable until GitHub reports a clean merge and all required checks pass.
+4. If a check fails, inspect the failing job and fix or explicitly report the failure before handoff.
+
 ## Version and release policy
 
 Routine commits and merges do not receive their own stable version. Publish branch builds as beta releases when a change needs BRAT, device, or stakeholder testing. Prepare a stable release only occasionally, when a coherent set of completed changes has passed its intended testing.
