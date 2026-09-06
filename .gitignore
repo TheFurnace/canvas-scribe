@@ -2,6 +2,7 @@ node_modules/
 .pnpm-store/
 dist/
 storybook-static/
+.canvas-scribe-sandbox/
 .storybook/generated/
 main.js
 *.map

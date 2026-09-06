@@ -34,6 +34,14 @@ pnpm install
 pnpm check
 ```
 
+Launch a disposable, isolated Obsidian desktop sandbox for interactive agent or developer exploration:
+
+```powershell
+pnpm sandbox -Name agent-fer-34
+```
+
+The launcher prints a local debugging endpoint that browser-capable agents can attach to. See [docs/local-sandbox.md](docs/local-sandbox.md) for the isolation model, iteration loop, and artifact locations.
+
 Run the Obsidian-hosted component workshop at `http://localhost:6006`:
 
 ```sh
