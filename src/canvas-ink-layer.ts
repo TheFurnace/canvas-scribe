@@ -82,7 +82,8 @@ export class CanvasInkLayer {
   private gestureStartedAt = 0;
   private gestureTransform: CanvasTransform | null = null;
   private gestureOriginTarget: Element | null = null;
-  private pendingPenClick: { expiresAt: number; target: Element | null } | null = null;
+  private pendingPenClick: { expiresAt: number; pointerId: number; target: Element | null } | null = null;
+  private pendingPenDoubleClick: { expiresAt: number; target: Element | null } | null = null;
   private erasedStrokeCount = 0;
   private radialMenu: RadialMenu | null = null;
   private allowNextContextMenu = false;
@@ -116,7 +117,10 @@ export class CanvasInkLayer {
 
   toggleEnabled(): void {
     this.enabled = !this.enabled;
-    if (!this.enabled) this.pendingPenClick = null;
+    if (!this.enabled) {
+      this.pendingPenClick = null;
+      this.pendingPenDoubleClick = null;
+    }
     this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
@@ -202,8 +206,8 @@ export class CanvasInkLayer {
     this.listen(pointerRoot, "pointerup", this.onPointerUp, true, this.inputDisposers);
     this.listen(pointerRoot, "pointercancel", this.onPointerUp, true, this.inputDisposers);
     this.listen(pointerRoot, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
-    this.listen(pointerRoot, "click", this.onClick, true, this.inputDisposers);
-    this.listen(pointerRoot, "dblclick", this.onClick, true, this.inputDisposers);
+    this.listen(pointerRoot, "click", this.onActivation, true, this.inputDisposers);
+    this.listen(pointerRoot, "dblclick", this.onActivation, true, this.inputDisposers);
     this.listen(wrapper, "contextmenu", this.onContextMenu, true, this.inputDisposers);
   }
 
@@ -368,10 +372,16 @@ export class CanvasInkLayer {
       this.appendReleasePoint(event);
     }
     if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
-    this.pendingPenClick = {
-      expiresAt: performance.now() + PEN_CLICK_SUPPRESSION_MS,
-      target: this.gestureOriginTarget,
-    };
+    if (event.type === "pointerup") {
+      this.pendingPenClick = {
+        expiresAt: performance.now() + PEN_CLICK_SUPPRESSION_MS,
+        pointerId: event.pointerId,
+        target: this.gestureOriginTarget,
+      };
+    } else {
+      this.pendingPenClick = null;
+      this.pendingPenDoubleClick = null;
+    }
     this.finishGesture();
   };
 
@@ -388,17 +398,39 @@ export class CanvasInkLayer {
     return event.target instanceof Element && wrapper.contains(event.target);
   }
 
-  private readonly onClick = (event: MouseEvent): void => {
+  private readonly onActivation = (event: MouseEvent): void => {
     if (!this.enabled || isControlTarget(event.target) || !this.isEventForLayer(event)) return;
-    const pointerType = event instanceof PointerEvent ? event.pointerType : "";
+    const now = performance.now();
+    const pointerType = "pointerType" in event && typeof event.pointerType === "string" ? event.pointerType : "";
+    const pointerId = "pointerId" in event && typeof event.pointerId === "number" ? event.pointerId : null;
+    const isCurrentPenActivation = pointerType === "pen";
+    if (event.type === "dblclick") {
+      const pending = this.pendingPenDoubleClick;
+      const isCorrelatedDoubleClick =
+        pending !== null && now <= pending.expiresAt && clickTargetsMatch(pending.target, event.target);
+      if (!isCurrentPenActivation && !isCorrelatedDoubleClick) return;
+      this.pendingPenDoubleClick = null;
+      this.consume(event);
+      return;
+    }
+
     const pending = this.pendingPenClick;
-    const isCurrentPenClick = pointerType === "pen";
-    const isLegacyPenClick =
-      pointerType === "" &&
+    const isCorrelatedPenClick =
       pending !== null &&
-      performance.now() <= pending.expiresAt &&
+      pointerType !== "touch" &&
+      (pointerId === pending.pointerId || (pointerId === null && event.detail > 0)) &&
+      now <= pending.expiresAt &&
       clickTargetsMatch(pending.target, event.target);
-    if (!isCurrentPenClick && !isLegacyPenClick) return;
+    if (!isCurrentPenActivation && !isCorrelatedPenClick) {
+      this.pendingPenClick = null;
+      this.pendingPenDoubleClick = null;
+      return;
+    }
+    this.pendingPenClick = null;
+    this.pendingPenDoubleClick = {
+      expiresAt: now + PEN_CLICK_SUPPRESSION_MS,
+      target: event.target instanceof Element ? event.target : pending?.target ?? null,
+    };
     this.consume(event);
   };
 
@@ -1008,7 +1040,9 @@ function clickTargetsMatch(origin: Element | null, target: EventTarget | null): 
   if (!origin || !(target instanceof Element)) return false;
   const originCard = origin.closest(".canvas-node");
   const targetCard = target.closest(".canvas-node");
-  if (originCard || targetCard) return originCard !== null && originCard === targetCard;
+  if (originCard && targetCard) return originCard === targetCard;
+  if (originCard && target.contains(originCard)) return true;
+  if (targetCard && origin.contains(targetCard)) return true;
   return origin === target || origin.contains(target) || target.contains(origin);
 }
 

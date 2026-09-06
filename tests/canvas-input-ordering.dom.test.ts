@@ -88,11 +88,131 @@ describe("Canvas drawing input ordering", () => {
       pressure: 0,
     }));
 
-    const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, detail: 1 });
     card.dispatchEvent(click);
 
     expect(click.defaultPrevented).toBe(true);
     expect(nativeCardClick).not.toHaveBeenCalled();
+
+    layer.dispose();
+  });
+
+  it("correlates a click whose pointer type is misreported", async () => {
+    const { wrapper, card } = fixture();
+    const nativeCardClick = vi.fn();
+    wrapper.addEventListener("click", nativeCardClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    dispatchPenGesture(card, 12);
+
+    const click = pointerEvent("click", {
+      pointerId: 12,
+      pointerType: "mouse",
+      button: 0,
+      buttons: 0,
+      detail: 1,
+    });
+    card.dispatchEvent(click);
+
+    expect(click.defaultPrevented).toBe(true);
+    expect(nativeCardClick).not.toHaveBeenCalled();
+
+    layer.dispose();
+  });
+
+  it("allows unrelated mouse and keyboard clicks after a pen gesture", async () => {
+    const { wrapper, card } = fixture();
+    const nativeCardClick = vi.fn();
+    const nativeCardDoubleClick = vi.fn();
+    wrapper.addEventListener("click", nativeCardClick, true);
+    wrapper.addEventListener("dblclick", nativeCardDoubleClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    dispatchPenGesture(card, 13);
+
+    const mouseClick = pointerEvent("click", {
+      pointerId: 1,
+      pointerType: "mouse",
+      button: 0,
+      buttons: 0,
+      detail: 1,
+    });
+    card.dispatchEvent(mouseClick);
+    const keyboardClick = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 });
+    card.dispatchEvent(keyboardClick);
+    const mouseDoubleClick = new MouseEvent("dblclick", { bubbles: true, cancelable: true, detail: 2 });
+    card.dispatchEvent(mouseDoubleClick);
+
+    expect(mouseClick.defaultPrevented).toBe(false);
+    expect(keyboardClick.defaultPrevented).toBe(false);
+    expect(mouseDoubleClick.defaultPrevented).toBe(false);
+    expect(nativeCardClick).toHaveBeenCalledTimes(2);
+    expect(nativeCardDoubleClick).toHaveBeenCalledOnce();
+
+    layer.dispose();
+  });
+
+  it("does not arm click suppression after pointer cancellation", async () => {
+    const { wrapper, card } = fixture();
+    const nativeCardClick = vi.fn();
+    wrapper.addEventListener("click", nativeCardClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    dispatchPenGesture(card, 14, "pointercancel");
+
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 });
+    card.dispatchEvent(click);
+
+    expect(click.defaultPrevented).toBe(false);
+    expect(nativeCardClick).toHaveBeenCalledOnce();
+
+    layer.dispose();
+  });
+
+  it("suppresses capture-retargeted clicks and anchors a delayed dblclick to the consumed click", async () => {
+    let now = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const { wrapper, card } = fixture();
+    const nativeClick = vi.fn();
+    const nativeDoubleClick = vi.fn();
+    wrapper.addEventListener("click", nativeClick, true);
+    wrapper.addEventListener("dblclick", nativeDoubleClick, true);
+    stubPointerCapture(wrapper);
+
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    card.dispatchEvent(pointerEvent("pointerdown", {
+      pointerId: 15,
+      pointerType: "pen",
+      button: 0,
+      buttons: 1,
+      pressure: 0.5,
+    }));
+    wrapper.dispatchEvent(pointerEvent("pointerup", {
+      pointerId: 15,
+      pointerType: "pen",
+      button: 0,
+      buttons: 0,
+      pressure: 0,
+    }));
+
+    now = 700;
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 2 });
+    wrapper.dispatchEvent(click);
+    now = 1400;
+    const doubleClick = new MouseEvent("dblclick", { bubbles: true, cancelable: true, detail: 2 });
+    wrapper.dispatchEvent(doubleClick);
+
+    expect(click.defaultPrevented).toBe(true);
+    expect(doubleClick.defaultPrevented).toBe(true);
+    expect(nativeClick).not.toHaveBeenCalled();
+    expect(nativeDoubleClick).not.toHaveBeenCalled();
 
     layer.dispose();
   });
@@ -233,6 +353,23 @@ function stubPointerCapture(wrapper: HTMLElement): void {
 
 function pointerEvent(type: string, init: PointerEventInit): PointerEvent {
   return new PointerEvent(type, { bubbles: true, cancelable: true, ...init });
+}
+
+function dispatchPenGesture(target: Element, pointerId: number, endType = "pointerup"): void {
+  target.dispatchEvent(pointerEvent("pointerdown", {
+    pointerId,
+    pointerType: "pen",
+    button: 0,
+    buttons: 1,
+    pressure: 0.5,
+  }));
+  target.dispatchEvent(pointerEvent(endType, {
+    pointerId,
+    pointerType: "pen",
+    button: 0,
+    buttons: 0,
+    pressure: 0,
+  }));
 }
 
 function requiredElement<T extends Element>(selector: string): T {
