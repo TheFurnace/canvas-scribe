@@ -1,8 +1,8 @@
 import type { DrawingTool } from "./types";
-import { PEN_PROFILES, type PenType } from "./pen-types";
+import type { PenType } from "./pen-types";
+import { createToolColor, PEN_ICONS, toolDescription } from "./tool-indicator";
 
 const renderers = new WeakMap<HTMLElement, IconRenderer>();
-const penIcons: Record<PenType, string> = { ballpoint: "pen", fountain: "pen-tool", brush: "brush", pencil: "pencil" };
 
 export type IconRenderer = (container: HTMLElement, icon: string) => void;
 
@@ -20,6 +20,10 @@ export interface CanvasControlsState {
   penType?: PenType;
   penColor?: string;
   highlighterColor?: string;
+  penSize?: number;
+  penOpacity?: number;
+  highlighterSize?: number;
+  highlighterOpacity?: number;
   paletteOpen?: boolean;
   enabled: boolean;
   canUndo: boolean;
@@ -68,10 +72,7 @@ export function createCanvasControls(
     renderIcon(icon, control.icon);
     button.append(icon);
     if (control.action === "pen" || control.action === "highlighter") {
-      const swatch = document.createElement("span");
-      swatch.className = "canvas-scribe-tool-color";
-      swatch.setAttribute("aria-hidden", "true");
-      button.append(swatch);
+      button.append(createToolColor(document));
     }
 
     const activate = (event: Event) => {
@@ -97,14 +98,16 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
       ?? (state.activeTool === tool ? state.activeColor : undefined)
       ?? (tool === "pen" ? "var(--text-normal)" : "#fde047");
     button.style.setProperty("--canvas-scribe-tool-color", ink);
-    const label = `${tool === "pen" ? `${PEN_PROFILES[type].label} pen` : "Highlighter"} · ${ink.startsWith("var(") ? "Default color" : ink}`;
+    const label = toolDescription(tool, type, ink,
+      tool === "pen" ? state.penSize : state.highlighterSize,
+      tool === "pen" ? state.penOpacity : state.highlighterOpacity);
     button.setAttribute("aria-label", label);
     button.setAttribute("title", label);
     if (tool === "pen" && button.dataset.penType !== type) {
       const icon = button.querySelector<HTMLElement>(".canvas-scribe-tool-icon");
       if (icon) {
         icon.replaceChildren();
-        renderers.get(group)?.(icon, penIcons[type]);
+        renderers.get(group)?.(icon, PEN_ICONS[type]);
       }
       button.dataset.penType = type;
     }
@@ -128,7 +131,9 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
   color?.setAttribute("aria-disabled", String(colorTool === null));
   color?.setAttribute("aria-label", colorLabel);
   color?.setAttribute("title", colorLabel);
-  if (colorTool && state.activeColor) color?.style.setProperty("--canvas-scribe-active-color", state.activeColor);
+  const paletteColor = colorTool === "pen" ? state.penColor : colorTool === "highlighter" ? state.highlighterColor : undefined;
+  if (colorTool) color?.style.setProperty("--canvas-scribe-active-color", paletteColor ?? state.activeColor ?? (colorTool === "pen" ? "var(--text-normal)" : "#fde047"));
+  else color?.style.removeProperty("--canvas-scribe-active-color");
 
   syncHistoryControl(group, "undo", state.canUndo);
   syncHistoryControl(group, "redo", state.canRedo);

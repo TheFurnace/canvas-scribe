@@ -50,4 +50,12 @@ describe("toolbar configuration indicators", () => {
     expect(pen.title).toContain("Default color");
     expect(pen.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("var(--text-normal)");
   });
+  it("uses the tool color for the palette and clears it for tools without ink", () => {
+    const { group } = setup();
+    syncCanvasControls(group, { ...state, activeColor: "#000000" });
+    const palette = group.querySelector<HTMLElement>("[data-action=color]")!;
+    expect(palette.style.getPropertyValue("--canvas-scribe-active-color")).toBe("#ffffff");
+    syncCanvasControls(group, { ...state, activeTool: "lasso" });
+    expect(palette.style.getPropertyValue("--canvas-scribe-active-color")).toBe("");
+  });
 });

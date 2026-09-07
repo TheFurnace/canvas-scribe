@@ -112,7 +112,12 @@ describe("CanvasInkLayer radial-menu integration", () => {
     const penControl = requiredElement<HTMLElement>('.canvas-scribe-controls [data-action="pen"]');
     expect(penControl.dataset.penType).toBe("brush");
     expect(penControl.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("#2563eb");
-    expect(penControl.getAttribute("aria-label")).toBe("Brush pen · #2563eb");
+    expect(penControl.getAttribute("aria-label")).toBe("Brush pen · #2563eb · 8px · 60% opacity");
+    eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    const radialPen = requiredElement<HTMLElement>('.canvas-scribe-radial-action[data-action="pen"]');
+    expect(radialPen.getAttribute("aria-label")).toBe("Brush pen · #2563eb");
+    expect(radialPen.querySelector<HTMLElement>(".canvas-scribe-tool-color")?.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("#2563eb");
+    requiredElement<HTMLElement>('.canvas-scribe-radial-close').click();
     eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 8, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5, clientX: 20, clientY: 30 }));
     const path = requiredElement<SVGPathElement>(".canvas-scribe-render-layer path");
     expect(path.getAttribute("fill")).toBe("#2563eb"); expect(path.getAttribute("opacity")).toBe("0.6");

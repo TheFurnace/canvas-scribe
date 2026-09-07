@@ -698,6 +698,7 @@ export class CanvasInkLayer {
     const actions = createPenActions({
       document, tool: this.activeTool, colors: this.toolColors, favorites: this.favorites,
       currentPreset: this.currentPenPreset(),
+      penType: this.penType,
       defaultColor: (tool) => resolveColor(document, this.getToolDefault(tool)),
       selectTool: (tool) => this.setTool(tool),
       applyFavorite: (preset) => this.applyFavorite(preset),
@@ -930,6 +931,10 @@ export class CanvasInkLayer {
       penType: this.penType,
       penColor: this.toolColors.current("pen", "var(--text-normal)"),
       highlighterColor: this.getToolColor("highlighter"),
+      penSize: this.penSize,
+      penOpacity: this.penOpacity ?? PEN_PROFILES[this.penType].opacity,
+      highlighterSize: this.highlighterSize,
+      highlighterOpacity: this.highlighterOpacity,
       paletteOpen: this.colorPaletteEl !== null || this.colorPickerEl !== null,
       enabled: this.enabled,
       canUndo: this.undoStack.length > 0,
