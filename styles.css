@@ -104,6 +104,8 @@
 }
 
 .canvas-scribe-color-palette {
+  max-width: calc(100vw - 16px);
+  flex-wrap: wrap;
   position: fixed;
   z-index: 10000;
   display: flex;
@@ -113,6 +115,77 @@
   border-radius: var(--radius-m);
   background: var(--background-primary);
   box-shadow: var(--shadow-s);
+}
+
+.canvas-scribe-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgb(0 0 0 / 25%);
+}
+
+.canvas-scribe-picker {
+  box-sizing: border-box;
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 18px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  box-shadow: var(--shadow-l);
+  font-size: 14px;
+  font-family: var(--font-interface, system-ui), sans-serif;
+}
+.canvas-scribe-picker h3 { margin: 0 0 14px; font-size: 18px; }
+.canvas-scribe-picker button { min-height: 44px; touch-action: manipulation; }
+.canvas-scribe-picker [hidden] { display: none !important; }
+.canvas-scribe-picker-tabs, .canvas-scribe-picker-footer { display: flex; gap: 8px; }
+.canvas-scribe-picker-tabs { margin-bottom: 16px; }
+.canvas-scribe-picker-tabs button, .canvas-scribe-picker-footer button { flex: 1; }
+.canvas-scribe-picker-tabs [aria-pressed="true"] { background: var(--background-modifier-active-hover); color: var(--text-accent); box-shadow: inset 0 -2px var(--text-accent); }
+.canvas-scribe-picker-swatches { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+.canvas-scribe-picker button.canvas-scribe-picker-chip {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+}
+.canvas-scribe-picker-chip::before { content: ""; position: absolute; width: 30px; height: 30px; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; background: var(--chip-color); box-shadow: inset 0 0 0 1px rgb(128 128 128 / 40%); }
+.canvas-scribe-picker button.canvas-scribe-picker-chip[aria-pressed="true"] { border-color: var(--text-accent); }
+.canvas-scribe-picker-chip[aria-pressed="true"]::after { content: ""; position: absolute; width: 12px; height: 12px; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px #333; }
+.canvas-scribe-picker-field { position: relative; height: 180px; margin: 8px 10px 12px; border-radius: 8px; touch-action: none; background: linear-gradient(to bottom, white, transparent), linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red); }
+.canvas-scribe-picker-field::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: black; opacity: calc(1 - var(--spectrum-value, 1)); }
+.canvas-scribe-picker-marker { position: absolute; width: 20px; height: 20px; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 0 1px #333; transform: translate(-50%, -50%); pointer-events: none; }
+.canvas-scribe-picker-spectrum label { display: flex; align-items: center; gap: 12px; }
+.canvas-scribe-picker-spectrum input { flex: 1; min-width: 0; height: 6px; margin: 19px 0; background: linear-gradient(to right, black, white); }
+.canvas-scribe-picker-comparison { display: flex; gap: 8px; margin: 16px 0; }
+.canvas-scribe-picker-comparison > div { flex: 1; display: grid; gap: 6px; }
+.canvas-scribe-picker-sample { display: block; height: 36px; border: 1px solid var(--text-muted); border-radius: 6px; }
+.canvas-scribe-picker-inputs { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 8px; }
+.canvas-scribe-picker-inputs label { display: grid; gap: 6px; min-width: 0; }
+.canvas-scribe-picker-inputs input { box-sizing: border-box; width: 100%; min-width: 0; height: 44px; padding: 6px; }
+.canvas-scribe-picker-inputs [aria-invalid="true"] { border-color: var(--text-error); }
+.canvas-scribe-picker-error { min-height: 20px; margin-top: 6px; font-size: 12px; color: var(--text-muted); }
+.canvas-scribe-picker-recent-label { margin-top: 8px; color: var(--text-muted); }
+.canvas-scribe-picker-recent { display: flex; overflow-x: auto; margin: 4px 0 4px; }
+.canvas-scribe-picker-recent button.canvas-scribe-picker-chip { flex: 0 0 44px; min-height: 62px; }
+.canvas-scribe-picker-recent .canvas-scribe-picker-chip::before,
+.canvas-scribe-picker-recent .canvas-scribe-picker-chip::after { top: 22px; }
+.canvas-scribe-picker-recent button.canvas-scribe-picker-default { position: sticky; right: 0; padding: 38px 2px 2px; font-size: 10px; line-height: 16px; background: var(--background-primary); border-radius: 8px; }
+.canvas-scribe-picker-default::before { outline: 1px dashed var(--text-muted); outline-offset: 3px; }
+.canvas-scribe-picker-footer { position: sticky; bottom: -20px; z-index: 1; margin-top: 8px; padding: 8px 0; background: var(--background-primary); }
+@media (max-width: 380px) {
+  .canvas-scribe-picker { padding: 12px; }
+  .canvas-scribe-picker-footer { bottom: -12px; }
 }
 
 .canvas-scribe-color-palette.is-closing {

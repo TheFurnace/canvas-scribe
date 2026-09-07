@@ -2,7 +2,8 @@ import { Notice, setIcon, type App } from "obsidian";
 
 import { createCanvasControls, syncCanvasControls } from "./canvas-controls";
 import type { CanvasTarget } from "./canvas-target";
-import { paletteColors, type ColorTool } from "./colors";
+import { paletteColors, resolveColor, ToolColors, type ColorTool } from "./colors";
+import { createColorPicker } from "./color-picker";
 import type { DebugLogger } from "./debug-logger";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import {
@@ -60,7 +61,8 @@ export class CanvasInkLayer {
   private activePathEl: SVGPathElement | null = null;
   private activePointerId: number | null = null;
   private activeTool: DrawingTool = "pen";
-  private readonly selectedColors: Partial<Record<ColorTool, string>> = {};
+  private readonly toolColors = new ToolColors();
+  private colorPickerEl: HTMLElement | null = null;
   private readonly selectedStrokeIds = new Set<string>();
   private lassoPoints: InkPoint[] = [];
   private lassoMode: "select" | "move" | null = null;
@@ -836,7 +838,11 @@ export class CanvasInkLayer {
   }
 
   private getToolColor(tool: ColorTool): string {
-    return this.selectedColors[tool] ?? (tool === "pen" ? this.getDefaultPenColor() : "#fde047");
+    return this.toolColors.current(tool, this.getToolDefault(tool));
+  }
+
+  private getToolDefault(tool: ColorTool): string {
+    return tool === "pen" ? this.getDefaultPenColor() : "#fde047";
   }
 
   private createPath(stroke: InkStroke, complete: boolean): SVGPathElement {
@@ -907,7 +913,7 @@ export class CanvasInkLayer {
     syncCanvasControls(this.controlsEl, {
       activeTool: this.activeTool,
       activeColor: colorTool ? this.getToolColor(colorTool) : undefined,
-      paletteOpen: this.colorPaletteEl !== null,
+      paletteOpen: this.colorPaletteEl !== null || this.colorPickerEl !== null,
       enabled: this.enabled,
       canUndo: this.undoStack.length > 0,
       canRedo: this.redoStack.length > 0,
@@ -999,7 +1005,7 @@ export class CanvasInkLayer {
   }
 
   private toggleColorPalette(): void {
-    if (this.colorPaletteEl) {
+    if (this.colorPaletteEl || this.colorPickerEl) {
       this.closeColorPalette();
       this.syncControls();
       return;
@@ -1025,7 +1031,7 @@ export class CanvasInkLayer {
       swatch.appendChild(preview);
       swatch.addEventListener("pointerdown", (event) => {
         this.consume(event);
-        this.selectedColors[tool] = color;
+        this.toolColors.confirm(tool, resolveColor(document, color));
         palette.querySelectorAll<HTMLElement>(".canvas-scribe-color-swatch").forEach((item) => {
           item.setAttribute("aria-pressed", String(item === swatch));
         });
@@ -1036,6 +1042,29 @@ export class CanvasInkLayer {
       });
       palette.appendChild(swatch);
     }
+    const more = document.createElement("button");
+    more.type = "button";
+    more.textContent = "More colors…";
+    more.addEventListener("click", () => {
+      this.closeColorPalette();
+      this.colorPickerEl = createColorPicker(document, {
+        tool,
+        current: resolveColor(document, this.getToolColor(tool)),
+        defaultColor: resolveColor(document, this.getToolDefault(tool)),
+        recent: this.toolColors.recent(tool),
+        onConfirm: (color) => {
+          this.toolColors.confirm(tool, color);
+          this.closeColorPalette();
+          this.syncControls();
+          colorButton.focus();
+        },
+        onCancel: () => { this.closeColorPalette(); this.syncControls(); colorButton.focus(); },
+      });
+      document.body.append(this.colorPickerEl);
+      this.colorPickerEl.querySelector<HTMLElement>("button")?.focus();
+      this.syncControls();
+    });
+    palette.append(more);
     document.body.appendChild(palette);
     const viewport = document.defaultView;
     const position = positionPopup(
@@ -1051,6 +1080,8 @@ export class CanvasInkLayer {
   }
 
   private closeColorPalette(animate = false): void {
+    this.colorPickerEl?.remove();
+    this.colorPickerEl = null;
     if (this.colorPaletteCloseTimer !== null) {
       window.clearTimeout(this.colorPaletteCloseTimer);
       this.colorPaletteCloseTimer = null;
