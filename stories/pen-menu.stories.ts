@@ -31,7 +31,7 @@ function toolbarPreview() {
   });
   root.append(group);
   function sync() {
-    syncCanvasControls(group, { activeTool, enabled, activeColor: "var(--text-normal)", canUndo: false, canRedo: false });
+    syncCanvasControls(group, { activeTool, enabled, penType: type, penColor: "var(--text-normal)", highlighterColor: "#fde047", canUndo: false, canRedo: false });
     group.querySelector('[data-action="pen"]')?.setAttribute("aria-expanded", String(menu !== null));
     group.querySelector('[data-action="pen"]')?.setAttribute("aria-haspopup", "dialog");
   }
@@ -60,7 +60,7 @@ function toolbarPreview() {
     if (!canvas) return;
     menu = createPenMenu(document, {
       type, size, color: "var(--text-normal)",
-      onType: (value) => { type = value; },
+      onType: (value) => { type = value; sync(); },
       onSize: (value) => { size = value; },
       onClose: () => { close(); group.querySelector<HTMLElement>('[data-action="pen"]')?.focus(); },
     });
