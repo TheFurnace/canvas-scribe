@@ -698,6 +698,7 @@ export class CanvasInkLayer {
     const actions = createPenActions({
       document, tool: this.activeTool, colors: this.toolColors, favorites: this.favorites,
       currentPreset: this.currentPenPreset(),
+      penType: this.penType,
       defaultColor: (tool) => resolveColor(document, this.getToolDefault(tool)),
       selectTool: (tool) => this.setTool(tool),
       applyFavorite: (preset) => this.applyFavorite(preset),
@@ -927,6 +928,13 @@ export class CanvasInkLayer {
     syncCanvasControls(this.controlsEl, {
       activeTool: this.activeTool,
       activeColor: colorTool ? this.getToolColor(colorTool) : undefined,
+      penType: this.penType,
+      penColor: this.toolColors.current("pen", "var(--text-normal)"),
+      highlighterColor: this.getToolColor("highlighter"),
+      penSize: this.penSize,
+      penOpacity: this.penOpacity ?? PEN_PROFILES[this.penType].opacity,
+      highlighterSize: this.highlighterSize,
+      highlighterOpacity: this.highlighterOpacity,
       paletteOpen: this.colorPaletteEl !== null || this.colorPickerEl !== null,
       enabled: this.enabled,
       canUndo: this.undoStack.length > 0,
@@ -1102,6 +1110,7 @@ export class CanvasInkLayer {
     const document = anchor.ownerDocument;
     const remember = () => {
       this.data.penSettings = { type: this.penType, size: this.penSize };
+      this.syncControls();
       this.scheduleSave();
     };
     const menu = createPenMenu(document, {

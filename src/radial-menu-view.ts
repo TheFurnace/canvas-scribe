@@ -1,9 +1,11 @@
 import type { IconRenderer } from "./canvas-controls";
+import { createToolColor } from "./tool-indicator";
 
 export interface RadialMenuItem {
   id: string; label: string; icon: string;
   active?: boolean; disabled?: boolean;
   color?: string;
+  inkColor?: string;
   preview?: (document: Document) => Element;
 }
 export interface RadialMenuView { root: HTMLElement; palette: HTMLElement; closeButton: HTMLButtonElement; }
@@ -42,6 +44,7 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
       swatch.className = "canvas-scribe-color-swatch-preview";
       swatch.style.backgroundColor = item.color; button.append(swatch);
     } else renderIcon(button, item.icon);
+    if (item.inkColor) button.append(createToolColor(document, item.inkColor));
     button.addEventListener("click", (event) => { consume(event); if (!button.disabled) onAction(item.id); });
     palette.append(button);
   });

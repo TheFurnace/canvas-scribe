@@ -4,34 +4,41 @@ import { paletteColors, type ColorTool } from "../src/colors";
 import { createCanvasControls, syncCanvasControls } from "../src/canvas-controls";
 import { positionPopup } from "../src/popover";
 import { renderStoryIcon } from "./story-helpers";
+import { PEN_TYPES, type PenType } from "../src/pen-types";
 
 type Tool = "pen" | "highlighter" | "eraser" | "lasso";
 
 interface ToolbarArgs {
   activeTool: Tool;
   enabled: boolean;
-  activeColor: string;
+  penType: PenType;
+  penColor: string;
+  highlighterColor: string;
   paletteOpen: boolean;
   canUndo: boolean;
   canRedo: boolean;
 }
 
 function createToolbar(args: ToolbarArgs): HTMLElement {
+  const activeColor = args.activeTool === "highlighter" ? args.highlighterColor : args.penColor;
   const preview = document.createElement("div");
   preview.className = "canvas-scribe-story-toolbar-preview";
   const group = createCanvasControls(document, renderStoryIcon, {
-    setTool: () => undefined,
+    setTool: (activeTool) => syncCanvasControls(group, {
+      ...args, activeTool,
+      activeColor: activeTool === "highlighter" ? args.highlighterColor : args.penColor,
+    }),
     toggleColorPalette: () => undefined,
     undo: () => undefined,
     redo: () => undefined,
     toggleEnabled: () => undefined,
   });
-  syncCanvasControls(group, args);
+  syncCanvasControls(group, { ...args, activeColor });
   preview.append(group);
 
   const colorTool = toolWithColor(args.activeTool);
   if (colorTool && args.paletteOpen) {
-    mountColorPalette(preview, group, createColorPalette(colorTool, args.activeColor));
+    mountColorPalette(preview, group, createColorPalette(colorTool, activeColor));
   }
   return preview;
 }
@@ -105,14 +112,18 @@ const meta: Meta<ToolbarArgs> = {
   args: {
     activeTool: "pen",
     enabled: true,
-    activeColor: "#2563eb",
+    penType: "fountain",
+    penColor: "#2563eb",
+    highlighterColor: "#fde047",
     paletteOpen: false,
     canUndo: true,
     canRedo: false,
   },
   argTypes: {
     activeTool: { control: "inline-radio", options: ["pen", "highlighter", "eraser", "lasso"] },
-    activeColor: { control: "color" },
+    penType: { control: "inline-radio", options: PEN_TYPES },
+    penColor: { control: "color" },
+    highlighterColor: { control: "color" },
   },
 };
 
@@ -120,6 +131,12 @@ export default meta;
 type Story = StoryObj<ToolbarArgs>;
 
 export const PenActive: Story = {};
+export const Ballpoint: Story = { args: { penType: "ballpoint" } };
+export const Brush: Story = { args: { penType: "brush", penColor: "#e11d48" } };
+export const Pencil: Story = { args: { penType: "pencil", penColor: "#6b7280" } };
+export const WhiteInk: Story = { args: { penColor: "#ffffff" } };
+export const BlackInk: Story = { args: { penColor: "#000000" } };
+export const DefaultInk: Story = { args: { penColor: "var(--text-normal)" } };
 
 export const PaletteOpen: Story = {
   args: {
@@ -131,7 +148,6 @@ export const PaletteOpen: Story = {
 export const HighlighterActive: Story = {
   args: {
     activeTool: "highlighter",
-    activeColor: "#fde047",
     canRedo: true,
   },
 };

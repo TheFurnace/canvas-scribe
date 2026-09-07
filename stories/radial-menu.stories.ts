@@ -5,6 +5,10 @@ import { createPenActions } from "../src/pen-actions";
 import { RadialSession } from "../src/radial-session";
 import { renderStoryIcon } from "./story-helpers";
 import type { DrawingTool } from "../src/types";
+import { createCanvasControls, syncCanvasControls } from "../src/canvas-controls";
+import { createPenMenu } from "../src/pen-menu";
+import { PEN_PROFILES } from "../src/pen-types";
+import { createColorPicker } from "../src/color-picker";
 
 interface Args { activeTool: DrawingTool; favoriteCount: number; }
 const meta: Meta<Args> = {
@@ -18,7 +22,43 @@ const meta: Meta<Args> = {
     const status = document.createElement("p"); status.setAttribute("aria-live", "polite");
     host.append(launch, status);
     let tool = args.activeTool;
-    let preset: PenPreset = { tool: "pen", penType: "fountain", size: 3.5, color: null, opacity: 1 };
+    const presets: Record<"pen" | "highlighter", PenPreset> = {
+      pen: { tool: "pen", penType: "fountain", size: 3.5, color: null, opacity: 1 },
+      highlighter: { tool: "highlighter", penType: "fountain", size: 17, color: null, opacity: 0.38 },
+    };
+    let enabled = true;
+    let penMenu: HTMLElement | null = null;
+    const closePenMenu = () => { penMenu?.remove(); penMenu = null; };
+    const toolbar = createCanvasControls(document, renderStoryIcon, {
+      setTool: (value) => {
+        if (value === "pen" && tool === "pen") {
+          if (penMenu) closePenMenu();
+          else {
+            penMenu = createPenMenu(document, {
+              type: presets.pen.penType, size: presets.pen.size, color: colors.current("pen", "var(--text-normal)"),
+              onType: (type) => { presets.pen.penType = type; presets.pen.opacity = PEN_PROFILES[type].opacity; update(); },
+              onSize: (size) => { presets.pen.size = size; update(); }, onClose: closePenMenu,
+            });
+            penMenu.style.cssText = "position:absolute;right:48px;top:0";
+            toolbar.append(penMenu);
+          }
+        } else { tool = value; closePenMenu(); }
+        update();
+      },
+      toggleColorPalette: () => {
+        if (tool !== "pen" && tool !== "highlighter") return;
+        closePenMenu();
+        const colorTool = tool;
+        const picker = createColorPicker(document, { tool: colorTool,
+          current: colors.current(colorTool, defaultColor(colorTool)), defaultColor: defaultColor(colorTool), recent: colors.recent(colorTool),
+          onConfirm: (color) => { colors.confirm(colorTool, color); picker.remove(); update(); }, onCancel: () => picker.remove(),
+        });
+        host.append(picker);
+      },
+      toggleEnabled: () => { enabled = !enabled; update(); }, undo: () => undefined, redo: () => undefined,
+    });
+    toolbar.style.cssText = "position:absolute;right:12px;top:12px;display:flex;flex-direction:column";
+    host.append(toolbar);
     const colors = new ToolColors(); colors.confirm("pen", "#2563eb"); colors.confirm("pen", "#dc2626");
     const favorites = new FavoritePens(Array.from({ length: args.favoriteCount }, (_, i) => ({
       id: `favorite-${i}`, name: `Favorite ${i + 1}`, tool: i % 3 === 0 ? "highlighter" : "pen",
@@ -26,13 +66,21 @@ const meta: Meta<Args> = {
       opacity: i % 3 === 0 ? 0.38 : 1, color: ["#2563eb", "#dc2626", "#fde047"][i % 3],
     })));
     const defaultColor = (tool: "pen" | "highlighter") => tool === "pen" ? resolveColor(host.ownerDocument, host.ownerDocument.defaultView!.getComputedStyle(host).getPropertyValue("--text-normal").trim() || "#1f2937") : "#fde047";
-    const update = () => { status.textContent = `${tool} · ${tool === "pen" || tool === "highlighter" ? colors.current(tool, defaultColor(tool)) : "no color"} · ${preset.size}px. Favorites saved in this preview session.`; };
+    const update = () => {
+      const preset = tool === "pen" || tool === "highlighter" ? presets[tool] : null;
+      status.textContent = preset ? `${tool} · ${colors.current(preset.tool, defaultColor(preset.tool))} · ${preset.size}px · ${Math.round(preset.opacity * 100)}%. Favorites saved in this preview session.` : `${tool} selected`;
+      syncCanvasControls(toolbar, { activeTool: tool, enabled, canUndo: false, canRedo: false,
+        penType: presets.pen.penType, penColor: colors.current("pen", "var(--text-normal)"), highlighterColor: colors.current("highlighter", "#fde047"),
+        penSize: presets.pen.size, penOpacity: presets.pen.opacity, highlighterSize: presets.highlighter.size, highlighterOpacity: presets.highlighter.opacity });
+    };
     launch.addEventListener("click", () => {
       const document = host.ownerDocument;
+      closePenMenu();
       const menu = new RadialSession(document, createPenActions({ document, tool, colors, favorites,
-        currentPreset: tool === "pen" || tool === "highlighter" ? { ...preset, tool, color: colors.selection(tool), size: tool === preset.tool ? preset.size : tool === "highlighter" ? 17 : 3.5, opacity: tool === preset.tool ? preset.opacity : tool === "highlighter" ? 0.38 : 1 } : null,
+        currentPreset: tool === "pen" || tool === "highlighter" ? { ...presets[tool], color: colors.selection(tool) } : null,
+        penType: presets.pen.penType,
         defaultColor, selectTool: (value) => { tool = value; update(); },
-        applyFavorite: (value) => { preset = value; tool = value.tool; colors.confirm(value.tool, value.color); update(); },
+        applyFavorite: (value) => { presets[value.tool] = { ...value }; tool = value.tool; colors.confirm(value.tool, value.color); update(); },
         colorsChanged: update, openCanvasMenu: () => { status.textContent = "Native Canvas menu requested (preview)."; },
       }), () => launch.focus(), renderStoryIcon, host);
       const bounds = host.getBoundingClientRect();

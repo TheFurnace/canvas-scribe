@@ -1,5 +1,7 @@
 export type IconName =
   | "star" | "ellipsis" | "settings-2" | "arrow-left" | "rotate-ccw"
+  | "pen"
+  | "brush"
   | "eraser"
   | "highlighter"
   | "lasso-select"
@@ -19,6 +21,8 @@ const ICON_PATHS: Record<IconName, string> = {
   "settings-2": '<path d="M3 6h6m4 0h8M3 18h10m4 0h4"/><circle cx="11" cy="6" r="2"/><circle cx="15" cy="18" r="2"/>',
   "arrow-left": '<path d="m12 5-7 7 7 7M5 12h14"/>',
   "rotate-ccw": '<path d="M3 11a9 9 0 1 1 2.7 7M3 3v8h8"/>',
+  pen: '<path d="M21.17 6.83 6.83 21.17a2.83 2.83 0 0 1-4-4L17.17 2.83a2.83 2.83 0 0 1 4 4ZM16 4l4 4"/>',
+  brush: '<path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 0 1 4.03 4.03l-8.06 8.08M7 14a3 3 0 0 1 3 3c0 2.21-1.79 4-4 4H2c2-2 1-3.79 2-5a3 3 0 0 1 3-2Z"/>',
   pencil: '<path d="M21.2 7.2 16.8 2.8a2.4 2.4 0 0 0-3.4 0L3 13.2 2 22l8.8-1 10.4-10.4a2.4 2.4 0 0 0 0-3.4Z"/><path d="m12.5 3.7 7.8 7.8M3 13.2l7.8 7.8"/>',
   highlighter: '<path d="m9 11-6 6v4h4l6-6"/><path d="m13 15 8-8-4-4-8 8 4 4Z"/><path d="m3 21 8-2"/>',
   eraser: '<path d="m7 21-4-4a2 2 0 0 1 0-2.8L14.2 3a2 2 0 0 1 2.8 0l4 4a2 2 0 0 1 0 2.8L9.8 21H7Z"/><path d="m10 8 6 6M6 21h12"/>',

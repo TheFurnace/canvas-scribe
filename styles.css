@@ -1,3 +1,28 @@
+.canvas-scribe-tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.canvas-scribe-controls :is([data-action="pen"], [data-action="highlighter"]) {
+  position: relative;
+}
+
+.canvas-scribe-tool-color {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--text-muted);
+  border-radius: 3px;
+  background: var(--canvas-scribe-tool-color);
+  pointer-events: none;
+}
+
 .canvas-scribe-render-layer {
   position: absolute;
   top: 0;
