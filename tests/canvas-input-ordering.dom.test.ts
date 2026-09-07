@@ -441,7 +441,7 @@ describe("Canvas pen settings", () => {
     open();
     expect(requiredElement<HTMLInputElement>('.canvas-scribe-pen-menu input').value).toBe("12");
     expect(requiredElement<HTMLElement>('[data-pen-type="pencil"]').getAttribute("aria-pressed")).toBe("true");
-    requiredElement<HTMLButtonElement>('.canvas-scribe-pen-color').click();
+    requiredElement<HTMLElement>('[data-action="color"]').dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", pointerId: 76 }));
     expect(document.querySelector(".canvas-scribe-pen-menu")).toBeNull();
     expect(document.querySelector(".canvas-scribe-color-palette")).not.toBeNull();
     open();

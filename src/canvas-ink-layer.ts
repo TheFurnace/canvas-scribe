@@ -1109,7 +1109,6 @@ export class CanvasInkLayer {
       type: this.penType, size: this.penSize, color: this.getToolColor("pen"),
       onType: (type) => { this.penType = type; remember(); },
       onSize: (size) => { this.penSize = size; remember(); },
-      onColor: () => this.toggleColorPalette(),
       onClose: () => this.closePenMenu(true),
     });
     document.body.append(menu);

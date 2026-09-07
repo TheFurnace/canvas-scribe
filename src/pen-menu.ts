@@ -33,7 +33,6 @@ export interface PenMenuOptions {
   color: string;
   onType: (type: PenType) => void;
   onSize: (size: number) => void;
-  onColor: () => void;
   onClose: () => void;
 }
 
@@ -95,9 +94,6 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
   const description = document.createElement("p");
   description.className = "canvas-scribe-pen-description";
   root.append(description);
-  const color = button(root, "Color…", options.onColor);
-  color.className = "canvas-scribe-pen-color";
-  color.style.setProperty("--pen-color", options.color);
   function sync() {
     choices.forEach((node, index) => {
       const value = PEN_TYPES[index]!;
