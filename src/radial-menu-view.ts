@@ -21,7 +21,7 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
   const title = document.createElement("div");
   title.className = "canvas-scribe-radial-title";
   title.textContent = navigation.title ?? "Pen actions";
-  palette.append(title);
+  if (navigation.back) palette.append(title);
   items.forEach((item, index) => {
     const button = document.createElement("button");
     button.className = "canvas-scribe-radial-action";
