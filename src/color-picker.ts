@@ -159,13 +159,22 @@ export function createColorPicker(document: Document, options: ColorPickerOption
     }
   }));
   const recentLabel = document.createElement("div");
-  recentLabel.textContent = options.recent.length ? "Recent colors" : "Confirmed colors will appear here";
+  recentLabel.textContent = options.recent.length ? "Recent colors & default" : "Default color";
   recentLabel.className = "canvas-scribe-picker-recent-label";
   const recent = document.createElement("div");
   recent.className = "canvas-scribe-picker-recent";
   options.recent.forEach((color) => addChip(color, recent));
+  const defaultChip = button("Default", recent, () => {
+    select(options.defaultColor);
+    reset = true;
+    defaultChip.setAttribute("aria-pressed", "true");
+    error.textContent = "Default selected. Choose Done to apply.";
+  });
+  defaultChip.className = "canvas-scribe-picker-chip canvas-scribe-picker-default";
+  defaultChip.style.setProperty("--chip-color", options.defaultColor);
+  defaultChip.setAttribute("aria-label", `Reset to default (${options.defaultColor})`);
+  defaultChip.title = `Reset ${options.tool} to default (${options.defaultColor})`;
   dialog.append(recentLabel, recent);
-  button("Reset to default", dialog, () => { select(options.defaultColor); reset = true; error.textContent = "Default selected. Choose Done to apply."; });
   const footer = document.createElement("div");
   footer.className = "canvas-scribe-picker-footer";
   dialog.append(footer);
@@ -175,6 +184,7 @@ export function createColorPicker(document: Document, options: ColorPickerOption
   function select(color: string, keepHsv = false) {
     pending = color;
     reset = false;
+    defaultChip.setAttribute("aria-pressed", "false");
     if (!keepHsv) hsv = hexToHsv(color);
     fields[0].value = color;
     hexToRgb(color).forEach((c, i) => { fields[i + 1].value = String(c); });

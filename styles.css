@@ -176,7 +176,12 @@
 .canvas-scribe-picker-inputs [aria-invalid="true"] { border-color: var(--text-error); }
 .canvas-scribe-picker-error { min-height: 20px; margin-top: 6px; font-size: 12px; color: var(--text-muted); }
 .canvas-scribe-picker-recent-label { margin-top: 8px; color: var(--text-muted); }
-.canvas-scribe-picker-recent { display: grid; grid-template-columns: repeat(6, 1fr); margin: 4px 0 12px; }
+.canvas-scribe-picker-recent { display: flex; overflow-x: auto; margin: 4px 0 4px; }
+.canvas-scribe-picker-recent button.canvas-scribe-picker-chip { flex: 0 0 44px; min-height: 62px; }
+.canvas-scribe-picker-recent .canvas-scribe-picker-chip::before,
+.canvas-scribe-picker-recent .canvas-scribe-picker-chip::after { top: 22px; }
+.canvas-scribe-picker-recent button.canvas-scribe-picker-default { position: sticky; right: 0; padding: 38px 2px 2px; font-size: 10px; line-height: 16px; background: var(--background-primary); border-radius: 8px; }
+.canvas-scribe-picker-default::before { outline: 1px dashed var(--text-muted); outline-offset: 3px; }
 .canvas-scribe-picker-footer { position: sticky; bottom: -20px; z-index: 1; margin-top: 8px; padding: 8px 0; background: var(--background-primary); }
 @media (max-width: 380px) {
   .canvas-scribe-picker { padding: 12px; }

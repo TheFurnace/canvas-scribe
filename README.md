@@ -9,7 +9,7 @@ Canvas Scribe is an experimental, stylus-first handwriting layer for Obsidian Ca
 
 The initial release includes a pressure-aware pen, highlighter, whole-stroke eraser, and ink-specific undo/redo. Ink is stored as structured JSON under the `canvasScribe` property in the existing `.canvas` file.
 
-Use the pen or highlighter color control for one-tap quick colors, or choose **More colors…** for Swatches, Spectrum, and Hex/RGB entry. The full picker previews changes until **Done**; **Cancel** discards them. **Reset to default**, followed by **Done**, restores theme-following pen ink or the yellow highlighter. Each tool keeps its six most recent confirmed custom colors for the lifetime of the open Canvas layer; reopening the Canvas or reloading the plugin clears this history.
+Use the pen or highlighter color control for one-tap quick colors, or choose **More colors…** for Swatches, Spectrum, and Hex/RGB entry. The full picker previews changes until **Done**; **Cancel** discards them. **Default** in the recent-color row, followed by **Done**, restores theme-following pen ink or the yellow highlighter. Each tool keeps its six most recent confirmed custom colors for the lifetime of the open Canvas layer; reopening the Canvas or reloading the plugin clears this history.
 
 For device testing, run **Canvas Scribe: Toggle stylus input diagnostics** from the command palette. The overlay reports the browser's stylus pointer type, pressure, tilt, and button mappings without changing input behavior. Run **Canvas Scribe: Export debug report** afterward to create a fill-in report and structured log in the vault's `Canvas Scribe Debug` folder. Logs exclude note text, canvas names, vault names, and raw stylus coordinates.
 

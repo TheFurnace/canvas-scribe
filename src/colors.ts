@@ -75,6 +75,6 @@ export class ToolColors {
 }
 
 export const CURATED_SWATCHES = [
-  ...[1, 0.72, 0.42].flatMap((value) => [0, 30, 60, 120, 180, 220, 270, 320].map((hue) => hsvToHex(hue, 0.7, value))),
+  ...[1, 0.86, 0.72].flatMap((value) => [0, 30, 60, 120, 180, 220, 270, 320].map((hue) => hsvToHex(hue, 0.7, value))),
   ...[255, 219, 183, 146, 110, 73, 37, 0].map((c) => rgbToHex([c, c, c])!),
 ];
