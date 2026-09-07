@@ -2,7 +2,7 @@
 
 Tap the active Pen control to open the pen menu. Choose Ballpoint, Fountain,
 Brush, or Pencil, adjust thickness with the slider or half-unit minus/plus
-steps, and use Color to open the shared color controls. Escape, Close, another
+steps. Use the toolbar's palette control to change color. Escape, Close, another
 tool, or contact outside the menu closes it. Type and thickness are remembered
 per Canvas. Changing them leaves existing strokes and the chosen color intact.
 
@@ -29,9 +29,10 @@ FER-25 work.
 
 ## Previews and exports
 
-Storybook → Canvas Scribe → Pen Menu includes Light, Dark, and Tablet stories,
-interactive type/width/color controls, pressure samples, upright/tilted pencil
-samples, and a drawing pad. All previews call the production renderer.
+Storybook → Canvas Scribe → Pen Menu shows the production toolbar with the
+pen menu anchored beside it. Use Storybook's light/dark switch to change the
+Obsidian theme. Type and thickness controls update the in-menu stroke previews,
+which call the production renderer.
 
 Ink is an SVG overlay. Its paths, fill, and opacity describe the visible result;
 pencil texture requires no external assets or SVG filters. Canvas Scribe does
