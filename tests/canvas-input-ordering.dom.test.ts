@@ -410,6 +410,46 @@ describe("Canvas full color picker integration", () => {
   });
 });
 
+describe("Canvas pen settings", () => {
+  it("isolates menu contact, preserves existing ink, and applies type and size to subsequent strokes", async () => {
+    const { wrapper, card } = fixture();
+    stubPointerCapture(wrapper);
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    dispatchPenGesture(card, 71);
+    const existing = requiredElement<SVGPathElement>(".canvas-scribe-render-layer path");
+    const original = existing.getAttribute("d");
+    const open = () => requiredElement<HTMLElement>('[data-action="pen"]').dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", pointerId: 72 }));
+    open();
+    const pencil = requiredElement<HTMLButtonElement>('[data-pen-type="pencil"]');
+    dispatchPenGesture(pencil, 73);
+    pencil.click();
+    const width = requiredElement<HTMLInputElement>('.canvas-scribe-pen-menu input');
+    dispatchPenGesture(width, 74);
+    width.value = "12";
+    width.dispatchEvent(new Event("input"));
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(1);
+    expect(existing.getAttribute("d")).toBe(original);
+    requiredElement<HTMLElement>('.canvas-scribe-pen-menu').dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(document.querySelector(".canvas-scribe-pen-menu")).toBeNull();
+    dispatchPenGesture(card, 75);
+    const paths = document.querySelectorAll<SVGPathElement>(".canvas-scribe-render-layer path");
+    expect(paths).toHaveLength(2);
+    expect(paths[1]!.getAttribute("opacity")).toBe("0.72");
+    expect(paths[1]!.getAttribute("d")).not.toBe(original);
+    expect(existing.getAttribute("d")).toBe(original);
+    open();
+    expect(requiredElement<HTMLInputElement>('.canvas-scribe-pen-menu input').value).toBe("12");
+    expect(requiredElement<HTMLElement>('[data-pen-type="pencil"]').getAttribute("aria-pressed")).toBe("true");
+    requiredElement<HTMLButtonElement>('.canvas-scribe-pen-color').click();
+    expect(document.querySelector(".canvas-scribe-pen-menu")).toBeNull();
+    expect(document.querySelector(".canvas-scribe-color-palette")).not.toBeNull();
+    open();
+    layer.dispose();
+    expect(document.querySelector(".canvas-scribe-pen-menu")).toBeNull();
+  });
+});
+
 function fixture(): { wrapper: HTMLElement; card: HTMLElement } {
   document.body.innerHTML = `
     <div id="container">

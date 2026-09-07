@@ -1,4 +1,5 @@
 import type { App, TFile, View } from "obsidian";
+import { clampPenSize, isPenType } from "./pen-types";
 
 import {
   CANVAS_INK_KEY,
@@ -50,6 +51,8 @@ function normalizeInkData(value: unknown): CanvasInkData {
   if (!isRecord(value) || !Array.isArray(value.strokes)) return createEmptyInkData();
   return {
     version: CANVAS_INK_VERSION,
+    ...(isRecord(value.penSettings) && isPenType(value.penSettings.type)
+      ? { penSettings: { type: value.penSettings.type, size: clampPenSize(Number(value.penSettings.size)) } } : {}),
     strokes: value.strokes.map(normalizeStroke).filter(isPresent),
   };
 }
@@ -62,6 +65,7 @@ function normalizeStroke(value: unknown): InkStroke | null {
   return {
     id: typeof value.id === "string" ? value.id : crypto.randomUUID(),
     tool,
+    ...(tool === "pen" && isPenType(value.penType) ? { penType: value.penType } : {}),
     color: typeof value.color === "string" ? value.color : tool === "pen" ? "#1f2937" : "#fde047",
     size: finitePositive(value.size, tool === "pen" ? 3.5 : 16),
     opacity: finiteRange(value.opacity, 0, 1, tool === "pen" ? 1 : 0.35),
