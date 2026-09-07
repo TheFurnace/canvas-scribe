@@ -7,7 +7,7 @@ Canvas Scribe is an experimental, stylus-first handwriting layer for Obsidian Ca
 - A mouse keeps Obsidian's native Canvas behavior.
 - While stylus input is enabled, Canvas context-menu gestures open a radial palette for pen, highlighter, eraser, undo, redo, and the original Canvas menu.
 
-The initial release includes a pressure-aware pen, highlighter, whole-stroke eraser, and ink-specific undo/redo. Ink is stored as structured JSON under the `canvasScribe` property in the existing `.canvas` file.
+Canvas Scribe includes Ballpoint, Fountain, Brush, and tilt-aware Pencil styles, plus a separate highlighter, whole-stroke eraser, and ink-specific undo/redo. Tap the active Pen control for live previews and thickness settings. Ink is stored as structured JSON under the `canvasScribe` property in the existing `.canvas` file. See [pen types](docs/pen-types.md) for rendering, compatibility, and export details.
 
 Use the pen or highlighter color control for one-tap quick colors, or choose **More colors…** for Swatches, Spectrum, and Hex/RGB entry. The full picker previews changes until **Done**; **Cancel** discards them. **Default** in the recent-color row, followed by **Done**, restores theme-following pen ink or the yellow highlighter. Each tool keeps its six most recent confirmed custom colors for the lifetime of the open Canvas layer; reopening the Canvas or reloading the plugin clears this history.
 

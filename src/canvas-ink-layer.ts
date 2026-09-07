@@ -14,6 +14,8 @@ import {
 import { loadInkData, saveInkData } from "./persistence";
 import { PenActivationGuard } from "./pen-activation";
 import { positionPopup } from "./popover";
+import { createPenMenu } from "./pen-menu";
+import { PEN_PROFILES, type PenType } from "./pen-types";
 import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
 import {
   isEraserTip,
@@ -61,6 +63,10 @@ export class CanvasInkLayer {
   private activePathEl: SVGPathElement | null = null;
   private activePointerId: number | null = null;
   private activeTool: DrawingTool = "pen";
+  private penMenuEl: HTMLElement | null = null;
+  private penMenuDispose: (() => void) | null = null;
+  private penType: PenType = "fountain";
+  private penSize = 3.5;
   private readonly toolColors = new ToolColors();
   private colorPickerEl: HTMLElement | null = null;
   private readonly selectedStrokeIds = new Set<string>();
@@ -106,6 +112,8 @@ export class CanvasInkLayer {
 
   async mount(): Promise<void> {
     this.data = await loadInkData(this.app, this.target.file);
+    this.penType = this.data.penSettings?.type ?? "fountain";
+    this.penSize = this.data.penSettings?.size ?? 3.5;
     this.logger.record("canvas", "layer_mounted", { strokeCount: this.data.strokes.length });
     if (this.disposed) return;
     this.ensureDom();
@@ -117,6 +125,7 @@ export class CanvasInkLayer {
   }
 
   setTool(tool: DrawingTool): void {
+    this.closePenMenu();
     this.activeTool = tool;
     if (tool !== "eraser") this.hideEraserCursor();
     if (tool !== "lasso") this.clearSelection();
@@ -126,6 +135,7 @@ export class CanvasInkLayer {
   }
 
   toggleEnabled(): void {
+    this.closePenMenu();
     this.enabled = !this.enabled;
     if (!this.enabled) this.penActivationGuard.reset();
     this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
@@ -155,6 +165,7 @@ export class CanvasInkLayer {
   }
 
   dispose(): void {
+    this.closePenMenu();
     this.disposed = true;
     if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
     if (this.renderFrame !== null) window.cancelAnimationFrame(this.renderFrame);
@@ -316,8 +327,9 @@ export class CanvasInkLayer {
       id: createStrokeId(),
       tool,
       color: this.getToolColor(tool),
-      size: tool === "pen" ? 3.5 : 17,
-      opacity: tool === "pen" ? 1 : 0.38,
+      ...(tool === "pen" ? { penType: this.penType } : {}),
+      size: tool === "pen" ? this.penSize : 17,
+      opacity: tool === "pen" ? PEN_PROFILES[this.penType].opacity : 0.38,
       points: [point],
       hasPressure: event.pressure > 0 && event.pressure !== 0.5,
       createdAt: Date.now(),
@@ -895,7 +907,10 @@ export class CanvasInkLayer {
     }
     this.controlsEl?.remove();
     const group = createCanvasControls(this.target.containerEl.ownerDocument, setIcon, {
-      setTool: (tool) => this.setTool(tool),
+      setTool: (tool) => {
+        if (tool === "pen" && this.activeTool === "pen") this.togglePenMenu();
+        else this.setTool(tool);
+      },
       toggleColorPalette: () => this.toggleColorPalette(),
       undo: () => this.undo(),
       redo: () => this.redo(),
@@ -1005,6 +1020,7 @@ export class CanvasInkLayer {
   }
 
   private toggleColorPalette(): void {
+    this.closePenMenu();
     if (this.colorPaletteEl || this.colorPickerEl) {
       this.closeColorPalette();
       this.syncControls();
@@ -1077,6 +1093,58 @@ export class CanvasInkLayer {
     palette.style.top = `${position.top}px`;
     this.colorPaletteEl = palette;
     this.syncControls();
+  }
+
+  private togglePenMenu(): void {
+    if (this.penMenuEl) { this.closePenMenu(true); return; }
+    const anchor = this.controlsEl?.querySelector<HTMLElement>('[data-action="pen"]');
+    if (!anchor) return;
+    this.closeColorPalette();
+    const document = anchor.ownerDocument;
+    const remember = () => {
+      this.data.penSettings = { type: this.penType, size: this.penSize };
+      this.scheduleSave();
+    };
+    const menu = createPenMenu(document, {
+      type: this.penType, size: this.penSize, color: this.getToolColor("pen"),
+      onType: (type) => { this.penType = type; remember(); },
+      onSize: (size) => { this.penSize = size; remember(); },
+      onColor: () => this.toggleColorPalette(),
+      onClose: () => this.closePenMenu(true),
+    });
+    document.body.append(menu);
+    this.penMenuEl = menu;
+    anchor.setAttribute("aria-expanded", "true");
+    anchor.setAttribute("aria-haspopup", "dialog");
+    const position = () => {
+      const viewport = document.defaultView;
+      const point = positionPopup(anchor.getBoundingClientRect(), menu.getBoundingClientRect(),
+        viewport?.innerWidth ?? document.documentElement.clientWidth,
+        viewport?.innerHeight ?? document.documentElement.clientHeight);
+      menu.style.left = `${point.left}px`; menu.style.top = `${point.top}px`;
+    };
+    const dismiss = (event: Event) => {
+      if (!menu.contains(event.target as Node) && !anchor.contains(event.target as Node)) this.closePenMenu();
+    };
+    document.addEventListener("pointerdown", dismiss, true);
+    document.defaultView?.addEventListener("resize", position);
+    this.penMenuDispose = () => {
+      document.removeEventListener("pointerdown", dismiss, true);
+      document.defaultView?.removeEventListener("resize", position);
+    };
+    position();
+    menu.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+    this.syncControls();
+  }
+
+  private closePenMenu(focus = false): void {
+    this.penMenuDispose?.();
+    this.penMenuDispose = null;
+    this.penMenuEl?.remove();
+    this.penMenuEl = null;
+    const anchor = this.controlsEl?.querySelector<HTMLElement>('[data-action="pen"]');
+    anchor?.setAttribute("aria-expanded", "false");
+    if (focus) anchor?.focus();
   }
 
   private closeColorPalette(animate = false): void {

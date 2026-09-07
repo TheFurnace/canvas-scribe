@@ -1,10 +1,12 @@
 import { getStroke } from "perfect-freehand";
+import { PEN_PROFILES, penPressure, pencilTilt } from "./pen-types";
 
 import type { InkStroke } from "./types";
 
 type Coordinate = readonly [number, number];
 
 export function strokeToSvgPath(stroke: InkStroke, complete = true): string {
+  if (stroke.tool === "pen" && stroke.penType) return typedPenPath(stroke, complete);
   const outline = getStroke(
     stroke.points.map((point) => [point.x, point.y, point.pressure]),
     {
@@ -20,6 +22,34 @@ export function strokeToSvgPath(stroke: InkStroke, complete = true): string {
   );
 
   return outlineToSvgPath(outline);
+}
+
+function typedPenPath(stroke: InkStroke, complete: boolean): string {
+  const type = stroke.penType!;
+  const profile = PEN_PROFILES[type];
+  const strands = type === "pencil" ? 7 : 1;
+  return Array.from({ length: strands }, (_, strand) => {
+    const points = stroke.points.map((point, index) => {
+      const pressure = penPressure(type, point.pressure, stroke.hasPressure);
+      if (type !== "pencil") return [point.x, point.y, pressure];
+      const before = stroke.points[Math.max(0, index - 1)]!;
+      const after = stroke.points[Math.min(stroke.points.length - 1, index + 1)]!;
+      const dx = after.x - before.x;
+      const dy = after.y - before.y;
+      const length = Math.hypot(dx, dy) || 1;
+      // Fixed strand noise depends on sample index, so moving/reloading ink keeps its texture.
+      const grain = Math.sin(index * 12.9898 + strand * 78.233) * 0.045;
+      const spread = (0.45 + pressure * 0.55) * (1 + pencilTilt(point));
+      const offset = ((strand - 3) / 7 + grain) * stroke.size * spread;
+      return [point.x - (dy / length) * offset, point.y + (dx / length || (dy === 0 ? 1 : 0)) * offset, pressure];
+    });
+    return outlineToSvgPath(getStroke(points, {
+      size: stroke.size * (strands === 1 ? 1 : 0.11),
+      thinning: profile.thinning, smoothing: profile.smoothing, streamline: profile.streamline,
+      simulatePressure: false, start: { cap: true, taper: profile.taper },
+      end: { cap: true, taper: profile.taper }, last: complete,
+    }));
+  }).join(" ");
 }
 
 export function outlineToSvgPath(points: readonly Coordinate[]): string {
@@ -50,7 +80,7 @@ export function strokeIntersectsCircle(
   y: number,
   radius: number,
 ): boolean {
-  const hitRadius = radius + stroke.size / 2;
+  const hitRadius = radius + stroke.size * (stroke.penType === "pencil" ? 1 : 0.5);
   const hitRadiusSquared = hitRadius * hitRadius;
   const points = stroke.points;
   if (points.length === 0) return false;

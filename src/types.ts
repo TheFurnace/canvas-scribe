@@ -1,3 +1,5 @@
+import type { PenType } from "./pen-types";
+
 export const CANVAS_INK_KEY = "canvasScribe" as const;
 export const CANVAS_INK_VERSION = 1 as const;
 
@@ -14,6 +16,7 @@ export interface InkPoint {
 }
 
 export interface InkStroke {
+  penType?: PenType;
   id: string;
   tool: InkTool;
   color: string;
@@ -25,6 +28,7 @@ export interface InkStroke {
 }
 
 export interface CanvasInkData {
+  penSettings?: { type: PenType; size: number };
   version: typeof CANVAS_INK_VERSION;
   strokes: InkStroke[];
 }
