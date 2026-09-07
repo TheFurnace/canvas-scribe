@@ -63,6 +63,7 @@ export class ToolColors {
   private selected: Partial<Record<ColorTool, string>> = {};
   private history: Record<ColorTool, string[]> = { pen: [], highlighter: [] };
 
+  selection(tool: ColorTool): string | null { return this.selected[tool] ?? null; }
   current(tool: ColorTool, defaultColor: string): string { return this.selected[tool] ?? defaultColor; }
   recent(tool: ColorTool): readonly string[] { return [...this.history[tool]]; }
   confirm(tool: ColorTool, color: string | null): void {

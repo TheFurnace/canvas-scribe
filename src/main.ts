@@ -1,5 +1,6 @@
 import { Notice, Plugin } from "obsidian";
 
+import { FavoritePens } from "./favorite-pens";
 import { CanvasInkLayer } from "./canvas-ink-layer";
 import { targetFromLeaf } from "./canvas-target";
 import { DebugLogger } from "./debug-logger";
@@ -8,12 +9,23 @@ import { InputDiagnostics } from "./input-diagnostics";
 import type { DrawingTool } from "./types";
 
 export default class CanvasScribePlugin extends Plugin {
+  private favorites = new FavoritePens();
+  private saveQueue: Promise<void> = Promise.resolve();
   private readonly layers = new Map<HTMLElement, CanvasInkLayer>();
   private readonly logger = new DebugLogger();
   private diagnostics: InputDiagnostics | null = null;
   private syncFrame: number | null = null;
 
   async onload(): Promise<void> {
+    const stored = await this.loadData();
+    const settings = stored && typeof stored === "object" ? stored : {};
+    this.favorites = new FavoritePens(settings.favoritePens, (favoritePens) => {
+      const snapshot = { ...settings, favoritePens };
+      this.saveQueue = this.saveQueue.then(() => this.saveData(snapshot)).catch((error) => {
+        this.logger.recordError("favorite_pens_save_failed", error);
+        new Notice("Could not save favorite pens. Please try again.");
+      });
+    });
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
     this.diagnostics = new InputDiagnostics(document, this.logger);
     this.addCommand({
@@ -94,7 +106,7 @@ export default class CanvasScribePlugin extends Plugin {
       const existing = this.layers.get(target.containerEl);
       if (existing?.isFor(target)) continue;
       existing?.dispose();
-      const layer = new CanvasInkLayer(this.app, target, this.logger);
+      const layer = new CanvasInkLayer(this.app, target, this.logger, this.favorites);
       this.layers.set(target.containerEl, layer);
       try {
         await layer.mount();

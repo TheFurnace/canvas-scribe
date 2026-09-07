@@ -416,3 +416,34 @@
 .canvas-scribe-pen-width input::-webkit-slider-runnable-track { height: 4px; background: var(--background-modifier-border); border-radius: 2px; }
 .canvas-scribe-pen-width input::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: var(--interactive-accent); }
 .canvas-scribe-pen-description { font-size: 12px; color: var(--text-muted); margin: 12px 0 16px; }
+
+/* The radial keeps six fixed slots; collections page below the ring. */
+.canvas-scribe-radial-title {
+  position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+  padding: 0 4px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-muted); font-size: 11px;
+}
+.canvas-scribe-radial-paging {
+  position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  padding: 4px; border-radius: 8px; background: var(--background-primary);
+}
+.canvas-scribe-radial-paging button { min-height: 40px; }
+.canvas-scribe-radial-action.has-preview svg { width: 44px; height: 28px; }
+.canvas-scribe-radial-action .canvas-scribe-color-swatch-preview { width: 28px; height: 28px; border-radius: 50%; }
+.canvas-scribe-radial-palette[hidden] { display: none; }
+.canvas-scribe-favorites-manager {
+  width: min(540px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow: auto;
+  padding: 16px; border: 1px solid var(--background-modifier-border); border-radius: 14px;
+  background: var(--background-primary); color: var(--text-normal); box-shadow: 0 12px 32px rgb(0 0 0 / 24%);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.canvas-scribe-favorites-manager header { display: flex; justify-content: space-between; align-items: center; }
+.canvas-scribe-favorites-manager h3 { margin: 0; }
+.canvas-scribe-favorites-manager button, .canvas-scribe-favorites-manager input:not([type=checkbox]), .canvas-scribe-favorites-manager select { min-height: 44px; }
+.canvas-scribe-favorites-manager label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.canvas-scribe-favorite-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding-block: 8px; border-bottom: 1px solid var(--background-modifier-border); }
+.canvas-scribe-favorite-row svg { width: 60px; height: 36px; flex-shrink: 0; }
+.canvas-scribe-favorite-row input { flex: 1; min-width: 100px; width: 120px; }
+
+.canvas-scribe-favorites-manager button { min-width: 44px; }

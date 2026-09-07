@@ -6,6 +6,7 @@ import type { App } from "obsidian";
 
 import { CanvasInkLayer } from "../src/canvas-ink-layer";
 import type { CanvasTarget } from "../src/canvas-target";
+import { FavoritePens } from "../src/favorite-pens";
 import { DebugLogger } from "../src/debug-logger";
 import { RadialMenu, type RadialMenuAction } from "../src/radial-menu";
 
@@ -96,6 +97,24 @@ describe("CanvasInkLayer radial-menu integration", () => {
     expect(wrapper.querySelector(".canvas-scribe-render-layer")).toBeNull();
   });
 
+  it("applies a favorite only to subsequent strokes and keeps menu gestures out of ink", async () => {
+    const favorites = new FavoritePens([{ id: "blue-brush", name: "Blue brush", tool: "pen", penType: "brush", color: "#2563eb", size: 8, opacity: 0.6 }]);
+    const { layer, eventTarget } = await mountedLayer(favorites);
+    eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    requiredElement<HTMLButtonElement>('[data-action="colors"]').click();
+    requiredElement<HTMLButtonElement>('[data-action="full-picker"]').click();
+    requiredElement<HTMLElement>(".canvas-scribe-picker").dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", buttons: 1, button: 0 }));
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(0);
+    requiredElement<HTMLElement>(".canvas-scribe-picker").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    requiredElement<HTMLButtonElement>('[data-action="favorites"]').click();
+    requiredElement<HTMLButtonElement>('[data-action="blue-brush"]').click();
+    eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 8, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5, clientX: 20, clientY: 30 }));
+    const path = requiredElement<SVGPathElement>(".canvas-scribe-render-layer path");
+    expect(path.getAttribute("fill")).toBe("#2563eb"); expect(path.getAttribute("opacity")).toBe("0.6");
+    layer.dispose();
+  });
+
   it("replays one native contextmenu event on the original connected target", async () => {
     const { layer, eventTarget } = await mountedLayer();
     const replayed = vi.fn<(event: MouseEvent) => void>();
@@ -112,6 +131,7 @@ describe("CanvasInkLayer radial-menu integration", () => {
     expect(intercepted.defaultPrevented).toBe(true);
     expect(replayed).not.toHaveBeenCalled();
 
+    requiredElement<HTMLButtonElement>('[data-action="more"]').click();
     requiredElement<HTMLButtonElement>('[data-action="canvas-menu"]').click();
 
     expect(replayed).toHaveBeenCalledOnce();
@@ -143,7 +163,7 @@ function pointerEvent(type: string, init: PointerEventInit = {}): PointerEvent {
   return new PointerEvent(type, { bubbles: true, cancelable: true, ...init });
 }
 
-async function mountedLayer(): Promise<{
+async function mountedLayer(favorites = new FavoritePens()): Promise<{
   layer: CanvasInkLayer;
   logger: DebugLogger;
   wrapper: HTMLElement;
@@ -173,7 +193,7 @@ async function mountedLayer(): Promise<{
     leaf: {},
   } as unknown as CanvasTarget;
   const logger = new DebugLogger();
-  const layer = new CanvasInkLayer(app, target, logger);
+  const layer = new CanvasInkLayer(app, target, logger, favorites);
   await layer.mount();
 
   const svg = requiredElement<SVGSVGElement>(".canvas-scribe-render-layer");

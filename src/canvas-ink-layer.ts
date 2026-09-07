@@ -27,7 +27,9 @@ import {
   shouldAppendReleasePoint,
   stylusPointerDownAction,
 } from "./pointer-input";
-import { RadialMenu, type RadialMenuAction } from "./radial-menu";
+import { FavoritePens, type PenPreset } from "./favorite-pens";
+import { createPenActions } from "./pen-actions";
+import { RadialMenu } from "./radial-menu";
 import {
   cloneStrokes,
   createEmptyInkData,
@@ -67,6 +69,9 @@ export class CanvasInkLayer {
   private penMenuDispose: (() => void) | null = null;
   private penType: PenType = "fountain";
   private penSize = 3.5;
+  private penOpacity: number | null = null;
+  private highlighterSize = 17;
+  private highlighterOpacity = 0.38;
   private readonly toolColors = new ToolColors();
   private colorPickerEl: HTMLElement | null = null;
   private readonly selectedStrokeIds = new Set<string>();
@@ -108,6 +113,7 @@ export class CanvasInkLayer {
     private readonly app: App,
     readonly target: CanvasTarget,
     private readonly logger: DebugLogger,
+    private readonly favorites = new FavoritePens(),
   ) {}
 
   async mount(): Promise<void> {
@@ -328,8 +334,8 @@ export class CanvasInkLayer {
       tool,
       color: this.getToolColor(tool),
       ...(tool === "pen" ? { penType: this.penType } : {}),
-      size: tool === "pen" ? this.penSize : 17,
-      opacity: tool === "pen" ? PEN_PROFILES[this.penType].opacity : 0.38,
+      size: tool === "pen" ? this.penSize : this.highlighterSize,
+      opacity: tool === "pen" ? (this.penOpacity ?? PEN_PROFILES[this.penType].opacity) : this.highlighterOpacity,
       points: [point],
       hasPressure: event.pressure > 0 && event.pressure !== 0.5,
       createdAt: Date.now(),
@@ -686,31 +692,18 @@ export class CanvasInkLayer {
 
   private showRadialMenu(clientX: number, clientY: number, contextTarget: EventTarget | null): void {
     this.closeRadialMenu();
-    const actions: RadialMenuAction[] = [
-      this.radialToolAction("pen", "pencil", "Pen"),
-      this.radialToolAction("highlighter", "highlighter", "Highlighter"),
-      this.radialToolAction("eraser", "eraser", "Eraser"),
-      {
-        id: "canvas-menu",
-        label: "Open Canvas menu",
-        icon: "menu",
-        run: () => this.openCanvasContextMenu(contextTarget, clientX, clientY),
-      },
-      {
-        id: "redo",
-        label: "Redo ink",
-        icon: "redo-2",
-        disabled: this.redoStack.length === 0,
-        run: () => this.redo(),
-      },
-      {
-        id: "undo",
-        label: "Undo ink",
-        icon: "undo-2",
-        disabled: this.undoStack.length === 0,
-        run: () => this.undo(),
-      },
-    ];
+    this.closeColorPalette();
+    this.closePenMenu();
+    const document = this.target.containerEl.ownerDocument;
+    const actions = createPenActions({
+      document, tool: this.activeTool, colors: this.toolColors, favorites: this.favorites,
+      currentPreset: this.currentPenPreset(),
+      defaultColor: (tool) => resolveColor(document, this.getToolDefault(tool)),
+      selectTool: (tool) => this.setTool(tool),
+      applyFavorite: (preset) => this.applyFavorite(preset),
+      colorsChanged: () => this.syncControls(),
+      openCanvasMenu: () => this.openCanvasContextMenu(contextTarget, clientX, clientY),
+    });
     this.logger.record("canvas", "radial_menu_opened", { activeTool: this.activeTool });
     this.radialMenu = new RadialMenu(this.target.containerEl.ownerDocument, actions, () => {
       this.radialMenu = null;
@@ -738,17 +731,23 @@ export class CanvasInkLayer {
     this.logger.record("canvas", "native_context_menu_requested");
   }
 
-  private radialToolAction(tool: DrawingTool, icon: string, label: string): RadialMenuAction {
-    return {
-      id: tool,
-      label,
-      icon,
-      active: this.enabled && this.activeTool === tool,
-      run: () => {
-        if (!this.enabled) this.toggleEnabled();
-        this.setTool(tool);
-      },
-    };
+  private currentPenPreset(): PenPreset | null {
+    const tool = this.activeTool;
+    if (tool !== "pen" && tool !== "highlighter") return null;
+    return { tool, penType: this.penType, color: this.toolColors.selection(tool),
+      size: tool === "pen" ? this.penSize : this.highlighterSize,
+      opacity: tool === "pen" ? (this.penOpacity ?? PEN_PROFILES[this.penType].opacity) : this.highlighterOpacity };
+  }
+
+  private applyFavorite(preset: PenPreset): void {
+    this.setTool(preset.tool);
+    this.toolColors.confirm(preset.tool, preset.color);
+    if (preset.tool === "pen") {
+      this.penType = preset.penType; this.penSize = preset.size; this.penOpacity = preset.opacity;
+      this.data.penSettings = { type: this.penType, size: this.penSize };
+      this.scheduleSave();
+    } else { this.highlighterSize = preset.size; this.highlighterOpacity = preset.opacity; }
+    this.syncControls();
   }
 
   private closeRadialMenu(): void {
@@ -1107,7 +1106,7 @@ export class CanvasInkLayer {
     };
     const menu = createPenMenu(document, {
       type: this.penType, size: this.penSize, color: this.getToolColor("pen"),
-      onType: (type) => { this.penType = type; remember(); },
+      onType: (type) => { this.penType = type; this.penOpacity = null; remember(); },
       onSize: (size) => { this.penSize = size; remember(); },
       onClose: () => this.closePenMenu(true),
     });
@@ -1189,7 +1188,7 @@ export class CanvasInkLayer {
 }
 
 function isControlTarget(target: EventTarget | null): boolean {
-  return Boolean(asElement(target)?.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu"));
+  return Boolean(asElement(target)?.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu, .canvas-scribe-picker-backdrop, .canvas-scribe-pen-menu, .canvas-scribe-color-palette"));
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
