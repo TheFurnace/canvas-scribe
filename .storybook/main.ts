@@ -20,6 +20,7 @@ const config: StorybookConfig = {
     viteConfig.resolve.alias = {
       ...viteConfig.resolve.alias,
       "virtual:obsidian-app.css": obsidianCss,
+      "virtual:obsidian-app.css?inline": `${obsidianCss}?inline`,
     };
     return viteConfig;
   },
