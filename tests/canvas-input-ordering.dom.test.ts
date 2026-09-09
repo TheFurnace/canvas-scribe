@@ -14,6 +14,27 @@ afterEach(() => {
 });
 
 describe("Canvas drawing input ordering", () => {
+  it.each(["pointerup", "pointercancel"])("hides the eraser footprint after %s", async (endType) => {
+    const { wrapper } = fixture();
+    const card = requiredElement<HTMLElement>(".other-card");
+    stubPointerCapture(wrapper);
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    layer.setTool("eraser");
+    card.dispatchEvent(pointerEvent("pointerdown", {
+      pointerId: 81, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5,
+    }));
+    card.dispatchEvent(pointerEvent("pointermove", {
+      pointerId: 81, pointerType: "pen", button: -1, buttons: 1, pressure: 0.5, clientX: 20,
+    }));
+    expect(requiredElement(".canvas-scribe-eraser-cursor").classList.contains("is-visible")).toBe(true);
+    card.dispatchEvent(pointerEvent(endType, {
+      pointerId: 81, pointerType: "pen", button: 0, buttons: 0, pressure: 0,
+    }));
+    expect(requiredElement(".canvas-scribe-eraser-cursor").classList.contains("is-visible")).toBe(false);
+    layer.dispose();
+  });
+
   it("recognizes an element using its owner document's realm", () => {
     const iframe = document.createElement("iframe");
     document.body.appendChild(iframe);

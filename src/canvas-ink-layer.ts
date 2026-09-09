@@ -616,7 +616,7 @@ export class CanvasInkLayer {
     this.moveOrigin = null;
     this.moveStartPoints.clear();
     this.didMoveSelection = false;
-    if (this.activeTool !== "eraser") this.hideEraserCursor();
+    this.hideEraserCursor();
     this.syncControls();
   }
 
