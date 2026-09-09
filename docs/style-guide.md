@@ -45,7 +45,7 @@ Prefer host values over hardcoded light/dark palettes. Exact spacing, radii, opt
 
 ## Tool identity and state
 
-Confirmed: toolbar and radial quick-tool slots use simple silhouettes. Expanded settings use illustrated tips and live stroke previews. Both representations share recognizable tip shapes and a consistent, separate ink-color indicator. The approved direction is not approval of final artwork.
+Confirmed: toolbar and radial quick-tool slots use simple silhouettes. Expanded settings use illustrated tips and live stroke previews. FER-49 visual review approved open upright contours with slightly elongated, ink-colored bodies in both representations. Tips remain neutral for recognition; the separate underline indicator is removed from tool icons. Text uses a colored T with a neutral outline. Palette actions retain their existing indicator. See [Tool icon family](tool-icons.md) for the approved geometry and remaining host/device checks.
 
 Draft artwork constraints: start on a 24-unit grid, retain approximately 2 units of optical padding, and compare at 24 CSS px before enlarging. Use original artwork through one source shared by production and Storybook via Obsidian icon registration. Illustrations may use neutral material shading; avoid extra colors that could be mistaken for selected ink.
 

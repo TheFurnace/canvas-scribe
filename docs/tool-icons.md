@@ -1,11 +1,8 @@
 # Tool icon family
 
-## Colored-body experiment
+FER-49 provides the user-approved upright icon family with ink-colored, elongated bodies and open tips. Real Obsidian and Galaxy Tab/S Pen validation remain pending.
 
-This branch explores the user-requested alternative to the approved swatch treatment in PR #15. Pen and highlighter barrels extend from y=21 to y=22.5 and contain the ink color, while tips remain open and neutral. The extra 1.5 units use the space freed by the removed swatch. Text uses a colored T with a neutral outline; erasers and selection remain neutral. Color is inherited through --canvas-scribe-tool-color and accessible names retain the ink value. Palette actions retain their existing indicator because they have no tool barrel. The approved baseline below remains the comparison reference until this experiment is reviewed.
-
-FER-49 introduces original upright tool artwork. Visual approval and Galaxy Tab/S Pen validation remain pending. The agreed direction is upright silhouettes in compact controls and matching illustrated tips in settings.
-
+Pen and highlighter barrels end at y=22.5 and contain the ink color. Their tips remain open and neutral. The extra 1.5 units use the space freed by the removed underline swatch. Text uses a colored T with a neutral outline; erasers and selection remain neutral. Color is inherited through `--canvas-scribe-tool-color` and accessible names retain the ink value. Palette actions retain their existing indicator because they have no tool barrel.
 ## Inventory and meaning
 
 | Identity | Recognition cue | Availability |
@@ -26,7 +23,7 @@ Highlighter-only erasing is a filter, not a third eraser. No tape, shape or othe
 
 ## Geometry and optical rules
 
-Author in `src/tool-icons.ts` on a 24 × 24 grid. Most artwork occupies x=6–18, y=2–21; the lasso and selection boundaries may use x=3–21. Keep at least about two units of optical padding. Align tool tips upward and barrel bottoms to y=21. Following visual review, compact artwork uses open currentColor contours with 1.6-unit round strokes. Keep interiors spacious and use filled accents only for the small ballpoint and graphite points. Do not stroke compound cutouts or stack outlines: these made the first pass look smudged at 24 CSS pixels. Expanded tips reuse the clean geometry with only 6% neutral material shading. Do not bake in a theme or selected ink color.
+Author in `src/tool-icons.ts` on a 24 × 24 grid. Tool artwork occupies x=6–18, y=3–22.5; selection boundaries may use x=3–21. Align tips upward and barrel bottoms to y=22.5, leaving 0.7 units below the 1.6-unit outline. Following visual review, compact artwork uses open currentColor contours with 1.6-unit round strokes. Keep interiors spacious and use solid fill for the ink-bearing body and the small ballpoint and graphite points. Do not stroke compound cutouts or stack outlines: these made the first pass look smudged at 24 CSS pixels. Expanded tips reuse the clean geometry with only 6% neutral material shading. Do not bake in a theme or selected ink color.
 
 The geometry is scaled into Obsidian's 100-unit custom-icon viewport at registration. Compact artwork is 24 CSS px; expanded review artwork is 48 px. Existing compact toolbar geometry remains host-owned. Gallery controls use 36 px desktop and 44 px tablet minimum targets. Settings adapt tips and the existing live stroke sample to each pen choice.
 
@@ -38,12 +35,12 @@ Keep the icon registration and rendering adapters separate from the artwork. Do 
 
 ## State and accessibility
 
-The parent button owns the accessible tool name and `aria-pressed`. Artwork and the separate bordered ink swatch are decorative. Include the ink value in the accessible name when it is shown. Selection adds a check mark in quick controls; the gallery additionally uses an inset border. Settings retain their persistent selected border. Keyboard focus is an offset outline, distinct from selection. Disabled specimens use native `disabled` and retain their shape. Black/white ink indicators have a neutral border; ink color never colors the tool body.
+The parent button owns the accessible tool name and `aria-pressed`. Artwork and its ink-colored body are decorative. Include the ink value in the accessible name when it is shown. Selection adds a check mark in quick controls; the gallery additionally uses an inset border. Settings retain their persistent selected border. Keyboard focus is an offset outline, distinct from selection. Disabled specimens use native `disabled` and retain their shape. Black and white bodies retain a neutral outer contour. Tips remain neutral so selected ink does not obscure tool identity.
 
 ## Adding a tool
 
 1. Add a typed entry with its name, color-indicator eligibility, silhouette, filled tip and structural details. Start with a distinct outer profile; do not depend on tiny interior marks alone.
-2. Use `toolIconId` at the production call site. Registration and the gallery discover the entry automatically.
+2. Add the interior fill geometry to `TOOL_BODIES` for ink-bearing tools and inherit `--canvas-scribe-tool-color` from the control. Use `toolIconId` at the production call site. Registration and the gallery discover the entry automatically.
 3. Keep unsupported tools out of live controls. Connect modes and filters only in their implementation issue.
 4. Inspect the Tool Icons stories at 100% browser zoom in both Obsidian themes, with desktop/tablet targets. Check default, selected, focused, disabled and black/white ink samples. Compare against the production toolbar and representative pen menu below the gallery.
 5. Run `pnpm check` and `pnpm build:storybook`, then review in real Obsidian and on Galaxy Tab/S Pen. Verify native mouse/touch navigation and absence of stray ink separately from artwork approval.
