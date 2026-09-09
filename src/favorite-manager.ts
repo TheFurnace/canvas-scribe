@@ -2,6 +2,8 @@ import { createPenPreview } from "./pen-menu";
 import { PEN_PROFILES, PEN_TYPES } from "./pen-types";
 import { FavoritePens, type FavoritePen, type PenPreset } from "./favorite-pens";
 import { strokeToSvgPath } from "./geometry";
+import { bindDialogKeyboard, createAction, createNumericControl } from "./ui-controls";
+import type { HighlighterType } from "./highlighter-types";
 
 export function favoritePreview(document: Document, preset: PenPreset, defaultColor: string): Element {
   const color = preset.color ?? defaultColor;
@@ -27,11 +29,13 @@ export function createFavoriteManager(document: Document, store: FavoritePens, c
   const panel = document.createElement("section"); panel.className = "canvas-scribe-favorites-manager";
   panel.setAttribute("role", "dialog"); panel.setAttribute("aria-modal", "true"); panel.setAttribute("aria-label", "Manage favorite pens");
   backdrop.append(panel);
+  let cancel = close;
+  bindDialogKeyboard(backdrop, panel, () => cancel());
   const button = (parent: HTMLElement, label: string, run: () => void) => {
-    const node = document.createElement("button"); node.type = "button"; node.textContent = label;
-    node.addEventListener("click", run); parent.append(node); return node;
+    const node = createAction(document, label, run); parent.append(node); return node;
   };
   const render = (focusId?: string) => {
+    cancel = close;
     panel.replaceChildren();
     const header = document.createElement("header"), heading = document.createElement("h3");
     heading.textContent = "Favorite pens"; header.append(heading); button(header, "Done", close); panel.append(header);
@@ -60,6 +64,7 @@ export function createFavoriteManager(document: Document, store: FavoritePens, c
     (focusId ? panel.querySelector<HTMLElement>(`[data-favorite="${focusId}"] input`) : panel.querySelector<HTMLElement>("button"))?.focus();
   };
   const edit = (item: FavoritePen) => {
+    cancel = () => render(item.id);
     panel.replaceChildren();
     const title = document.createElement("h3"); title.textContent = `Edit ${item.name}`; panel.append(title);
     const draft = { ...item };
@@ -74,21 +79,36 @@ export function createFavoriteManager(document: Document, store: FavoritePens, c
     });
     types.value = item.tool === "highlighter" ? "highlighter" : item.penType;
     field("Tool", types);
+    const tips = document.createElement("select");
+    for (const tip of ["round", "chisel"] as const) {
+      const option = document.createElement("option"); option.value = tip;
+      option.textContent = tip === "round" ? "Round" : "Chisel"; tips.append(option);
+    }
+    tips.value = item.highlighterType ?? "round";
+    field("Highlighter tip", tips);
     const color = document.createElement("input"); color.type = "color"; color.value = item.color ?? defaultColor(item); field("Color", color);
     const followDefault = document.createElement("input"); followDefault.type = "checkbox"; followDefault.checked = item.color === null; field("Follow tool default", followDefault);
     color.disabled = followDefault.checked;
     followDefault.addEventListener("change", () => { color.disabled = followDefault.checked; });
-    const size = document.createElement("input"); size.type = "number"; size.min = "1"; size.max = "40"; size.step = "0.5"; size.value = String(item.size); field("Thickness", size);
-    const opacity = document.createElement("input"); opacity.type = "number"; opacity.min = "1"; opacity.max = "100"; opacity.step = "1"; opacity.value = String(Math.round(item.opacity * 100)); field("Opacity (%)", opacity);
-    const error = document.createElement("p"); error.setAttribute("role", "alert"); panel.append(error);
+    const sizeSlot = document.createElement("div"); panel.append(sizeSlot);
+    const renderSize = () => {
+      const highlighter = types.value === "highlighter";
+      tips.parentElement!.hidden = !highlighter;
+      draft.size = Math.min(highlighter ? 60 : 20, draft.size);
+      sizeSlot.replaceChildren(createNumericControl(document, {
+        label: "Thickness", value: draft.size, min: 1, max: highlighter ? 60 : 20, step: 0.5,
+        onChange: (value) => { draft.size = value; },
+      }).root);
+    };
+    types.addEventListener("change", renderSize); renderSize();
+    panel.append(createNumericControl(document, {
+      label: "Opacity", value: Math.round(item.opacity * 100), min: 1, max: 100, step: 1, unit: "%",
+      onChange: (value) => { draft.opacity = value / 100; },
+    }).root);
     button(panel, "Save changes", () => {
-      const max = types.value === "highlighter" ? 40 : 20;
-      if (!size.checkValidity() || !opacity.checkValidity() || Number(size.value) > max || !size.value || !opacity.value) {
-        error.textContent = `Thickness must be 1–${max}; opacity must be 1–100%.`; return;
-      }
       draft.tool = types.value === "highlighter" ? "highlighter" : "pen";
       if (draft.tool === "pen") draft.penType = types.value as FavoritePen["penType"];
-      draft.size = Number(size.value); draft.opacity = Number(opacity.value) / 100;
+      else draft.highlighterType = tips.value as HighlighterType;
       draft.color = followDefault.checked ? null : color.value;
       store.update(draft); render(item.id);
     });

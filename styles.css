@@ -551,6 +551,10 @@
 .canvas-scribe-numeric label { flex: 1; min-width: 0; }
 .canvas-scribe-numeric label > span { margin-right: 8px; }
 .canvas-scribe-numeric input { display: block; width: 100%; }
+.canvas-scribe-numeric output { white-space: nowrap; }
+.canvas-scribe-favorites-manager .canvas-scribe-numeric label { display: block; }
+.canvas-scribe-favorites-manager .canvas-scribe-numeric input[type=range] { min-height: 0; }
+.canvas-scribe-favorites-manager { font-family: var(--font-interface); font-size: var(--font-ui-small); }
 .canvas-scribe-quick-swatches { flex-wrap: wrap; }
 .canvas-scribe-quick-current .canvas-scribe-color-swatch-preview { position: static; width: 24px; height: 24px; flex-shrink: 0; }
 .canvas-scribe-quick-colors .canvas-scribe-color-swatch { position: relative; padding: 6px; }

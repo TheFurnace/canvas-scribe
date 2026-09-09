@@ -1,4 +1,19 @@
 /** Shared, host-independent controls. Document changes belong to the caller. */
+export function bindDialogKeyboard(root: HTMLElement, dialog: HTMLElement, cancel: () => void): void {
+  root.addEventListener("keydown", (event) => {
+    event.stopPropagation();
+    if (event.key === "Escape") { event.preventDefault(); cancel(); return; }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>("button, input, select, textarea, [tabindex='0']"))
+      .filter((element) => !element.closest("[hidden]") && !element.hasAttribute("disabled"));
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (!first || !last) { event.preventDefault(); return; }
+    const active = dialog.ownerDocument.activeElement;
+    if (event.shiftKey && active === first) { event.preventDefault(); last.focus(); }
+    else if ((!event.shiftKey && active === last) || !dialog.contains(active)) { event.preventDefault(); first.focus(); }
+  });
+}
+
 export function createAction(document: Document, label: string, run: () => void): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
