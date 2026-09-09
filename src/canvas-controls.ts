@@ -56,6 +56,7 @@ export function createCanvasControls(
 
   const group = document.createElement("div");
   group.className = "canvas-control-group mod-raised canvas-scribe-controls";
+  group.setAttribute("role", "group");
   group.setAttribute("aria-label", "Canvas Scribe tools");
   renderers.set(group, renderIcon);
 
