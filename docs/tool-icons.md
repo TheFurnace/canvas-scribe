@@ -12,8 +12,8 @@ FER-49 introduces original upright tool artwork. Visual approval and Galaxy Tab/
 | Pencil | Graphite point, exposed wood and barrel facets | Existing pen |
 | Chisel highlighter | Wide sloping edge | Planned FER-42 variant |
 | Round highlighter | Wide rounded tip | Existing highlighter representative; named variants pending FER-42 |
-| Stroke eraser | Broad cap and continuous stroke mark | Existing whole-stroke eraser |
-| Area eraser | Narrow cap, area mark and footprint ticks | Planned FER-23 variant |
+| Stroke eraser | Broad bevelled cap and continuous stroke mark | Existing whole-stroke eraser |
+| Area eraser | Narrow rounded cap and open footprint brackets | Planned FER-23 variant |
 | Lasso selection | Freeform loop and trailing cord | Existing selection; sole quick-selection slot |
 | Rectangle selection | Broken rectangular boundary | Planned FER-22 settings choice |
 | Text | Upright T with end bars | Planned text tool |
@@ -22,7 +22,7 @@ Highlighter-only erasing is a filter, not a third eraser. No tape, shape or othe
 
 ## Geometry and optical rules
 
-Author in `src/tool-icons.ts` on a 24 × 24 grid. Most artwork occupies x=6–18, y=2–21; the lasso and selection boundaries may use x=3–21. Keep at least about two units of optical padding. Align tool tips upward and barrel bottoms to y=21. Silhouettes are filled `currentColor`; negative spaces distinguish tips at 24 CSS pixels. Outline-only selection symbols use 1.8-unit round strokes. Illustrated tips reuse the silhouette geometry, add neutral 16% material shading, a solid tip, and 1.4-unit structural lines. Do not bake in a theme or selected ink color.
+Author in `src/tool-icons.ts` on a 24 × 24 grid. Most artwork occupies x=6–18, y=2–21; the lasso and selection boundaries may use x=3–21. Keep at least about two units of optical padding. Align tool tips upward and barrel bottoms to y=21. Following visual review, compact artwork uses open currentColor contours with 1.6-unit round strokes. Keep interiors spacious and use filled accents only for the small ballpoint and graphite points. Do not stroke compound cutouts or stack outlines: these made the first pass look smudged at 24 CSS pixels. Expanded tips reuse the clean geometry with only 6% neutral material shading. Do not bake in a theme or selected ink color.
 
 The geometry is scaled into Obsidian's 100-unit custom-icon viewport at registration. Compact artwork is 24 CSS px; expanded review artwork is 48 px. Existing compact toolbar geometry remains host-owned. Gallery controls use 36 px desktop and 44 px tablet minimum targets. Settings adapt tips and the existing live stroke sample to each pen choice.
 

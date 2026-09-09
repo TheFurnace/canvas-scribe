@@ -17,7 +17,7 @@ function gallery() {
   };
   text("p", "CANVAS SCRIBE / TOOL FAMILY", root).className = "scribe-icon-eyebrow";
   text("h1", "A tip for every tool");
-  text("p", "Original upright silhouettes at 24 px. Matching illustrated tips at 48 px. Select a sample to inspect its state; Tab through to inspect focus.");
+  text("p", "Open upright tool icons at 24 px. Matching expanded tips at 48 px. Select a sample to inspect its state; Tab through to inspect focus.");
   const grid = document.createElement("div"); grid.className = "scribe-icon-grid"; root.append(grid);
   const status = document.createElement("p"); status.setAttribute("aria-live", "polite");
   status.textContent = "Artwork review · planned variants are samples, not drawing controls.";
