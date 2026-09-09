@@ -510,3 +510,75 @@
 .canvas-scribe-favorite-row input { flex: 1; min-width: 100px; width: 120px; }
 
 .canvas-scribe-favorites-manager button { min-width: 44px; }
+.canvas-scribe-tool-menu,
+.canvas-scribe-quick-colors {
+  --canvas-scribe-ui-surface: var(--background-primary);
+  --canvas-scribe-ui-text: var(--text-normal);
+  --canvas-scribe-ui-border-color: var(--background-modifier-border);
+  --canvas-scribe-ui-target: 36px;
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  padding: 12px;
+  background: var(--canvas-scribe-ui-surface);
+  color: var(--canvas-scribe-ui-text);
+  border: 1px solid var(--canvas-scribe-ui-border-color);
+  border-radius: var(--radius-m, 8px);
+  box-shadow: var(--shadow-s);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-small);
+}
+.canvas-scribe-tool-menu header,
+.canvas-scribe-quick-colors header,
+.canvas-scribe-numeric-row,
+.canvas-scribe-quick-current,
+.canvas-scribe-quick-swatches {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.canvas-scribe-tool-menu header,
+.canvas-scribe-quick-colors header { justify-content: space-between; }
+.canvas-scribe-ui-button { min-width: var(--canvas-scribe-ui-target, 36px); min-height: var(--canvas-scribe-ui-target, 36px); }
+.canvas-scribe-ui-button:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 2px; }
+.canvas-scribe-ui-button[aria-pressed="true"] { outline: 2px solid var(--interactive-accent); outline-offset: 1px; }
+.canvas-scribe-numeric label { flex: 1; min-width: 0; }
+.canvas-scribe-numeric label > span { margin-right: 8px; }
+.canvas-scribe-numeric input { display: block; width: 100%; }
+.canvas-scribe-numeric output { white-space: nowrap; }
+.canvas-scribe-favorites-manager .canvas-scribe-numeric label { display: block; }
+.canvas-scribe-favorites-manager .canvas-scribe-numeric input[type=range] { min-height: 0; }
+.canvas-scribe-favorites-manager { font-family: var(--font-interface); font-size: var(--font-ui-small); }
+.canvas-scribe-quick-swatches { flex-wrap: wrap; }
+.canvas-scribe-quick-current .canvas-scribe-color-swatch-preview { position: static; width: 24px; height: 24px; flex-shrink: 0; }
+.canvas-scribe-quick-colors .canvas-scribe-color-swatch { position: relative; padding: 6px; }
+.canvas-scribe-quick-colors .canvas-scribe-color-swatch > span:last-child:not(:first-child) { position: absolute; right: 0; bottom: 0; padding: 0 3px; background: var(--background-primary); font-size: 10px; border-radius: 3px; }
+.is-mobile .canvas-scribe-tool-menu,
+.is-mobile .canvas-scribe-quick-colors { --canvas-scribe-ui-target: 44px; }
+.canvas-scribe-tip-choices { display: flex; gap: 8px; }
+.canvas-scribe-tip-choices button { flex: 1; height: auto; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; }
+.canvas-scribe-tool-menu > svg { width: 100%; flex-shrink: 0; }
+.canvas-scribe-radial-menu { pointer-events: none; }
+.canvas-scribe-radial-palette, .canvas-scribe-radial-menu .canvas-scribe-picker-backdrop { pointer-events: auto; }
+.canvas-scribe-radial-palette.has-tabs .canvas-scribe-radial-action {
+  transform: translate(-50%, -50%) rotate(var(--canvas-scribe-radial-angle)) translateY(-94px) rotate(var(--canvas-scribe-radial-angle-inverse));
+}
+.canvas-scribe-radial-palette.has-tabs { width: 250px; height: 250px; }
+.canvas-scribe-radial-tabs { position: absolute; top: calc(100% + 12px); left: 50%; transform: translateX(-50%); display: flex; width: 300px; gap: 4px; }
+.canvas-scribe-radial-tabs button { flex: 1; min-height: 44px; padding: 4px; font-size: var(--font-ui-small); }
+.canvas-scribe-radial-tabs button[aria-pressed="true"] { outline: 2px solid var(--interactive-accent); }
+.canvas-scribe-radial-palette.has-tabs .canvas-scribe-radial-paging { top: calc(100% + 64px); }
+.canvas-scribe-size-backdrop { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.canvas-scribe-size-backdrop > * { pointer-events: auto; }
+.canvas-scribe-size-ring { width: 180px; height: 180px; margin: auto; border-radius: 50%; display: grid; place-items: center; touch-action: none; background: conic-gradient(var(--interactive-accent) var(--size-angle), var(--background-modifier-border) 0); position: relative; }
+.canvas-scribe-size-ring::before { content: ""; position: absolute; inset: 24px; border-radius: 50%; background: var(--background-primary); }
+.canvas-scribe-size-ring output { position: relative; font-size: 24px; pointer-events: none; }
+.canvas-scribe-size-ring:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 3px; }
+.canvas-scribe-size-preview svg { display: block; height: 60px; max-width: 100%; margin: auto; }
+.canvas-scribe-destructive { color: var(--text-error); margin-top: 8px; }

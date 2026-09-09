@@ -11,7 +11,8 @@ export interface RadialMenuItem {
 export interface RadialMenuView { root: HTMLElement; palette: HTMLElement; closeButton: HTMLButtonElement; }
 export function createRadialMenuView(document: Document, items: readonly RadialMenuItem[], renderIcon: IconRenderer,
   onAction: (id: string) => void, onClose: () => void,
-  navigation: { title?: string; back?: () => void; page?: number; pages?: number; onPage?: (page: number) => void } = {},
+  navigation: { title?: string; back?: () => void; page?: number; pages?: number; onPage?: (page: number) => void;
+    tabs?: string[]; activeTab?: number; onTab?: (index: number) => void } = {},
 ): RadialMenuView {
   const root = document.createElement("div");
   root.className = "canvas-scribe-radial-menu";
@@ -35,7 +36,7 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
       button.classList.toggle("is-active", item.active);
     }
     button.disabled = item.disabled ?? false;
-    const angle = -90 + index * 60;
+    const angle = -90 + index * (items.length > 6 ? 360 / items.length : 60);
     button.style.setProperty("--canvas-scribe-radial-angle", `${angle}deg`);
     button.style.setProperty("--canvas-scribe-radial-angle-inverse", `${-angle}deg`);
     if (item.preview) { button.append(item.preview(document)); button.classList.add("has-preview"); }
@@ -59,6 +60,29 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
   renderIcon(closeButton, navigation.back ? "arrow-left" : "x");
   closeButton.addEventListener("click", (event) => { consume(event); (navigation.back ?? onClose)(); });
   palette.append(closeButton);
+  if (navigation.tabs?.length) {
+    const tabs = document.createElement("div"); tabs.className = "canvas-scribe-radial-tabs";
+    tabs.setAttribute("role", "group"); tabs.setAttribute("aria-label", "Radial pages");
+    navigation.tabs.forEach((label, index) => {
+      const button = document.createElement("button"); button.type = "button"; button.textContent = label;
+      button.setAttribute("aria-pressed", String(index === navigation.activeTab));
+      button.addEventListener("click", (event) => { consume(event); navigation.onTab?.(index); }); tabs.append(button);
+    });
+    palette.append(tabs);
+    let start: { x: number; y: number; id: number } | null = null;
+    palette.addEventListener("pointerdown", (event) => {
+      if ((event.target as Element).closest("button, input, [role=slider]")) return;
+      start = { x: event.clientX, y: event.clientY, id: event.pointerId };
+    });
+    palette.addEventListener("pointercancel", () => { start = null; });
+    palette.addEventListener("pointerup", (event) => {
+      if (!start || event.pointerId !== start.id) return;
+      const dx = event.clientX - start.x, dy = event.clientY - start.y; start = null;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const index = ((navigation.activeTab ?? 0) + (dx < 0 ? 1 : -1) + navigation.tabs!.length) % navigation.tabs!.length;
+      navigation.onTab?.(index);
+    });
+  }
   if ((navigation.pages ?? 1) > 1) {
     const paging = document.createElement("div"); paging.className = "canvas-scribe-radial-paging";
     const page = navigation.page ?? 0, pages = navigation.pages ?? 1;
@@ -82,7 +106,7 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
   root.addEventListener("contextmenu", consume);
   root.addEventListener("keydown", (event) => {
     if (event.key === "Tab") {
-      const nodes = Array.from(root.querySelectorAll<HTMLElement>('button:not(:disabled), input, select')).filter((item) => !item.closest("[hidden]"));
+      const nodes = Array.from(root.querySelectorAll<HTMLElement>('button:not(:disabled), input, select, [role=slider]')).filter((item) => !item.closest("[hidden]"));
       const index = nodes.indexOf(document.activeElement as HTMLElement);
       const next = nodes[(index + (event.shiftKey ? -1 : 1) + nodes.length) % nodes.length];
       if (next) { consume(event); next.focus(); } return;

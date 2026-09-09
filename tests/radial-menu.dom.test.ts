@@ -101,21 +101,23 @@ describe("CanvasInkLayer radial-menu integration", () => {
     const favorites = new FavoritePens([{ id: "blue-brush", name: "Blue brush", tool: "pen", penType: "brush", color: "#2563eb", size: 8, opacity: 0.6 }]);
     const { layer, eventTarget } = await mountedLayer(favorites);
     eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    radialPage("Settings");
     requiredElement<HTMLButtonElement>('[data-action="colors"]').click();
     requiredElement<HTMLButtonElement>('[data-action="full-picker"]').click();
     requiredElement<HTMLElement>(".canvas-scribe-picker").dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", buttons: 1, button: 0 }));
     expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(0);
     requiredElement<HTMLElement>(".canvas-scribe-picker").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
-    requiredElement<HTMLButtonElement>('[data-action="favorites"]').click();
+    radialPage("Favorites");
     requiredElement<HTMLButtonElement>('[data-action="blue-brush"]').click();
     const penControl = requiredElement<HTMLElement>('.canvas-scribe-controls [data-action="pen"]');
     expect(penControl.dataset.penType).toBe("brush");
     expect(penControl.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("#2563eb");
     expect(penControl.getAttribute("aria-label")).toBe("Brush pen · #2563eb · 8px · 60% opacity");
     eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
-    const radialPen = requiredElement<HTMLElement>('.canvas-scribe-radial-action[data-action="pen"]');
-    expect(radialPen.getAttribute("aria-label")).toBe("Brush pen · #2563eb");
+    radialPage("Quick tools");
+    const radialPen = requiredElement<HTMLElement>('.canvas-scribe-radial-action[data-action="pen-brush"]');
+    expect(radialPen.getAttribute("aria-label")).toBe("Brush");
     expect(radialPen.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("#2563eb");
     requiredElement<HTMLElement>('.canvas-scribe-radial-close').click();
     eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 8, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5, clientX: 20, clientY: 30 }));
@@ -140,7 +142,7 @@ describe("CanvasInkLayer radial-menu integration", () => {
     expect(intercepted.defaultPrevented).toBe(true);
     expect(replayed).not.toHaveBeenCalled();
 
-    requiredElement<HTMLButtonElement>('[data-action="more"]').click();
+    radialPage("Settings");
     requiredElement<HTMLButtonElement>('[data-action="canvas-menu"]').click();
 
     expect(replayed).toHaveBeenCalledOnce();
@@ -161,6 +163,12 @@ function requiredElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
   if (!element) throw new Error(`Expected ${selector} to exist.`);
   return element;
+}
+
+function radialPage(label: string): void {
+  const button = Array.from(document.querySelectorAll<HTMLButtonElement>(".canvas-scribe-radial-tabs button")).find((node) => node.textContent === label);
+  if (!button) throw new Error(`Missing radial page ${label}`);
+  button.click();
 }
 
 function setViewport(width: number, height: number): void {

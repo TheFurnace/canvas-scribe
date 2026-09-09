@@ -1,7 +1,7 @@
 {
   "id": "canvas-scribe",
   "name": "Canvas Scribe",
-  "version": "1.0.0",
+  "version": "2.0.0-beta.2",
   "minAppVersion": "1.6.0",
   "description": "Stylus-first handwriting directly on Obsidian Canvas.",
   "author": "Canvas Scribe contributors",

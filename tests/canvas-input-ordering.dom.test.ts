@@ -14,6 +14,65 @@ afterEach(() => {
 });
 
 describe("Canvas drawing input ordering", () => {
+  it("does not save an empty document when an unsupported schema fails to load", async () => {
+    fixture();
+    const process = vi.fn();
+    const app = { vault: { read: async () => '{"canvasScribe":{"version":99,"strokes":[]}}', process } } as unknown as App;
+    const target = { containerEl: requiredElement<HTMLElement>("#container"), file: { path: "future.canvas" }, view: {}, leaf: {} } as unknown as CanvasTarget;
+    const layer = new CanvasInkLayer(app, target, new DebugLogger());
+    await expect(layer.mount()).rejects.toThrow("unsupported ink schema");
+    layer.dispose(); await Promise.resolve(); expect(process).not.toHaveBeenCalled();
+  });
+
+  it("undoes and redoes area erasing and confirmed clear-all through production controls", async () => {
+    const { wrapper } = fixture(); stubPointerCapture(wrapper);
+    const card = requiredElement<HTMLElement>(".other-card");
+    const layer = await mountLayer(); stubCanvasTransform();
+    layer.setTool("highlighter");
+    card.dispatchEvent(pointerEvent("pointerdown", { pointerId: 101, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5, clientX: 0, clientY: 40 }));
+    card.dispatchEvent(pointerEvent("pointerup", { pointerId: 101, pointerType: "pen", button: 0, buttons: 0, pressure: 0, clientX: 100, clientY: 40 }));
+    const original = requiredElement<SVGPathElement>(".canvas-scribe-render-layer path").getAttribute("d");
+    layer.setTool("eraser");
+    const open = () => requiredElement<HTMLElement>('[data-action="eraser"]').dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", pointerId: 102 }));
+    open(); requiredElement<HTMLButtonElement>('[data-eraser-mode="area"]').click();
+    requiredElement<HTMLButtonElement>('[aria-label="Close eraser settings"]').click();
+    card.dispatchEvent(pointerEvent("pointerdown", { pointerId: 103, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5, clientX: 50, clientY: 40 }));
+    card.dispatchEvent(pointerEvent("pointerup", { pointerId: 103, pointerType: "pen", button: 0, buttons: 0, pressure: 0, clientX: 50, clientY: 40 }));
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(2);
+    layer.undo(); expect(requiredElement<SVGPathElement>(".canvas-scribe-render-layer path").getAttribute("d")).toBe(original);
+    layer.redo(); expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(2);
+    open();
+    const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(".canvas-scribe-tool-menu button"));
+    buttons.find((node) => node.textContent === "Erase all ink on this Canvas…")!.click();
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(2);
+    buttons.find((node) => node.textContent === "Erase all ink")!.click();
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(0);
+    expect(document.querySelectorAll(".canvas-node")).toHaveLength(2);
+    layer.undo(); expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(2);
+    layer.dispose();
+  });
+
+  it.each(["pointerup", "pointercancel"])("hides the eraser footprint after %s", async (endType) => {
+    const { wrapper } = fixture();
+    const card = requiredElement<HTMLElement>(".other-card");
+    stubPointerCapture(wrapper);
+    const layer = await mountLayer();
+    stubCanvasTransform();
+    layer.setTool("eraser");
+    card.dispatchEvent(pointerEvent("pointerdown", {
+      pointerId: 81, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5,
+    }));
+    card.dispatchEvent(pointerEvent("pointermove", {
+      pointerId: 81, pointerType: "pen", button: -1, buttons: 1, pressure: 0.5, clientX: 20,
+    }));
+    expect(requiredElement(".canvas-scribe-eraser-cursor").classList.contains("is-visible")).toBe(true);
+    card.dispatchEvent(pointerEvent(endType, {
+      pointerId: 81, pointerType: "pen", button: 0, buttons: 0, pressure: 0,
+    }));
+    expect(requiredElement(".canvas-scribe-eraser-cursor").classList.contains("is-visible")).toBe(false);
+    layer.dispose();
+  });
+
   it("recognizes an element using its owner document's realm", () => {
     const iframe = document.createElement("iframe");
     document.body.appendChild(iframe);
@@ -411,6 +470,32 @@ describe("Canvas full color picker integration", () => {
 });
 
 describe("Canvas pen settings", () => {
+  it("applies highlighter style and opacity only to new ink and isolates menu input", async () => {
+    const { wrapper, card } = fixture(); stubPointerCapture(wrapper);
+    const layer = await mountLayer(); stubCanvasTransform();
+    layer.setTool("highlighter"); dispatchPenGesture(card, 91);
+    const original = requiredElement<SVGPathElement>(".canvas-scribe-render-layer path");
+    const before = original.outerHTML;
+    const open = () => requiredElement<HTMLElement>('[data-action="highlighter"]').dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", pointerId: 92 }));
+    open();
+    const chisel = requiredElement<HTMLButtonElement>('[data-highlighter-type="chisel"]');
+    dispatchPenGesture(chisel, 93); chisel.click();
+    const opacity = requiredElement<HTMLInputElement>('[aria-label="Highlighter opacity"]');
+    opacity.value = "25"; opacity.dispatchEvent(new Event("input"));
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(1);
+    expect(original.outerHTML).toBe(before);
+    requiredElement<HTMLElement>('[aria-label="Close highlighter settings"]').click();
+    dispatchPenGesture(card, 94);
+    const paths = document.querySelectorAll<SVGPathElement>(".canvas-scribe-render-layer path");
+    expect(paths).toHaveLength(2);
+    expect(paths[1]!.getAttribute("opacity")).toBe("0.25");
+    expect(paths[1]!.getAttribute("d")).not.toBe(original.getAttribute("d"));
+    open();
+    expect(requiredElement<HTMLInputElement>('[aria-label="Highlighter opacity"]').value).toBe("25");
+    expect(requiredElement('[data-highlighter-type="chisel"]').getAttribute("aria-pressed")).toBe("true");
+    layer.dispose();
+  });
+
   it("isolates menu contact, preserves existing ink, and applies type and size to subsequent strokes", async () => {
     const { wrapper, card } = fixture();
     stubPointerCapture(wrapper);

@@ -32,7 +32,7 @@ describe("lasso selection", () => {
   });
 
   it("computes bounds and padding for a selected stroke group", () => {
-    const bounds = boundsForStrokes([stroke("a", [[2, 3], [8, 9]]), stroke("b", [[-1, 4], [5, 12]])]);
+    const bounds = boundsForStrokes([{ ...stroke("a", [[2, 3], [8, 9]]), outline: [[[[2, 3], [8, 3], [8, 9], [2, 9]]]] }, { ...stroke("b", [[-1, 4], [5, 12]]), outline: [[[[-1, 4], [5, 4], [5, 12], [-1, 12]]]] }]);
     expect(bounds).toEqual({ minX: -1, minY: 3, maxX: 8, maxY: 12 });
     expect(bounds && pointInBounds({ x: 9, y: 12 }, bounds, 1)).toBe(true);
   });

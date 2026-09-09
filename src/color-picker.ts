@@ -1,4 +1,5 @@
 import { CURATED_SWATCHES, hexToHsv, hexToRgb, hsvToHex, parseHex, rgbToHex, type ColorTool } from "./colors";
+import { bindDialogKeyboard, createAction } from "./ui-controls";
 
 export interface ColorPickerOptions {
   tool: ColorTool;
@@ -24,10 +25,7 @@ export function createColorPicker(document: Document, options: ColorPickerOption
   let reset = false;
   let hsv = hexToHsv(pending);
   const button = (label: string, parent: HTMLElement, run: () => void) => {
-    const node = document.createElement("button");
-    node.type = "button";
-    node.textContent = label;
-    node.addEventListener("click", run);
+    const node = createAction(document, label, run);
     parent.append(node);
     return node;
   };
@@ -200,15 +198,7 @@ export function createColorPicker(document: Document, options: ColorPickerOption
     error.textContent = "";
   }
   root.addEventListener("pointerdown", (event) => { event.stopPropagation(); if (event.target === root) options.onCancel(); });
-  root.addEventListener("keydown", (event) => {
-    event.stopPropagation();
-    if (event.key === "Escape") { event.preventDefault(); options.onCancel(); }
-    if (event.key !== "Tab") return;
-    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>("button, input, [tabindex='0']")).filter((el) => !el.closest("[hidden]") && !el.hasAttribute("disabled"));
-    const first = focusable[0], last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-  });
+  bindDialogKeyboard(root, dialog, options.onCancel);
   showView(options.view ?? "Swatches");
   select(pending);
   return root;

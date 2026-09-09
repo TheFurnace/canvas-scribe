@@ -3,6 +3,7 @@ import { clampPenSize, PEN_PROFILES, PEN_TYPES, type PenType } from "./pen-types
 import type { InkStroke } from "./types";
 import { toolIconId } from "./tool-icons";
 import type { IconRenderer } from "./canvas-controls";
+import { createAction, createMenuShell, createNumericControl } from "./ui-controls";
 
 
 export function penPreviewStroke(type: PenType, size: number, color: string, tilt = false): InkStroke {
@@ -43,24 +44,13 @@ export interface PenMenuOptions {
 export function createPenMenu(document: Document, options: PenMenuOptions): HTMLElement {
   let type = options.type;
   let size = options.size;
-  const root = document.createElement("section");
-  root.className = "canvas-scribe-pen-menu";
-  root.setAttribute("role", "dialog");
-  root.setAttribute("aria-label", "Pen settings");
+  const root = createMenuShell(document, "Pen", options.onClose);
+  root.classList.add("canvas-scribe-pen-menu");
   const button = (parent: HTMLElement, label: string, run: () => void) => {
-    const node = document.createElement("button");
-    node.type = "button";
-    node.textContent = label;
-    node.addEventListener("click", run);
+    const node = createAction(document, label, run);
     parent.append(node);
     return node;
   };
-  const header = document.createElement("header");
-  const title = document.createElement("strong");
-  title.textContent = "Pen";
-  header.append(title);
-  button(header, "×", options.onClose).setAttribute("aria-label", "Close pen settings");
-  root.append(header);
   const types = document.createElement("div");
   types.className = "canvas-scribe-pen-types";
   types.setAttribute("role", "group");
@@ -73,28 +63,11 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
     node.title = PEN_PROFILES[value].description;
     return node;
   });
-  const widthHeading = document.createElement("div");
-  widthHeading.className = "canvas-scribe-pen-width-heading";
-  const label = document.createElement("span");
-  label.textContent = "Thickness";
-  const output = document.createElement("output");
-  output.setAttribute("aria-live", "polite");
-  widthHeading.append(label, output);
-  root.append(widthHeading);
-  const widths = document.createElement("div");
-  widths.className = "canvas-scribe-pen-width";
-  const changeSize = (value: number) => { size = clampPenSize(value); options.onSize(size); sync(); };
-  const minus = button(widths, "−", () => changeSize(size - 0.5));
-  minus.setAttribute("aria-label", "Decrease pen thickness");
-  const slider = document.createElement("input");
-  slider.type = "range";
-  slider.min = "1"; slider.max = "20"; slider.step = "0.5";
-  slider.setAttribute("aria-label", "Pen thickness");
-  slider.addEventListener("input", () => changeSize(Number(slider.value)));
-  widths.append(slider);
-  const plus = button(widths, "+", () => changeSize(size + 0.5));
-  plus.setAttribute("aria-label", "Increase pen thickness");
-  root.append(widths);
+  const numeric = createNumericControl(document, {
+    label: "Pen thickness", value: size, min: 1, max: 20, step: 0.5, unit: "units",
+    onChange: (value) => { size = clampPenSize(value); options.onSize(size); sync(); },
+  });
+  root.append(numeric.root);
   const description = document.createElement("p");
   description.className = "canvas-scribe-pen-description";
   root.append(description);
@@ -114,18 +87,8 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
       artwork.append(tip, createPenPreview(document, value, size, options.color));
       node.replaceChildren(artwork, name);
     });
-    output.value = String(size);
-    slider.value = String(size);
-    slider.setAttribute("aria-valuetext", `${size} canvas units`);
-    minus.disabled = size <= 1; plus.disabled = size >= 20;
+    numeric.setValue(size);
     description.textContent = PEN_PROFILES[type].description;
-  }
-  root.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") { event.preventDefault(); options.onClose(); }
-    event.stopPropagation();
-  });
-  for (const event of ["pointerdown", "pointerup", "pointermove", "click", "dblclick", "contextmenu"]) {
-    root.addEventListener(event, (e) => e.stopPropagation());
   }
   sync();
   return root;

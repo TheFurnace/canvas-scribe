@@ -2,21 +2,28 @@ import { Notice, setIcon, type App } from "obsidian";
 
 import { createCanvasControls, syncCanvasControls } from "./canvas-controls";
 import type { CanvasTarget } from "./canvas-target";
-import { paletteColors, resolveColor, ToolColors, type ColorTool } from "./colors";
+import { resolveColor, type ColorTool } from "./colors";
+import { createQuickColors } from "./quick-colors";
 import { createColorPicker } from "./color-picker";
 import type { DebugLogger } from "./debug-logger";
-import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
+import { strokeToSvgPath } from "./geometry";
+import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
+import { createEraserMenu } from "./eraser-menu";
+import { createSelectionMenu } from "./selection-menu";
+import { InkToolState } from "./ink-tool-state";
+import { DocumentHistory } from "./document-history";
+import { CanvasInkSurface, type SurfaceTransform } from "./ink-surface";
 import {
   createHandwritingHint,
   isHandwritingRegionTarget,
   resolveHandwritingRegion,
 } from "./handwriting-affordance";
-import { loadInkData, saveInkData } from "./persistence";
 import { PenActivationGuard } from "./pen-activation";
 import { positionPopup } from "./popover";
 import { createPenMenu } from "./pen-menu";
-import { PEN_PROFILES, type PenType } from "./pen-types";
-import { boundsForStrokes, pointInBounds, strokeInsidePolygon, translatePoints } from "./selection";
+import { createHighlighterMenu } from "./highlighter-menu";
+import { PEN_PROFILES } from "./pen-types";
+import { boundsForStrokes, pointInBounds, selectRenderedStroke } from "./selection";
 import {
   isEraserTip,
   isStylusBarrelButton,
@@ -28,7 +35,7 @@ import {
   stylusPointerDownAction,
 } from "./pointer-input";
 import { FavoritePens, type PenPreset } from "./favorite-pens";
-import { createPenActions } from "./pen-actions";
+import { createRadialPages } from "./radial-pages";
 import { RadialMenu } from "./radial-menu";
 import {
   cloneStrokes,
@@ -43,16 +50,13 @@ import {
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SAVE_DELAY_MS = 250;
 const MIN_SCREEN_POINT_DISTANCE = 0.35;
-const ERASER_SCREEN_RADIUS = 18;
 const SELECTION_SCREEN_PADDING = 8;
 const PALETTE_CLOSE_ANIMATION_MS = 180;
 
-interface CanvasTransform {
-  screenToCanvas: DOMMatrix;
-  screenScale: number;
-}
-
 export class CanvasInkLayer {
+  private readonly toolState = new InkToolState();
+  private readonly history = new DocumentHistory<InkStroke>(cloneStrokes, 100);
+  private readonly surface: CanvasInkSurface;
   private data: CanvasInkData = createEmptyInkData();
   private svgEl: SVGSVGElement | null = null;
   private eraserCursorEl: SVGCircleElement | null = null;
@@ -64,29 +68,22 @@ export class CanvasInkLayer {
   private activeStroke: InkStroke | null = null;
   private activePathEl: SVGPathElement | null = null;
   private activePointerId: number | null = null;
-  private activeTool: DrawingTool = "pen";
   private penMenuEl: HTMLElement | null = null;
   private penMenuDispose: (() => void) | null = null;
-  private penType: PenType = "fountain";
-  private penSize = 3.5;
-  private penOpacity: number | null = null;
-  private highlighterSize = 17;
-  private highlighterOpacity = 0.38;
-  private readonly toolColors = new ToolColors();
+  private menuAnchor: HTMLElement | null = null;
   private colorPickerEl: HTMLElement | null = null;
   private readonly selectedStrokeIds = new Set<string>();
   private lassoPoints: InkPoint[] = [];
   private lassoMode: "select" | "move" | null = null;
   private moveOrigin: InkPoint | null = null;
-  private moveStartPoints = new Map<string, InkPoint[]>();
+  private moveStartPoints = new Map<string, InkStroke>();
   private didMoveSelection = false;
   private temporaryTool: DrawingTool | null = null;
   private enabled = true;
   private didEraseInGesture = false;
   private stylusMenuArmed = false;
   private eraserTipArmed = false;
-  private undoStack: InkStroke[][] = [];
-  private redoStack: InkStroke[][] = [];
+  private previousErasePoint: InkPoint | null = null;
   private gestureRedoStack: InkStroke[][] | null = null;
   private gestureHasUndoSnapshot = false;
   private saveTimer: number | null = null;
@@ -94,11 +91,12 @@ export class CanvasInkLayer {
   private renderFrame: number | null = null;
   private domFrame: number | null = null;
   private disposed = false;
+  private loaded = false;
   private readonly disposers: Array<() => void> = [];
   private readonly inputDisposers: Array<() => void> = [];
   private observer: MutationObserver | null = null;
   private gestureStartedAt = 0;
-  private gestureTransform: CanvasTransform | null = null;
+  private gestureTransform: SurfaceTransform | null = null;
   private gestureOriginTarget: Element | null = null;
   private readonly penActivationGuard = new PenActivationGuard();
   private erasedStrokeCount = 0;
@@ -110,16 +108,20 @@ export class CanvasInkLayer {
   private stylusIsHovering = false;
 
   constructor(
-    private readonly app: App,
+    app: App,
     readonly target: CanvasTarget,
     private readonly logger: DebugLogger,
     private readonly favorites = new FavoritePens(),
-  ) {}
+  ) { this.surface = new CanvasInkSurface(app, target); }
 
   async mount(): Promise<void> {
-    this.data = await loadInkData(this.app, this.target.file);
-    this.penType = this.data.penSettings?.type ?? "fountain";
-    this.penSize = this.data.penSettings?.size ?? 3.5;
+    this.data = await this.surface.load();
+    this.loaded = true;
+    this.toolState.penType = this.data.penSettings?.type ?? "fountain";
+    this.toolState.penSize = this.data.penSettings?.size ?? 3.5;
+    this.toolState.highlighterType = this.data.highlighterSettings?.type ?? "round";
+    this.toolState.highlighterSize = this.data.highlighterSettings?.size ?? 17;
+    this.toolState.highlighterOpacity = this.data.highlighterSettings?.opacity ?? 0.38;
     this.logger.record("canvas", "layer_mounted", { strokeCount: this.data.strokes.length });
     if (this.disposed) return;
     this.ensureDom();
@@ -132,7 +134,7 @@ export class CanvasInkLayer {
 
   setTool(tool: DrawingTool): void {
     this.closePenMenu();
-    this.activeTool = tool;
+    this.toolState.activeTool = tool;
     if (tool !== "eraser") this.hideEraserCursor();
     if (tool !== "lasso") this.clearSelection();
     this.closeColorPalette();
@@ -143,15 +145,15 @@ export class CanvasInkLayer {
   toggleEnabled(): void {
     this.closePenMenu();
     this.enabled = !this.enabled;
+    if (!this.enabled) this.hideEraserCursor();
     if (!this.enabled) this.penActivationGuard.reset();
     this.logger.record("canvas", "stylus_input_toggled", { enabled: this.enabled });
     this.syncControls();
   }
 
   undo(): void {
-    const previous = this.undoStack.pop();
+    const previous = this.history.undo(this.data.strokes);
     if (!previous) return;
-    this.redoStack.push(cloneStrokes(this.data.strokes));
     this.data.strokes = previous;
     this.logger.record("canvas", "undo", { strokeCount: this.data.strokes.length });
     this.renderAll();
@@ -160,9 +162,8 @@ export class CanvasInkLayer {
   }
 
   redo(): void {
-    const next = this.redoStack.pop();
+    const next = this.history.redo(this.data.strokes);
     if (!next) return;
-    this.undoStack.push(cloneStrokes(this.data.strokes));
     this.data.strokes = next;
     this.logger.record("canvas", "redo", { strokeCount: this.data.strokes.length });
     this.renderAll();
@@ -259,6 +260,7 @@ export class CanvasInkLayer {
       return;
     }
     if (event.pointerType !== "pen") this.penActivationGuard.recordNonPenPointerDown();
+    if (!isControlTarget(event.target)) this.closeRadialMenu();
     const action = stylusPointerDownAction(event, {
       enabled: this.enabled,
       gestureActive: this.activePointerId !== null,
@@ -300,9 +302,10 @@ export class CanvasInkLayer {
     this.gestureOriginTarget = asElement(event.target);
     this.temporaryTool = forcedTool ?? (isEraserTip(event) ? "eraser" : null);
     this.eraserTipArmed = false;
-    const tool = this.temporaryTool ?? this.activeTool;
+    const tool = this.temporaryTool ?? this.toolState.activeTool;
     this.gestureStartedAt = performance.now();
     this.erasedStrokeCount = 0;
+    this.previousErasePoint = null;
     this.logger.record("ink", "gesture_started", {
       tool,
       pointerType: event.pointerType,
@@ -311,7 +314,7 @@ export class CanvasInkLayer {
       pressure: Math.round(event.pressure * 1000) / 1000,
       temporaryTool: this.temporaryTool !== null,
     });
-    this.gestureRedoStack = this.redoStack;
+    this.gestureRedoStack = this.history.future;
     this.gestureHasUndoSnapshot = false;
     if (tool === "eraser") {
       this.pushUndoSnapshot();
@@ -333,9 +336,10 @@ export class CanvasInkLayer {
       id: createStrokeId(),
       tool,
       color: this.getToolColor(tool),
-      ...(tool === "pen" ? { penType: this.penType } : {}),
-      size: tool === "pen" ? this.penSize : this.highlighterSize,
-      opacity: tool === "pen" ? (this.penOpacity ?? PEN_PROFILES[this.penType].opacity) : this.highlighterOpacity,
+      ...(tool === "pen" ? { penType: this.toolState.penType } : {}),
+      ...(tool === "highlighter" ? { highlighterType: this.toolState.highlighterType } : {}),
+      size: tool === "pen" ? this.toolState.penSize : this.toolState.highlighterSize,
+      opacity: tool === "pen" ? (this.toolState.penOpacity ?? PEN_PROFILES[this.toolState.penType].opacity) : this.toolState.highlighterOpacity,
       points: [point],
       hasPressure: event.pressure > 0 && event.pressure !== 0.5,
       createdAt: Date.now(),
@@ -371,7 +375,7 @@ export class CanvasInkLayer {
     if (event.pointerId !== this.activePointerId) return;
     this.consume(event);
 
-    const tool = this.temporaryTool ?? this.activeTool;
+    const tool = this.temporaryTool ?? this.toolState.activeTool;
     if (tool === "eraser") {
       this.eraseSamples(event);
       return;
@@ -408,7 +412,7 @@ export class CanvasInkLayer {
     }
     if (event.pointerId !== this.activePointerId) return;
     this.consume(event);
-    const tool = this.temporaryTool ?? this.activeTool;
+    const tool = this.temporaryTool ?? this.toolState.activeTool;
     if (tool === "lasso" && shouldAppendReleasePoint(event)) {
       this.updateLassoGesture(event);
     } else if (tool !== "eraser" && shouldAppendReleasePoint(event)) {
@@ -547,10 +551,10 @@ export class CanvasInkLayer {
     const pointerId = this.activePointerId;
     if (pointerId !== null && this.wrapperEl?.hasPointerCapture(pointerId)) this.wrapperEl.releasePointerCapture(pointerId);
     if (this.gestureHasUndoSnapshot) {
-      const previous = this.undoStack.pop();
+      const previous = this.history.past.pop();
       if (previous) this.data.strokes = previous;
     }
-    if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
+    if (this.gestureRedoStack) this.history.future = this.gestureRedoStack;
     this.gestureRedoStack = null;
     this.gestureHasUndoSnapshot = false;
     this.activeStroke = null;
@@ -571,6 +575,7 @@ export class CanvasInkLayer {
     this.renderAll();
     this.syncControls();
     this.logger.record("ink", "gesture_cancelled", { reason });
+    this.hideEraserCursor();
   }
 
   private finishGesture(): void {
@@ -579,7 +584,7 @@ export class CanvasInkLayer {
       this.renderFrame = null;
     }
     const completedStroke = this.activeStroke;
-    const completedTool = this.temporaryTool ?? this.activeTool;
+    const completedTool = this.temporaryTool ?? this.toolState.activeTool;
     if (completedTool === "lasso") {
       this.finishLassoGesture();
     } else if (this.activeStroke) {
@@ -592,8 +597,8 @@ export class CanvasInkLayer {
     } else if (this.didEraseInGesture) {
       this.scheduleSave();
     } else if (this.gestureHasUndoSnapshot) {
-      this.undoStack.pop();
-      if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
+      this.history.past.pop();
+      if (this.gestureRedoStack) this.history.future = this.gestureRedoStack;
     }
     this.logger.record("ink", "gesture_finished", {
       tool: completedTool,
@@ -616,7 +621,7 @@ export class CanvasInkLayer {
     this.moveOrigin = null;
     this.moveStartPoints.clear();
     this.didMoveSelection = false;
-    if (this.activeTool !== "eraser") this.hideEraserCursor();
+    this.hideEraserCursor();
     this.syncControls();
   }
 
@@ -625,12 +630,22 @@ export class CanvasInkLayer {
       const point = this.eventToPoint(sample);
       if (!point) continue;
       const screenScale = this.getScreenScale();
-      const radius = ERASER_SCREEN_RADIUS / screenScale;
+      const radius = this.toolState.eraserSettings.radius / screenScale;
       const before = this.data.strokes.length;
-      this.data.strokes = this.data.strokes.filter(
-        (stroke) => !strokeIntersectsCircle(stroke, point.x, point.y, radius),
-      );
-      if (this.data.strokes.length !== before) {
+      const previous = this.previousErasePoint ?? point;
+      const distance = Math.hypot(point.x - previous.x, point.y - previous.y);
+      const steps = Math.max(1, Math.ceil(distance / (radius * 0.3)));
+      let changed = false;
+      for (let step = 1; step <= steps; step++) {
+        const x = previous.x + (point.x - previous.x) * step / steps;
+        const y = previous.y + (point.y - previous.y) * step / steps;
+        const result = eraseInk(this.data.strokes, eraserOutline(x, y, radius, 0.1 / screenScale), {
+          ...this.toolState.eraserSettings, tolerance: 0.1 / screenScale,
+        });
+        changed ||= result.changed; this.data.strokes = result.strokes;
+      }
+      this.previousErasePoint = point;
+      if (changed) {
         this.erasedStrokeCount += before - this.data.strokes.length;
         this.didEraseInGesture = true;
         this.renderAll();
@@ -669,25 +684,8 @@ export class CanvasInkLayer {
     return this.readCanvasTransform()?.screenScale ?? 1;
   }
 
-  private readCanvasTransform(): CanvasTransform | null {
-    const matrix = this.svgEl?.getScreenCTM();
-    if (!matrix) return null;
-    const screenScale = Math.max(Math.hypot(matrix.a, matrix.b), Math.hypot(matrix.c, matrix.d));
-    if (!Number.isFinite(screenScale) || screenScale <= 0) return null;
-    try {
-      const screenToCanvas = matrix.inverse();
-      const components = [
-        screenToCanvas.a,
-        screenToCanvas.b,
-        screenToCanvas.c,
-        screenToCanvas.d,
-        screenToCanvas.e,
-        screenToCanvas.f,
-      ];
-      return components.every(Number.isFinite) ? { screenToCanvas, screenScale } : null;
-    } catch {
-      return null;
-    }
+  private readCanvasTransform(): SurfaceTransform | null {
+    return this.surface.transform(this.svgEl);
   }
 
   private showRadialMenu(clientX: number, clientY: number, contextTarget: EventTarget | null): void {
@@ -695,17 +693,29 @@ export class CanvasInkLayer {
     this.closeColorPalette();
     this.closePenMenu();
     const document = this.target.containerEl.ownerDocument;
-    const actions = createPenActions({
-      document, tool: this.activeTool, colors: this.toolColors, favorites: this.favorites,
+    const actions = createRadialPages({
+      document, tool: this.toolState.activeTool, colors: this.toolState.toolColors, favorites: this.favorites,
       currentPreset: this.currentPenPreset(),
-      penType: this.penType,
+      penType: this.toolState.penType,
+      highlighterType: this.toolState.highlighterType, eraserMode: this.toolState.eraserSettings.mode,
+      selectPen: (type) => { this.setTool("pen"); this.toolState.penType = type; this.toolState.penOpacity = null; this.data.penSettings = { type, size: this.toolState.penSize }; this.scheduleSave(); this.syncControls(); },
+      selectHighlighter: (type) => { this.setTool("highlighter"); this.toolState.highlighterType = type; this.data.highlighterSettings = { type, size: this.toolState.highlighterSize, opacity: this.toolState.highlighterOpacity }; this.scheduleSave(); this.syncControls(); },
+      selectEraser: (mode) => { this.setTool("eraser"); this.toolState.eraserSettings.mode = mode; },
+      getSize: () => this.toolState.activeTool === "pen" ? this.toolState.penSize : this.toolState.highlighterSize,
+      setSize: (size) => {
+        if (this.toolState.activeTool === "pen") { this.toolState.penSize = size; this.data.penSettings = { type: this.toolState.penType, size }; }
+        else { this.toolState.highlighterSize = size; this.data.highlighterSettings = { type: this.toolState.highlighterType, size, opacity: this.toolState.highlighterOpacity }; }
+        this.scheduleSave(); this.syncControls();
+      },
+      undo: () => this.undo(), redo: () => this.redo(), canUndo: () => this.history.past.length > 0, canRedo: () => this.history.future.length > 0,
+      openSettings: () => this.togglePenMenu(),
       defaultColor: (tool) => resolveColor(document, this.getToolDefault(tool)),
       selectTool: (tool) => this.setTool(tool),
       applyFavorite: (preset) => this.applyFavorite(preset),
       colorsChanged: () => this.syncControls(),
       openCanvasMenu: () => this.openCanvasContextMenu(contextTarget, clientX, clientY),
     });
-    this.logger.record("canvas", "radial_menu_opened", { activeTool: this.activeTool });
+    this.logger.record("canvas", "radial_menu_opened", { activeTool: this.toolState.activeTool });
     this.radialMenu = new RadialMenu(this.target.containerEl.ownerDocument, actions, () => {
       this.radialMenu = null;
     });
@@ -733,21 +743,27 @@ export class CanvasInkLayer {
   }
 
   private currentPenPreset(): PenPreset | null {
-    const tool = this.activeTool;
+    const tool = this.toolState.activeTool;
     if (tool !== "pen" && tool !== "highlighter") return null;
-    return { tool, penType: this.penType, color: this.toolColors.selection(tool),
-      size: tool === "pen" ? this.penSize : this.highlighterSize,
-      opacity: tool === "pen" ? (this.penOpacity ?? PEN_PROFILES[this.penType].opacity) : this.highlighterOpacity };
+    return { tool, penType: this.toolState.penType, color: this.toolState.toolColors.selection(tool),
+      ...(tool === "highlighter" ? { highlighterType: this.toolState.highlighterType } : {}),
+      size: tool === "pen" ? this.toolState.penSize : this.toolState.highlighterSize,
+      opacity: tool === "pen" ? (this.toolState.penOpacity ?? PEN_PROFILES[this.toolState.penType].opacity) : this.toolState.highlighterOpacity };
   }
 
   private applyFavorite(preset: PenPreset): void {
     this.setTool(preset.tool);
-    this.toolColors.confirm(preset.tool, preset.color);
+    this.toolState.toolColors.confirm(preset.tool, preset.color);
     if (preset.tool === "pen") {
-      this.penType = preset.penType; this.penSize = preset.size; this.penOpacity = preset.opacity;
-      this.data.penSettings = { type: this.penType, size: this.penSize };
+      this.toolState.penType = preset.penType; this.toolState.penSize = preset.size; this.toolState.penOpacity = preset.opacity;
+      this.data.penSettings = { type: this.toolState.penType, size: this.toolState.penSize };
       this.scheduleSave();
-    } else { this.highlighterSize = preset.size; this.highlighterOpacity = preset.opacity; }
+    } else {
+      this.toolState.highlighterType = preset.highlighterType ?? "round";
+      this.toolState.highlighterSize = preset.size; this.toolState.highlighterOpacity = preset.opacity;
+      this.data.highlighterSettings = { type: this.toolState.highlighterType, size: this.toolState.highlighterSize, opacity: this.toolState.highlighterOpacity };
+      this.scheduleSave();
+    }
     this.syncControls();
   }
 
@@ -787,7 +803,7 @@ export class CanvasInkLayer {
       this.lassoMode = "move";
       this.moveOrigin = point;
       this.moveStartPoints = new Map(
-        this.selectedStrokes().map((stroke) => [stroke.id, stroke.points.map((candidate) => ({ ...candidate }))]),
+        cloneStrokes(this.selectedStrokes()).map((stroke) => [stroke.id, stroke]),
       );
       this.pushUndoSnapshot();
       this.gestureHasUndoSnapshot = true;
@@ -809,7 +825,8 @@ export class CanvasInkLayer {
         if (!point || (previous && Math.hypot(point.x - previous.x, point.y - previous.y) < 1 / this.getScreenScale())) {
           continue;
         }
-        this.lassoPoints.push(point);
+        if (this.toolState.selectionSettings.mode === "rectangle") this.lassoPoints = [this.lassoPoints[0]!, point];
+        else this.lassoPoints.push(point);
       }
       this.updateLassoPath();
       return;
@@ -821,10 +838,10 @@ export class CanvasInkLayer {
     const deltaX = point.x - this.moveOrigin.x;
     const deltaY = point.y - this.moveOrigin.y;
     this.didMoveSelection = this.didMoveSelection || Math.hypot(deltaX, deltaY) >= 1 / this.getScreenScale();
-    for (const stroke of this.data.strokes) {
-      const startPoints = this.moveStartPoints.get(stroke.id);
-      if (startPoints) stroke.points = translatePoints(startPoints, deltaX, deltaY);
-    }
+    this.data.strokes = this.data.strokes.map((stroke) => {
+      const original = this.moveStartPoints.get(stroke.id);
+      return original ? transformInk(original, (x, y) => [x + deltaX, y + deltaY]) : stroke;
+    });
     this.renderAll();
   }
 
@@ -832,7 +849,7 @@ export class CanvasInkLayer {
     if (this.lassoMode === "select") {
       this.selectedStrokeIds.clear();
       for (const stroke of this.data.strokes) {
-        if (strokeInsidePolygon(stroke, this.lassoPoints)) this.selectedStrokeIds.add(stroke.id);
+        if (selectRenderedStroke(stroke, this.selectionPolygon(), this.toolState.selectionSettings.partial)) this.selectedStrokeIds.add(stroke.id);
       }
       this.logger.record("ink", "lasso_selected", { strokeCount: this.selectedStrokeIds.size });
       this.lassoPathEl?.remove();
@@ -844,13 +861,13 @@ export class CanvasInkLayer {
       this.logger.record("ink", "lasso_moved", { strokeCount: this.selectedStrokeIds.size });
       this.scheduleSave();
     } else if (this.lassoMode === "move") {
-      this.undoStack.pop();
-      if (this.gestureRedoStack) this.redoStack = this.gestureRedoStack;
+      this.history.past.pop();
+      if (this.gestureRedoStack) this.history.future = this.gestureRedoStack;
     }
   }
 
   private getToolColor(tool: ColorTool): string {
-    return this.toolColors.current(tool, this.getToolDefault(tool));
+    return this.toolState.toolColors.current(tool, this.getToolDefault(tool));
   }
 
   private getToolDefault(tool: ColorTool): string {
@@ -869,9 +886,7 @@ export class CanvasInkLayer {
   }
 
   private pushUndoSnapshot(): void {
-    this.undoStack.push(cloneStrokes(this.data.strokes));
-    if (this.undoStack.length > 100) this.undoStack.shift();
-    this.redoStack = [];
+    this.history.checkpoint(this.data.strokes);
     this.syncControls();
   }
 
@@ -884,12 +899,13 @@ export class CanvasInkLayer {
   }
 
   private async saveNow(): Promise<void> {
+    if (!this.loaded) return;
     if (this.saveTimer !== null) {
       window.clearTimeout(this.saveTimer);
       this.saveTimer = null;
     }
     try {
-      await saveInkData(this.app, this.target.file, this.data, this.target.view);
+      await this.surface.save(this.data);
       this.logger.record("storage", "ink_saved", { strokeCount: this.data.strokes.length });
     } catch (error) {
       this.logger.recordError("ink_save_failed", error);
@@ -908,7 +924,7 @@ export class CanvasInkLayer {
     this.controlsEl?.remove();
     const group = createCanvasControls(this.target.containerEl.ownerDocument, setIcon, {
       setTool: (tool) => {
-        if (tool === "pen" && this.activeTool === "pen") this.togglePenMenu();
+        if (this.toolState.activeTool === tool) this.togglePenMenu();
         else this.setTool(tool);
       },
       toggleColorPalette: () => this.toggleColorPalette(),
@@ -924,21 +940,22 @@ export class CanvasInkLayer {
   private syncControls(): void {
     if (!this.controlsEl) return;
     const colorTool: ColorTool | null =
-      this.activeTool === "pen" || this.activeTool === "highlighter" ? this.activeTool : null;
+      this.toolState.activeTool === "pen" || this.toolState.activeTool === "highlighter" ? this.toolState.activeTool : null;
     syncCanvasControls(this.controlsEl, {
-      activeTool: this.activeTool,
+      activeTool: this.toolState.activeTool,
       activeColor: colorTool ? this.getToolColor(colorTool) : undefined,
-      penType: this.penType,
-      penColor: this.toolColors.current("pen", "var(--text-normal)"),
+      penType: this.toolState.penType,
+      penColor: this.toolState.toolColors.current("pen", "var(--text-normal)"),
       highlighterColor: this.getToolColor("highlighter"),
-      penSize: this.penSize,
-      penOpacity: this.penOpacity ?? PEN_PROFILES[this.penType].opacity,
-      highlighterSize: this.highlighterSize,
-      highlighterOpacity: this.highlighterOpacity,
+      penSize: this.toolState.penSize,
+      penOpacity: this.toolState.penOpacity ?? PEN_PROFILES[this.toolState.penType].opacity,
+      highlighterSize: this.toolState.highlighterSize,
+      highlighterType: this.toolState.highlighterType,
+      highlighterOpacity: this.toolState.highlighterOpacity,
       paletteOpen: this.colorPaletteEl !== null || this.colorPickerEl !== null,
       enabled: this.enabled,
-      canUndo: this.undoStack.length > 0,
-      canRedo: this.redoStack.length > 0,
+      canUndo: this.history.past.length > 0,
+      canRedo: this.history.future.length > 0,
     });
   }
 
@@ -949,7 +966,7 @@ export class CanvasInkLayer {
       this.eraserCursorEl.classList.add("canvas-scribe-eraser-cursor");
       this.eraserCursorEl.setAttribute("vector-effect", "non-scaling-stroke");
     }
-    this.eraserCursorEl.setAttribute("r", (ERASER_SCREEN_RADIUS / this.getScreenScale()).toString());
+    this.eraserCursorEl.setAttribute("r", (this.toolState.eraserSettings.radius / this.getScreenScale()).toString());
     this.svgEl.appendChild(this.eraserCursorEl);
   }
 
@@ -958,7 +975,7 @@ export class CanvasInkLayer {
       this.hideEraserCursor();
       return;
     }
-    const tool = this.activePointerId === null ? this.activeTool : (this.temporaryTool ?? this.activeTool);
+    const tool = this.activePointerId === null ? this.toolState.activeTool : (this.temporaryTool ?? this.toolState.activeTool);
     if (tool !== "eraser" && !isEraserTip(event) && !this.eraserTipArmed) {
       this.hideEraserCursor();
       return;
@@ -988,9 +1005,38 @@ export class CanvasInkLayer {
   private updateLassoPath(): void {
     this.ensureLassoPath();
     if (!this.lassoPathEl) return;
-    const commands = this.lassoPoints.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`);
-    if (this.lassoPoints.length > 2) commands.push("Z");
+    const polygon = this.selectionPolygon();
+    const commands = polygon.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`);
+    if (polygon.length > 2) commands.push("Z");
     this.lassoPathEl.setAttribute("d", commands.join(" "));
+  }
+
+  private selectionPolygon(): Pick<InkPoint, "x" | "y">[] {
+    if (this.toolState.selectionSettings.mode !== "rectangle" || this.lassoPoints.length < 2) return this.lassoPoints;
+    const first = this.lassoPoints[0]!, last = this.lassoPoints[this.lassoPoints.length - 1]!;
+    return [{ x: first.x, y: first.y }, { x: last.x, y: first.y }, { x: last.x, y: last.y }, { x: first.x, y: last.y }];
+  }
+
+  private changeSelectedInk(update: (stroke: InkStroke) => InkStroke): void {
+    if (!this.selectedStrokes().length) return;
+    this.pushUndoSnapshot();
+    this.data.strokes = this.data.strokes.map((stroke) => this.selectedStrokeIds.has(stroke.id) ? update(stroke) : stroke);
+    this.renderAll(); this.scheduleSave(); this.syncControls();
+  }
+
+  private recolorSelection(): void {
+    const first = this.selectedStrokes()[0]; if (!first) return;
+    this.closePenMenu();
+    const document = this.target.containerEl.ownerDocument;
+    this.colorPickerEl = createColorPicker(document, {
+      tool: first.tool, current: resolveColor(document, first.color), defaultColor: this.getToolDefault(first.tool), recent: this.toolState.toolColors.recent(first.tool),
+      onConfirm: (color) => {
+        this.changeSelectedInk((stroke) => ({ ...stroke, color: color ?? this.getToolDefault(stroke.tool) }));
+        this.closeColorPalette(); this.controlsEl?.querySelector<HTMLElement>('[data-action="lasso"]')?.focus();
+      },
+      onCancel: () => { this.closeColorPalette(); this.controlsEl?.querySelector<HTMLElement>('[data-action="lasso"]')?.focus(); },
+    });
+    document.body.append(this.colorPickerEl); this.colorPickerEl.querySelector<HTMLElement>("button")?.focus();
   }
 
   private selectedStrokes(): InkStroke[] {
@@ -1033,50 +1079,27 @@ export class CanvasInkLayer {
       this.syncControls();
       return;
     }
-    if (!this.controlsEl || (this.activeTool !== "pen" && this.activeTool !== "highlighter")) return;
+    if (!this.controlsEl || (this.toolState.activeTool !== "pen" && this.toolState.activeTool !== "highlighter")) return;
     const colorButton = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
     if (!colorButton) return;
-    const tool = this.activeTool;
+    const tool = this.toolState.activeTool;
     const document = this.target.containerEl.ownerDocument;
-    const palette = document.createElement("div");
-    palette.className = "canvas-scribe-color-palette";
-    palette.setAttribute("role", "toolbar");
-    palette.setAttribute("aria-label", `${tool} colors`);
-    for (const color of paletteColors(tool, this.getToolColor(tool))) {
-      const swatch = document.createElement("button");
-      swatch.type = "button";
-      swatch.className = "canvas-scribe-color-swatch";
-      swatch.setAttribute("aria-label", `Use ${color} for ${tool}`);
-      swatch.setAttribute("aria-pressed", String(color.toLowerCase() === this.getToolColor(tool).toLowerCase()));
-      const preview = document.createElement("span");
-      preview.className = "canvas-scribe-color-swatch-preview";
-      preview.style.backgroundColor = color;
-      swatch.appendChild(preview);
-      swatch.addEventListener("pointerdown", (event) => {
-        this.consume(event);
-        this.toolColors.confirm(tool, resolveColor(document, color));
-        palette.querySelectorAll<HTMLElement>(".canvas-scribe-color-swatch").forEach((item) => {
-          item.setAttribute("aria-pressed", String(item === swatch));
-        });
-        swatch.classList.add("is-selected");
-        this.logger.record("canvas", "color_selected", { tool, color });
-        this.syncControls();
-        this.closeColorPalette(true);
-      });
-      palette.appendChild(swatch);
-    }
-    const more = document.createElement("button");
-    more.type = "button";
-    more.textContent = "More colors…";
-    more.addEventListener("click", () => {
+    const palette = createQuickColors(document, {
+      tool, current: this.getToolColor(tool), defaultColor: this.getToolDefault(tool),
+      isDefault: this.toolState.toolColors.selection(tool) === null, recent: this.toolState.toolColors.recent(tool),
+      onSelect: (color) => {
+        this.toolState.toolColors.confirm(tool, color); this.closeColorPalette(); this.syncControls(); colorButton.focus();
+      },
+      onClose: () => { this.closeColorPalette(); this.syncControls(); colorButton.focus(); },
+      onMore: () => {
       this.closeColorPalette();
       this.colorPickerEl = createColorPicker(document, {
         tool,
         current: resolveColor(document, this.getToolColor(tool)),
         defaultColor: resolveColor(document, this.getToolDefault(tool)),
-        recent: this.toolColors.recent(tool),
+        recent: this.toolState.toolColors.recent(tool),
         onConfirm: (color) => {
-          this.toolColors.confirm(tool, color);
+          this.toolState.toolColors.confirm(tool, color);
           this.closeColorPalette();
           this.syncControls();
           colorButton.focus();
@@ -1086,8 +1109,8 @@ export class CanvasInkLayer {
       document.body.append(this.colorPickerEl);
       this.colorPickerEl.querySelector<HTMLElement>("button")?.focus();
       this.syncControls();
+      },
     });
-    palette.append(more);
     document.body.appendChild(palette);
     const viewport = document.defaultView;
     const position = positionPopup(
@@ -1104,24 +1127,49 @@ export class CanvasInkLayer {
 
   private togglePenMenu(): void {
     if (this.penMenuEl) { this.closePenMenu(true); return; }
-    const anchor = this.controlsEl?.querySelector<HTMLElement>('[data-action="pen"]');
+    const anchor = this.controlsEl?.querySelector<HTMLElement>(`[data-action="${this.toolState.activeTool}"]`);
     if (!anchor) return;
     this.closeColorPalette();
     const document = anchor.ownerDocument;
     const remember = () => {
-      this.data.penSettings = { type: this.penType, size: this.penSize };
+      this.data.penSettings = { type: this.toolState.penType, size: this.toolState.penSize };
       this.syncControls();
       this.scheduleSave();
     };
-    const menu = createPenMenu(document, {
+    const rememberHighlighter = () => {
+      this.data.highlighterSettings = { type: this.toolState.highlighterType, size: this.toolState.highlighterSize, opacity: this.toolState.highlighterOpacity };
+      this.syncControls(); this.scheduleSave();
+    };
+    const menu = this.toolState.activeTool === "lasso" ? createSelectionMenu(document, {
+      settings: this.toolState.selectionSettings, count: this.selectedStrokes().length,
+      onChange: (settings) => { this.toolState.selectionSettings = settings; }, onRecolor: () => this.recolorSelection(),
+      onScale: (scale) => {
+        const bounds = boundsForStrokes(this.selectedStrokes()); if (!bounds || scale === 1) return;
+        const cx = (bounds.minX + bounds.maxX) / 2, cy = (bounds.minY + bounds.maxY) / 2;
+        this.changeSelectedInk((stroke) => transformInk(stroke, (x, y) => [cx + (x - cx) * scale, cy + (y - cy) * scale], scale));
+      }, onClose: () => this.closePenMenu(true),
+    }) : this.toolState.activeTool === "eraser" ? createEraserMenu(document, {
+      settings: this.toolState.eraserSettings, onChange: (settings) => { this.toolState.eraserSettings = settings; this.hideEraserCursor(); },
+      canClear: this.data.strokes.length > 0,
+      onClear: () => { this.pushUndoSnapshot(); this.data.strokes = []; this.clearSelection(); this.renderAll(); this.scheduleSave(); this.syncControls(); },
+      onClose: () => this.closePenMenu(true),
+    }) : this.toolState.activeTool === "highlighter" ? createHighlighterMenu(document, {
+      renderIcon: setIcon, type: this.toolState.highlighterType, size: this.toolState.highlighterSize,
+      opacity: this.toolState.highlighterOpacity, color: this.getToolColor("highlighter"),
+      onType: (value) => { this.toolState.highlighterType = value; rememberHighlighter(); },
+      onSize: (value) => { this.toolState.highlighterSize = value; rememberHighlighter(); },
+      onOpacity: (value) => { this.toolState.highlighterOpacity = value; rememberHighlighter(); },
+      onColors: () => this.toggleColorPalette(), onClose: () => this.closePenMenu(true),
+    }) : createPenMenu(document, {
       renderIcon: setIcon,
-      type: this.penType, size: this.penSize, color: this.getToolColor("pen"),
-      onType: (type) => { this.penType = type; this.penOpacity = null; remember(); },
-      onSize: (size) => { this.penSize = size; remember(); },
+      type: this.toolState.penType, size: this.toolState.penSize, color: this.getToolColor("pen"),
+      onType: (type) => { this.toolState.penType = type; this.toolState.penOpacity = null; remember(); },
+      onSize: (size) => { this.toolState.penSize = size; remember(); },
       onClose: () => this.closePenMenu(true),
     });
     document.body.append(menu);
     this.penMenuEl = menu;
+    this.menuAnchor = anchor;
     anchor.setAttribute("aria-expanded", "true");
     anchor.setAttribute("aria-haspopup", "dialog");
     const position = () => {
@@ -1150,7 +1198,8 @@ export class CanvasInkLayer {
     this.penMenuDispose = null;
     this.penMenuEl?.remove();
     this.penMenuEl = null;
-    const anchor = this.controlsEl?.querySelector<HTMLElement>('[data-action="pen"]');
+    const anchor = this.menuAnchor;
+    this.menuAnchor = null;
     anchor?.setAttribute("aria-expanded", "false");
     if (focus) anchor?.focus();
   }
@@ -1198,7 +1247,7 @@ export class CanvasInkLayer {
 }
 
 function isControlTarget(target: EventTarget | null): boolean {
-  return Boolean(asElement(target)?.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu, .canvas-scribe-picker-backdrop, .canvas-scribe-pen-menu, .canvas-scribe-color-palette"));
+  return Boolean(asElement(target)?.closest(".canvas-controls, .canvas-menu, .canvas-card-menu, .canvas-scribe-radial-menu, .canvas-scribe-picker-backdrop, .canvas-scribe-pen-menu, .canvas-scribe-tool-menu, .canvas-scribe-color-palette"));
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {

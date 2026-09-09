@@ -44,19 +44,24 @@ describe("pen rendering", () => {
       expect(strokeToSvgPath(stroke)).toBe(expected);
     }
   });
-  it("round trips types and settings while unknown and absent types use legacy ink", async () => {
+  it("round trips known types, preserves absent legacy types, and rejects future types", async () => {
     let raw = "{}";
     const app = { vault: {
       read: async () => raw,
       process: async (_: unknown, update: (value: string) => string) => { raw = update(raw); },
     } } as unknown as App;
     const file = {} as TFile;
-    const strokes = PEN_TYPES.map(type => ({ ...penPreviewStroke(type, 8, "#333333"), createdAt: 1 }));
+    const strokes = PEN_TYPES.map(type => ({ ...penPreviewStroke(type, 8, "#333333"), id: type, createdAt: 1 }));
     await saveInkData(app, file, { version: 1, strokes, penSettings: { type: "pencil", size: 7 } });
     expect(await loadInkData(app, file)).toEqual({ version: 1, strokes, penSettings: { type: "pencil", size: 7 } });
     raw = JSON.stringify({ canvasScribe: { version: 1, strokes: [{ ...strokes[0], penType: "future" }, { ...strokes[0], penType: undefined }] } });
+    const unsupported = raw;
+    await expect(loadInkData(app, file)).rejects.toThrow("unsupported ink tool");
+    await expect(saveInkData(app, file, { version: 1, strokes: [] })).rejects.toThrow("unsupported ink tool");
+    expect(raw).toBe(unsupported);
+    raw = JSON.stringify({ canvasScribe: { version: 1, strokes: [{ ...strokes[0], penType: undefined }] } });
     const loaded = await loadInkData(app, file);
-    expect(loaded.strokes.every(stroke => stroke.penType === undefined)).toBe(true);
-    expect(strokeToSvgPath(loaded.strokes[0]!)).toBe(strokeToSvgPath(loaded.strokes[1]!));
+    expect(loaded.strokes[0]!.penType).toBeUndefined();
+    expect(strokeToSvgPath(loaded.strokes[0]!)).toBe(strokeToSvgPath({ ...strokes[0]!, penType: undefined }));
   });
 });
