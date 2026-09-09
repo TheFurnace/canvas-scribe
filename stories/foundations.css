@@ -1,0 +1,17 @@
+/* Fixture layout only: production control appearance comes from styles.css. */
+.scribe-foundations {
+  position: absolute; inset: 0; overflow: auto; padding: 24px;
+  background: var(--background-primary); color: var(--text-normal);
+  font-family: var(--font-interface); font-size: var(--font-ui-small);
+}
+.scribe-foundations h1 { font-size: var(--font-ui-large); }
+.scribe-foundations h2 { font-size: var(--font-ui-medium); }
+.scribe-foundations p { max-width: 76ch; }
+.scribe-foundations-grid { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 352px); gap: 24px; }
+.canvas-wrapper .scribe-foundations .scribe-foundations-controls { position: static; width: fit-content; }
+.scribe-foundations .canvas-scribe-pen-menu { position: static; width: 100%; max-height: none; margin-top: 12px; }
+.scribe-foundations-tokens { display: flex; flex-wrap: wrap; gap: 16px; margin-block: 24px; }
+.scribe-foundations-tokens > div { display: flex; align-items: center; gap: 8px; }
+.scribe-foundations-tokens span { display: inline-block; width: 28px; height: 28px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); }
+.canvas-scribe-obsidian-host[data-platform="mobile"]:has(.scribe-foundations) { width: 100%; }
+@media (max-width: 620px) { .scribe-foundations-grid { grid-template-columns: minmax(0, 1fr); } .scribe-foundations { padding: 16px; } }
