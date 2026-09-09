@@ -2,49 +2,49 @@
 export const TOOL_ARTWORK = {
   ballpoint: {
     label: "Ballpoint", color: true,
-    shape: "M9 21V12L12 3L15 12V21Z",
+    shape: "M9 22.5V12L12 3L15 12V22.5Z",
     tip: "M11 6L12 3L13 6Z",
     detail: "M9 12H15",
   },
   fountain: {
     label: "Fountain", color: true,
-    shape: "M8 21V16L6 12L12 3L18 12L16 16V21Z",
+    shape: "M8 22.5V16L6 12L12 3L18 12L16 16V22.5Z",
     tip: "",
     detail: "M8 16H16M12 3V10M12 10A1.5 1.5 0 1 0 12 13A1.5 1.5 0 1 0 12 10",
   },
   brush: {
     label: "Brush", color: true,
-    shape: "M9 21L9.5 14C4 11 12 7 14 3C17 8 17 12 14.5 14L15 21Z",
+    shape: "M9 22.5L9.5 14C4 11 12 7 14 3C17 8 17 12 14.5 14L15 22.5Z",
     tip: "",
     detail: "M9.5 14H14.5M10 11Q12 10 13 7",
   },
   pencil: {
     label: "Pencil", color: true,
-    shape: "M7.5 21V11L12 3L16.5 11V21Z",
+    shape: "M7.5 22.5V11L12 3L16.5 11V22.5Z",
     tip: "M10.4 6L12 3L13.6 6Z",
-    detail: "M7.5 11L10 12L12 10.5L14 12L16.5 11M12 13V21",
+    detail: "M7.5 11L10 12L12 10.5L14 12L16.5 11M12 13V22.5",
   },
   "highlighter-chisel": {
     label: "Chisel highlighter", color: true,
-    shape: "M6 21V14L8 11V7L16 3V11L18 14V21Z",
+    shape: "M6 22.5V14L8 11V7L16 3V11L18 14V22.5Z",
     tip: "",
     detail: "M8 11H16M6 15H18",
   },
   "highlighter-round": {
     label: "Round highlighter", color: true,
-    shape: "M6 21V14L8 11V7A4 4 0 0 1 16 7V11L18 14V21Z",
+    shape: "M6 22.5V14L8 11V7A4 4 0 0 1 16 7V11L18 14V22.5Z",
     tip: "",
     detail: "M8 11H16M6 15H18",
   },
   "eraser-stroke": {
     label: "Stroke eraser", color: false,
-    shape: "M6 21V7L10 3H18V21Z",
+    shape: "M6 22.5V7L10 3H18V22.5Z",
     tip: "",
     detail: "M6 12H18M9 17H15",
   },
   "eraser-area": {
     label: "Area eraser", color: false,
-    shape: "M9 21V8A3 3 0 0 1 15 8V21Z",
+    shape: "M9 22.5V8A3 3 0 0 1 15 8V22.5Z",
     tip: "",
     detail: "M9 13H15M3 8V5H5M19 5H21V8M3 12V15H5M19 15H21V12",
   },
@@ -67,6 +67,15 @@ export const TOOL_ARTWORK = {
   },
 } as const;
 
+const TOOL_BODIES: Partial<Record<keyof typeof TOOL_ARTWORK, string>> = {
+  ballpoint: "M9.8 12.8H14.2V21.7H9.8Z",
+  fountain: "M8.8 16.8H15.2V21.7H8.8Z",
+  brush: "M10.2 14.8H13.8L14.1 21.7H9.9Z",
+  pencil: "M8.3 12.3L10 12.8L12 11.5L14 12.8L15.7 12.3V21.7H8.3Z",
+  "highlighter-chisel": "M6.8 15.8H17.2V21.7H6.8Z",
+  "highlighter-round": "M6.8 15.8H17.2V21.7H6.8Z",
+};
+
 export type ToolIcon = keyof typeof TOOL_ARTWORK;
 export type ToolIconStyle = "silhouette" | "tip";
 
@@ -80,10 +89,12 @@ export function toolIconSvg(tool: ToolIcon, style: ToolIconStyle = "silhouette")
   const illustrated = style === "tip";
   // One clean outer contour; no stroked cutouts or stacked strokes to close up small gaps.
   const shading = illustrated && art.shape ? `<path fill="currentColor" opacity=".06" stroke="none" d="${art.shape}"/>` : "";
+  const body = TOOL_BODIES[tool] ? `<path fill="var(--canvas-scribe-tool-color, currentColor)" stroke="none" d="${TOOL_BODIES[tool]}"/>` : "";
   const outline = art.shape ? `<path fill="none" stroke="currentColor" stroke-width="1.6" d="${art.shape}"/>` : "";
   const tip = art.tip ? `<path fill="currentColor" stroke="none" d="${art.tip}"/>` : "";
-  const detail = art.detail ? `<path fill="none" stroke="currentColor" stroke-width="1.6" d="${art.detail}"/>` : "";
-  return `<g transform="scale(4.1666666667)" stroke-linecap="round" stroke-linejoin="round">${shading}${outline}${tip}${detail}</g>`;
+  const textBorder = tool === "text" ? `<path fill="none" stroke="currentColor" stroke-width="3.2" d="${art.detail}"/>` : "";
+  const detail = art.detail ? `<path fill="none" stroke="currentColor" stroke-width="1.6" style="stroke: ${tool === "text" ? "var(--canvas-scribe-tool-color, currentColor)" : "currentColor"}" d="${art.detail}"/>` : "";
+  return `<g transform="scale(4.1666666667)" stroke-linecap="round" stroke-linejoin="round">${shading}${body}${outline}${tip}${textBorder}${detail}</g>`;
 }
 
 /** Inject Obsidian addIcon in production; Storybook registers these same SVG bodies. */

@@ -37,6 +37,8 @@ describe("registered tool artwork integration", () => {
     const button = createToolIconButton(document, () => undefined, { tool: "fountain", color: "#ffffff", selected: true, disabled: true, onSelect: select });
     expect(button.getAttribute("aria-label")).toBe("Fountain · #ffffff");
     expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(button.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("#ffffff");
+    expect(button.querySelector(".canvas-scribe-tool-color")).toBeNull();
     expect(button.querySelector('.canvas-scribe-tool-icon')?.getAttribute("aria-hidden")).toBe("true");
     button.click(); expect(select).not.toHaveBeenCalled();
     const eraser = createToolIconButton(document, () => undefined, { tool: "eraser-area", color: "#ffffff" });

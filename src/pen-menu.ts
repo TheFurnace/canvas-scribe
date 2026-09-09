@@ -3,7 +3,7 @@ import { clampPenSize, PEN_PROFILES, PEN_TYPES, type PenType } from "./pen-types
 import type { InkStroke } from "./types";
 import { toolIconId } from "./tool-icons";
 import type { IconRenderer } from "./canvas-controls";
-import { createToolColor } from "./tool-indicator";
+
 
 export function penPreviewStroke(type: PenType, size: number, color: string, tilt = false): InkStroke {
   return {
@@ -110,7 +110,7 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
       const tip = document.createElement("span");
       tip.className = "canvas-scribe-illustrated-tip";
       options.renderIcon(tip, toolIconId(value, "tip"));
-      tip.append(createToolColor(document, options.color));
+      tip.style.setProperty("--canvas-scribe-tool-color", options.color);
       artwork.append(tip, createPenPreview(document, value, size, options.color));
       node.replaceChildren(artwork, name);
     });

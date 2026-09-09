@@ -1,7 +1,7 @@
 import type { DrawingTool } from "./types";
 import type { PenType } from "./pen-types";
 import { toolIconId } from "./tool-icons";
-import { createToolColor, PEN_ICONS, toolDescription } from "./tool-indicator";
+import { PEN_ICONS, toolDescription } from "./tool-indicator";
 
 const renderers = new WeakMap<HTMLElement, IconRenderer>();
 
@@ -74,7 +74,7 @@ export function createCanvasControls(
     renderIcon(icon, control.icon);
     button.append(icon);
     if (control.action === "pen" || control.action === "highlighter") {
-      button.append(createToolColor(document));
+      button.style.setProperty("--canvas-scribe-tool-color", "var(--text-normal)");
     }
 
     const activate = (event: Event) => {

@@ -16,8 +16,8 @@ function gallery() {
     const node = document.createElement(tag); node.textContent = value; parent.append(node); return node;
   };
   text("p", "CANVAS SCRIBE / TOOL FAMILY", root).className = "scribe-icon-eyebrow";
-  text("h1", "A tip for every tool");
-  text("p", "Open upright tool icons at 24 px. Matching expanded tips at 48 px. Select a sample to inspect its state; Tab through to inspect focus.");
+  text("h1", "Color in the barrel");
+  text("p", "Experiment: ink-colored, longer barrels at 24 px and expanded tips at 48 px. Select a sample to inspect its state; Tab through to inspect focus.");
   const grid = document.createElement("div"); grid.className = "scribe-icon-grid"; root.append(grid);
   const status = document.createElement("p"); status.setAttribute("aria-live", "polite");
   status.textContent = "Artwork review · planned variants are samples, not drawing controls.";
@@ -49,7 +49,7 @@ function gallery() {
     text("span", label, sample); stateRow.append(sample);
   }
   states.append(stateRow); root.append(states);
-  text("p", "Selection adds a check and inset border. Ink stays in the separate bordered swatch. Desktop targets are 36 px; tablet targets are 44 px.", states);
+  text("p", "Selection adds a check and inset border. Ink fills the barrel; the open tip preserves tool identity. Desktop targets are 36 px; tablet targets are 44 px.", states);
   const context = document.createElement("section"); context.className = "scribe-icon-context";
   const toolbarPanel = document.createElement("div"); text("h2", "In the toolbar", toolbarPanel);
   const slot = document.createElement("div"); slot.className = "canvas-controls scribe-icon-toolbar";

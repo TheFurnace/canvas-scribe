@@ -1,5 +1,5 @@
 import type { IconRenderer } from "./canvas-controls";
-import { createToolColor } from "./tool-indicator";
+
 import { TOOL_ARTWORK, toolIconId, type ToolIcon, type ToolIconStyle } from "./tool-icons";
 
 /** Shared artwork/state specimen, also available to future shared controls (FER-51). */
@@ -20,7 +20,7 @@ export function createToolIconButton(document: Document, renderIcon: IconRendere
   artwork.setAttribute("aria-hidden", "true");
   renderIcon(artwork, toolIconId(options.tool, options.style));
   button.append(artwork);
-  if (options.color && TOOL_ARTWORK[options.tool].color) button.append(createToolColor(document, options.color));
+  if (options.color && TOOL_ARTWORK[options.tool].color) button.style.setProperty("--canvas-scribe-tool-color", options.color);
   button.addEventListener("click", () => options.onSelect?.());
   return button;
 }

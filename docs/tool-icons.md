@@ -1,5 +1,9 @@
 # Tool icon family
 
+## Colored-body experiment
+
+This branch explores the user-requested alternative to the approved swatch treatment in PR #15. Pen and highlighter barrels extend from y=21 to y=22.5 and contain the ink color, while tips remain open and neutral. The extra 1.5 units use the space freed by the removed swatch. Text uses a colored T with a neutral outline; erasers and selection remain neutral. Color is inherited through --canvas-scribe-tool-color and accessible names retain the ink value. Palette actions retain their existing indicator because they have no tool barrel. The approved baseline below remains the comparison reference until this experiment is reviewed.
+
 FER-49 introduces original upright tool artwork. Visual approval and Galaxy Tab/S Pen validation remain pending. The agreed direction is upright silhouettes in compact controls and matching illustrated tips in settings.
 
 ## Inventory and meaning
