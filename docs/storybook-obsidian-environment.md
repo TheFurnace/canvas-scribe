@@ -64,4 +64,4 @@ Prefer a renderer exported from `src/` over recreating production HTML in a stor
 - The environment reproduces the host CSS and the relevant Canvas DOM contract, but it does not execute Obsidian's proprietary Canvas JavaScript.
 - Canvas DOM is not a public API. When Obsidian changes its required structure, update the single `stories/obsidian-environment.ts` adapter rather than every story.
 - The committed fallback is for typechecking and CI availability, not visual approval. Do visual review with a local Obsidian stylesheet present.
-- Icons in stories use small local SVG fixtures because the npm `obsidian` package exposes types, not the desktop runtime. Production still uses Obsidian's `setIcon`; the story renderer applies the same `.svg-icon` contract.
+- Tool icons register the original SVG bodies from `src/tool-icons.ts` in both environments. Production uses Obsidian `addIcon`/`setIcon`; Storybook's adapter reproduces the 100-unit custom-icon viewport and `.svg-icon` contract because the npm package exposes types, not the desktop runtime. Unrelated host action icons retain small local SVG fixtures. See [Tool icon family](tool-icons.md).

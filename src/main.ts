@@ -1,4 +1,5 @@
-import { Notice, Plugin } from "obsidian";
+import { addIcon, Notice, Plugin } from "obsidian";
+import { registerToolIcons } from "./tool-icons";
 
 import { FavoritePens } from "./favorite-pens";
 import { CanvasInkLayer } from "./canvas-ink-layer";
@@ -17,6 +18,7 @@ export default class CanvasScribePlugin extends Plugin {
   private syncFrame: number | null = null;
 
   async onload(): Promise<void> {
+    registerToolIcons(addIcon);
     const stored = await this.loadData();
     const settings = stored && typeof stored === "object" ? stored : {};
     this.favorites = new FavoritePens(settings.favoritePens, (favoritePens) => {

@@ -6,6 +6,7 @@ import type { RadialMenuAction } from "./radial-session";
 import type { DrawingTool, InkTool } from "./types";
 import type { PenType } from "./pen-types";
 import { PEN_ICONS, toolDescription } from "./tool-indicator";
+import { toolIconId } from "./tool-icons";
 
 export interface PenActionsOptions {
   document: Document;
@@ -29,7 +30,7 @@ export function createPenActions(options: PenActionsOptions): RadialMenuAction[]
     ...(["pen", "highlighter", "eraser"] as const).map((value) => ({
       id: value, label: value === "eraser" ? "Eraser" : toolDescription(value, penType,
         colors.current(value, value === "pen" ? "var(--text-normal)" : defaultColor(value))),
-      icon: value === "pen" ? PEN_ICONS[penType] : value,
+      icon: value === "pen" ? PEN_ICONS[penType] : toolIconId(value === "eraser" ? "eraser-stroke" : "highlighter-round"),
       inkColor: value === "eraser" ? undefined : colors.current(value, value === "pen" ? "var(--text-normal)" : defaultColor(value)),
       active: tool === value, run: () => options.selectTool(value),
     })),

@@ -1,0 +1,17 @@
+/* Review layout only; artwork, buttons and menus use production sources. */
+.scribe-icon-review { position: absolute; inset: 0; overflow: auto; padding: 28px; background: var(--background-primary); color: var(--text-normal); font-family: var(--font-interface); }
+.scribe-icon-review h1 { font-size: 28px; margin: 8px 0 12px; }
+.scribe-icon-review h2 { font-size: 14px; margin: 0 0 16px; }
+.scribe-icon-review p { max-width: 80ch; font-size: 13px; color: var(--text-muted); }
+.scribe-icon-eyebrow { letter-spacing: .12em; font-size: 11px !important; }
+.scribe-icon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 12px; margin: 28px 0 16px; }
+.scribe-icon-card { border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); padding: 16px 12px; background: var(--background-secondary); }
+.scribe-icon-samples { display: flex; align-items: center; justify-content: space-around; gap: 8px; }
+.scribe-icon-states { display: flex; flex-wrap: wrap; gap: 24px; }
+.scribe-icon-states > div { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.scribe-icon-context { display: grid; grid-template-columns: 160px minmax(0, 360px); gap: 28px; margin-top: 28px; }
+.canvas-wrapper .scribe-icon-toolbar { position: static; width: fit-content; }
+.scribe-icon-context .canvas-scribe-pen-menu { position: static; width: 100%; max-height: none; }
+.scribe-icon-review [hidden] { display: none !important; }
+.canvas-scribe-obsidian-host[data-platform="mobile"]:has(.scribe-icon-review) { width: 100%; }
+@media (max-width: 560px) { .scribe-icon-review { padding: 16px; } .scribe-icon-context { grid-template-columns: 80px minmax(0, 1fr); gap: 12px; } }

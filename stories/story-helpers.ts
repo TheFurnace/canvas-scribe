@@ -1,3 +1,8 @@
+import { registerToolIcons } from "../src/tool-icons";
+
+const registeredIcons = new Map<string, string>();
+registerToolIcons((id, svg) => registeredIcons.set(id, svg));
+
 export type IconName =
   | "star" | "ellipsis" | "settings-2" | "arrow-left" | "rotate-ccw"
   | "pen"
@@ -52,6 +57,19 @@ export function icon(name: IconName): SVGSVGElement {
 }
 
 export function renderStoryIcon(container: HTMLElement, name: string): void {
+  const artwork = registeredIcons.get(name);
+  if (artwork) {
+    const svg = container.ownerDocument.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("svg-icon");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("width", "24");
+    svg.setAttribute("height", "24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    svg.innerHTML = artwork;
+    container.replaceChildren(svg);
+    return;
+  }
   if (!(name in ICON_PATHS)) throw new Error(`Missing Storybook icon fixture: ${name}`);
   container.append(icon(name as IconName));
 }
