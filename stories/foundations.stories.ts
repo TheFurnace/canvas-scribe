@@ -14,7 +14,7 @@ function foundations() {
   const heading = document.createElement("h1");
   heading.textContent = "Foundations · FER-46 draft";
   const intro = document.createElement("p");
-  intro.textContent = "Current production components for review. The approved direction is silhouettes in compact controls and illustrated tips in expanded settings. Final artwork and three-page radial navigation are pending FER-49/51.";
+  intro.textContent = "Current production components for review. Upright silhouettes and illustrated tips use the shared FER-49 artwork source; see Tool Icons for the full family and state review. Three-page radial navigation remains FER-51 work.";
   root.append(heading, intro);
   const tokens = document.createElement("div");
   tokens.className = "scribe-foundations-tokens";
@@ -35,7 +35,7 @@ function foundations() {
   grid.className = "scribe-foundations-grid";
   const controlsPanel = document.createElement("section");
   const title = document.createElement("h2");
-  title.textContent = "Toolbar · current icons";
+  title.textContent = "Toolbar · shared tool icons";
   controlsPanel.append(title);
   const slot = document.createElement("div");
   slot.className = "canvas-controls scribe-foundations-controls";
@@ -87,6 +87,7 @@ function foundations() {
   }
   function showMenu() {
     menuSlot.replaceChildren(createPenMenu(document, {
+      renderIcon: renderStoryIcon,
       type, size, color,
       onType: (value) => { type = value; sync(); },
       onSize: (value) => { size = value; sync(); },

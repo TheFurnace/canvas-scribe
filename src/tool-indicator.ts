@@ -1,8 +1,10 @@
 import { PEN_PROFILES, type PenType } from "./pen-types";
 import type { InkTool } from "./types";
+import { toolIconId } from "./tool-icons";
 
 export const PEN_ICONS: Record<PenType, string> = {
-  ballpoint: "pen", fountain: "pen-tool", brush: "brush", pencil: "pencil",
+  ballpoint: toolIconId("ballpoint"), fountain: toolIconId("fountain"),
+  brush: toolIconId("brush"), pencil: toolIconId("pencil"),
 };
 
 export function toolDescription(tool: InkTool, type: PenType, color: string, size?: number, opacity?: number): string {

@@ -1,6 +1,9 @@
 import { strokeToSvgPath } from "./geometry";
 import { clampPenSize, PEN_PROFILES, PEN_TYPES, type PenType } from "./pen-types";
 import type { InkStroke } from "./types";
+import { toolIconId } from "./tool-icons";
+import type { IconRenderer } from "./canvas-controls";
+
 
 export function penPreviewStroke(type: PenType, size: number, color: string, tilt = false): InkStroke {
   return {
@@ -28,6 +31,7 @@ export function createPenPreview(document: Document, type: PenType, size: number
 }
 
 export interface PenMenuOptions {
+  renderIcon: IconRenderer;
   type: PenType;
   size: number;
   color: string;
@@ -100,7 +104,15 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
       node.setAttribute("aria-pressed", String(type === value));
       const name = document.createElement("span");
       name.textContent = PEN_PROFILES[value].label;
-      node.replaceChildren(createPenPreview(document, value, size, options.color), name);
+      const artwork = document.createElement("span");
+      artwork.className = "canvas-scribe-pen-artwork";
+      artwork.setAttribute("aria-hidden", "true");
+      const tip = document.createElement("span");
+      tip.className = "canvas-scribe-illustrated-tip";
+      options.renderIcon(tip, toolIconId(value, "tip"));
+      tip.style.setProperty("--canvas-scribe-tool-color", options.color);
+      artwork.append(tip, createPenPreview(document, value, size, options.color));
+      node.replaceChildren(artwork, name);
     });
     output.value = String(size);
     slider.value = String(size);

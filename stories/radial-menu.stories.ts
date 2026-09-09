@@ -35,6 +35,7 @@ const meta: Meta<Args> = {
           if (penMenu) closePenMenu();
           else {
             penMenu = createPenMenu(document, {
+              renderIcon: renderStoryIcon,
               type: presets.pen.penType, size: presets.pen.size, color: colors.current("pen", "var(--text-normal)"),
               onType: (type) => { presets.pen.penType = type; presets.pen.opacity = PEN_PROFILES[type].opacity; update(); },
               onSize: (size) => { presets.pen.size = size; update(); }, onClose: closePenMenu,

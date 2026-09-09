@@ -5,6 +5,44 @@
   pointer-events: none;
 }
 
+.canvas-scribe-icon-button {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; min-width: 36px; height: 36px; padding: 4px;
+  color: var(--text-normal); background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s);
+  box-shadow: none;
+}
+.canvas-scribe-icon-button .svg-icon { width: 24px; height: 24px; }
+.canvas-scribe-icon-button[data-artwork="tip"] { width: 64px; height: 64px; }
+.canvas-scribe-icon-button[data-artwork="tip"] .svg-icon { width: 48px; height: 48px; }
+.is-mobile .canvas-scribe-icon-button { min-width: 44px; min-height: 44px; }
+.canvas-scribe-icon-button:hover { background: var(--background-modifier-hover); }
+.canvas-scribe-icon-button[aria-pressed="true"] {
+  color: var(--text-on-accent); background: var(--interactive-accent);
+  border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor;
+}
+.canvas-scribe-icon-button:disabled { opacity: .4; cursor: default; }
+.canvas-scribe-icon-button:focus-visible,
+.canvas-scribe-control-item:focus-visible,
+.canvas-scribe-pen-types button:focus-visible {
+  outline: 2px solid var(--interactive-accent); outline-offset: 3px;
+}
+.canvas-scribe-icon-button[aria-pressed="true"]::after,
+.canvas-scribe-controls [data-action]:not([data-action="color"]).is-active::before,
+.canvas-scribe-radial-action.is-active::after {
+  content: ""; position: absolute; right: 3px; top: 3px; width: 5px; height: 3px;
+  border-left: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); pointer-events: none;
+}
+.canvas-scribe-controls [data-action] { position: relative; }
+.canvas-scribe-controls .canvas-scribe-tool-icon .svg-icon { width: 24px; height: 24px; }
+.canvas-scribe-pen-types .canvas-scribe-pen-artwork {
+  display: flex; align-items: center; justify-content: center; width: 100%; height: 48px; gap: 2px;
+}
+.canvas-scribe-pen-types .canvas-scribe-illustrated-tip { position: relative; display: flex; flex: 0 0 28px; }
+.canvas-scribe-pen-types .canvas-scribe-illustrated-tip .svg-icon { width: 28px; height: 42px; }
+.canvas-scribe-pen-types .canvas-scribe-pen-artwork > svg { width: calc(100% - 30px); height: 32px; }
+
 .canvas-scribe-controls :is([data-action="pen"], [data-action="highlighter"]) {
   position: relative;
 }

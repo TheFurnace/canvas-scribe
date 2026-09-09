@@ -1,6 +1,7 @@
 import type { DrawingTool } from "./types";
 import type { PenType } from "./pen-types";
-import { createToolColor, PEN_ICONS, toolDescription } from "./tool-indicator";
+import { toolIconId } from "./tool-icons";
+import { PEN_ICONS, toolDescription } from "./tool-indicator";
 
 const renderers = new WeakMap<HTMLElement, IconRenderer>();
 
@@ -43,10 +44,10 @@ export function createCanvasControls(
   actions: CanvasControlsActions,
 ): HTMLElement {
   const controls: readonly ControlDefinition[] = [
-    { action: "pen", icon: "pen-tool", label: "Pen", run: () => actions.setTool("pen") },
-    { action: "highlighter", icon: "highlighter", label: "Highlighter", run: () => actions.setTool("highlighter") },
-    { action: "eraser", icon: "eraser", label: "Eraser", run: () => actions.setTool("eraser") },
-    { action: "lasso", icon: "lasso-select", label: "Lasso ink", run: () => actions.setTool("lasso") },
+    { action: "pen", icon: PEN_ICONS.fountain, label: "Pen", run: () => actions.setTool("pen") },
+    { action: "highlighter", icon: toolIconId("highlighter-round"), label: "Highlighter", run: () => actions.setTool("highlighter") },
+    { action: "eraser", icon: toolIconId("eraser-stroke"), label: "Eraser", run: () => actions.setTool("eraser") },
+    { action: "lasso", icon: toolIconId("lasso"), label: "Lasso ink", run: () => actions.setTool("lasso") },
     { action: "color", icon: "palette", label: "Choose pen color", run: actions.toggleColorPalette },
     { action: "undo", icon: "undo-2", label: "Undo ink", run: actions.undo },
     { action: "redo", icon: "redo-2", label: "Redo ink", run: actions.redo },
@@ -55,6 +56,7 @@ export function createCanvasControls(
 
   const group = document.createElement("div");
   group.className = "canvas-control-group mod-raised canvas-scribe-controls";
+  group.setAttribute("role", "group");
   group.setAttribute("aria-label", "Canvas Scribe tools");
   renderers.set(group, renderIcon);
 
@@ -72,7 +74,7 @@ export function createCanvasControls(
     renderIcon(icon, control.icon);
     button.append(icon);
     if (control.action === "pen" || control.action === "highlighter") {
-      button.append(createToolColor(document));
+      button.style.setProperty("--canvas-scribe-tool-color", "var(--text-normal)");
     }
 
     const activate = (event: Event) => {

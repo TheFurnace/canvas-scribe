@@ -1114,6 +1114,7 @@ export class CanvasInkLayer {
       this.scheduleSave();
     };
     const menu = createPenMenu(document, {
+      renderIcon: setIcon,
       type: this.penType, size: this.penSize, color: this.getToolColor("pen"),
       onType: (type) => { this.penType = type; this.penOpacity = null; remember(); },
       onSize: (size) => { this.penSize = size; remember(); },
