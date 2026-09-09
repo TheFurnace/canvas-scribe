@@ -1,4 +1,6 @@
 import type { PenType } from "./pen-types";
+import type { HighlighterType } from "./highlighter-types";
+import type { MultiPolygon } from "polygon-clipping";
 
 export const CANVAS_INK_KEY = "canvasScribe" as const;
 export const CANVAS_INK_VERSION = 1 as const;
@@ -16,6 +18,9 @@ export interface InkPoint {
 }
 
 export interface InkStroke {
+  /** Frozen rendered geometry after an area cut; retains all original style metadata. */
+  outline?: MultiPolygon;
+  highlighterType?: HighlighterType;
   penType?: PenType;
   id: string;
   tool: InkTool;
@@ -28,8 +33,9 @@ export interface InkStroke {
 }
 
 export interface CanvasInkData {
+  highlighterSettings?: { type: HighlighterType; size: number; opacity: number };
   penSettings?: { type: PenType; size: number };
-  version: typeof CANVAS_INK_VERSION;
+  version: typeof CANVAS_INK_VERSION | 2;
   strokes: InkStroke[];
 }
 
@@ -50,6 +56,7 @@ export function createStrokeId(): string {
 export function cloneStrokes(strokes: readonly InkStroke[]): InkStroke[] {
   return strokes.map((stroke) => ({
     ...stroke,
+    ...(stroke.outline ? { outline: stroke.outline.map((polygon) => polygon.map((ring) => ring.map(([x, y]) => [x, y] as [number, number]))) } : {}),
     points: stroke.points.map((point) => ({ ...point })),
   }));
 }

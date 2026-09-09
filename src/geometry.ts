@@ -6,6 +6,8 @@ import type { InkStroke } from "./types";
 type Coordinate = readonly [number, number];
 
 export function strokeToSvgPath(stroke: InkStroke, complete = true): string {
+  if (stroke.outline) return stroke.outline.map((polygon) => polygon.map((ring) => `M ${ring.map(([x, y]) => `${x} ${y}`).join(" L ")} Z`).join(" ")).join(" ");
+  if (stroke.tool === "highlighter" && stroke.highlighterType) return highlighterPath(stroke);
   if (stroke.tool === "pen" && stroke.penType) return typedPenPath(stroke, complete);
   const outline = getStroke(
     stroke.points.map((point) => [point.x, point.y, point.pressure]),
@@ -22,6 +24,48 @@ export function strokeToSvgPath(stroke: InkStroke, complete = true): string {
   );
 
   return outlineToSvgPath(outline);
+}
+
+/** A single filled compound path composites once even where this stroke crosses itself. */
+function highlighterPath(stroke: InkStroke): string {
+  const points = stroke.points;
+  const radius = stroke.size / 2;
+  if (points.length === 0) return "";
+  const polygon = (vertices: readonly Coordinate[]) => `M ${vertices.map(([x, y]) => `${x.toFixed(3)} ${y.toFixed(3)}`).join(" L ")} Z`;
+  if (stroke.highlighterType === "chisel") {
+    // Sweep an upright rectangular nib along each segment. All polygons use the
+    // same winding, so nonzero fill unites overlaps before opacity is applied.
+    const corners = [[-radius * 0.3, -radius], [radius * 0.3, -radius], [radius * 0.3, radius], [-radius * 0.3, radius]] as const;
+    const hull = (vertices: Coordinate[]): Coordinate[] => {
+      vertices.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const cross = (o: Coordinate, a: Coordinate, b: Coordinate) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const half = (items: Coordinate[]) => {
+        const result: Coordinate[] = [];
+        for (const p of items) {
+          while (result.length > 1 && cross(result[result.length - 2]!, result[result.length - 1]!, p) <= 0) result.pop();
+          result.push(p);
+        }
+        result.pop(); return result;
+      };
+      return [...half(vertices), ...half([...vertices].reverse())];
+    };
+    return points.map((point, index) => {
+      const next = points[Math.min(index + 1, points.length - 1)]!;
+      return polygon(hull([point, next].flatMap((p) => corners.map(([x, y]) => [p.x + x, p.y + y] as Coordinate))));
+    }).join(" ");
+  }
+  const circle = (x: number, y: number) => `M ${x + radius} ${y} A ${radius} ${radius} 0 1 1 ${x - radius} ${y} A ${radius} ${radius} 0 1 1 ${x + radius} ${y} Z`;
+  return points.map((point, index) => {
+    const next = points[index + 1];
+    if (!next) return circle(point.x, point.y);
+    const dx = next.x - point.x, dy = next.y - point.y, length = Math.hypot(dx, dy);
+    if (!length) return circle(point.x, point.y);
+    const nx = -dy / length * radius, ny = dx / length * radius;
+    return `${circle(point.x, point.y)} ${polygon([
+      [point.x - nx, point.y - ny], [next.x - nx, next.y - ny],
+      [next.x + nx, next.y + ny], [point.x + nx, point.y + ny],
+    ])}`;
+  }).join(" ");
 }
 
 function typedPenPath(stroke: InkStroke, complete: boolean): string {

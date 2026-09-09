@@ -1,5 +1,6 @@
 import type { DrawingTool } from "./types";
 import type { PenType } from "./pen-types";
+import type { HighlighterType } from "./highlighter-types";
 import { toolIconId } from "./tool-icons";
 import { PEN_ICONS, toolDescription } from "./tool-indicator";
 
@@ -16,6 +17,7 @@ export interface CanvasControlsActions {
 }
 
 export interface CanvasControlsState {
+  highlighterType?: HighlighterType;
   activeTool: DrawingTool;
   activeColor?: string;
   penType?: PenType;
@@ -80,6 +82,7 @@ export function createCanvasControls(
     const activate = (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (button.getAttribute("aria-disabled") === "true") return;
       control.run();
     };
     button.addEventListener("pointerdown", activate);
@@ -105,6 +108,15 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
       tool === "pen" ? state.penOpacity : state.highlighterOpacity);
     button.setAttribute("aria-label", label);
     button.setAttribute("title", label);
+    if (tool === "highlighter") {
+      const tip = state.highlighterType ?? "round";
+      button.setAttribute("aria-label", `${tip === "round" ? "Round" : "Chisel"} ${label}`);
+      if (button.dataset.highlighterType !== tip) {
+        const icon = button.querySelector<HTMLElement>(".canvas-scribe-tool-icon");
+        if (icon) { icon.replaceChildren(); renderers.get(group)?.(icon, toolIconId(`highlighter-${tip}`)); }
+        button.dataset.highlighterType = tip;
+      }
+    }
     if (tool === "pen" && button.dataset.penType !== type) {
       const icon = button.querySelector<HTMLElement>(".canvas-scribe-tool-icon");
       if (icon) {

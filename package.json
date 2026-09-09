@@ -1,6 +1,6 @@
 {
   "name": "canvas-scribe",
-  "version": "1.0.0",
+  "version": "2.0.0-beta.1",
   "description": "Stylus-first handwriting directly on Obsidian Canvas.",
   "main": "main.js",
   "type": "module",
@@ -39,7 +39,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "perfect-freehand": "^1.2.2"
+    "perfect-freehand": "^1.2.2",
+    "polygon-clipping": "0.15.7"
   },
   "devDependencies": {
     "@electron/asar": "4.3.0",

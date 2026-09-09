@@ -1,8 +1,10 @@
 import { parseHex } from "./colors";
 import { isPenType, type PenType } from "./pen-types";
 import type { InkTool } from "./types";
+import { isHighlighterType, type HighlighterType } from "./highlighter-types";
 
 export interface FavoritePen {
+  highlighterType?: HighlighterType;
   id: string;
   name: string;
   tool: InkTool;
@@ -22,7 +24,8 @@ export function readFavorites(value: unknown): FavoritePen[] {
       && typeof item.name === "string" && item.name.trim().length > 0
       && (item.tool === "pen" || item.tool === "highlighter") && isPenType(item.penType)
       && (item.color === null || (typeof item.color === "string" && parseHex(item.color) !== null))
-      && Number.isFinite(item.size) && item.size >= 1 && item.size <= (item.tool === "pen" ? 20 : 40)
+      && (item.highlighterType === undefined || isHighlighterType(item.highlighterType))
+      && Number.isFinite(item.size) && item.size >= 1 && item.size <= (item.tool === "pen" ? 20 : 60)
       && Number.isFinite(item.opacity) && item.opacity > 0 && item.opacity <= 1;
     if (valid) ids.add(item.id);
     return valid;

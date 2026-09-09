@@ -1,6 +1,7 @@
 import { createPenPreview } from "./pen-menu";
 import { PEN_PROFILES, PEN_TYPES } from "./pen-types";
 import { FavoritePens, type FavoritePen, type PenPreset } from "./favorite-pens";
+import { strokeToSvgPath } from "./geometry";
 
 export function favoritePreview(document: Document, preset: PenPreset, defaultColor: string): Element {
   const color = preset.color ?? defaultColor;
@@ -8,8 +9,12 @@ export function favoritePreview(document: Document, preset: PenPreset, defaultCo
   if (preset.tool === "highlighter") {
     preview.replaceChildren();
     const line = document.createElementNS(preview.namespaceURI, "path");
-    line.setAttribute("d", "M12 28 L136 22"); line.setAttribute("stroke", color);
-    line.setAttribute("stroke-width", String(preset.size)); preview.append(line);
+    line.setAttribute("d", strokeToSvgPath({
+      id: "favorite-preview", tool: "highlighter", highlighterType: preset.highlighterType ?? "round",
+      color, size: preset.size, opacity: preset.opacity, hasPressure: false, createdAt: 0,
+      points: [{ x: 12, y: 28, pressure: 0.5, time: 0 }, { x: 136, y: 22, pressure: 0.5, time: 1 }],
+    }));
+    line.setAttribute("fill", color); preview.append(line);
   }
   preview.setAttribute("opacity", String(preset.opacity));
   preview.querySelector("path")?.removeAttribute("opacity");

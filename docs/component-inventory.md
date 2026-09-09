@@ -1,6 +1,6 @@
 # Canvas Scribe component inventory
 
-FER-46 draft · audited against main 7222be4 on 2026-09-08. “Current” describes code, not device validation. Desired rules are in [the style guide](style-guide.md).
+FER-46 historical baseline · audited against main 7222be4 on 2026-09-08. “Current” in the table below describes that baseline, not this branch or device validation. Desired rules are in [the style guide](style-guide.md). The FER-51 branch now implements the shared menus, original tool icons, three radial pages, circular thickness control, quick colors, highlighter settings, area eraser, and selection modes/transforms. See [shared UI adoption and remaining acceptance](shared-ui-tools.md) for the current implementation, measurements, and host/device gaps.
 
 | Area | Current production source | Current stories | Gap / next owner |
 | --- | --- | --- | --- |

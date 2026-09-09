@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 import { resolveColor, ToolColors } from "../src/colors";
 import { FavoritePens, type PenPreset } from "../src/favorite-pens";
-import { createPenActions } from "../src/pen-actions";
+import { createRadialPages } from "../src/radial-pages";
 import { RadialSession } from "../src/radial-session";
 import { renderStoryIcon } from "./story-helpers";
 import type { DrawingTool } from "../src/types";
@@ -22,6 +22,7 @@ const meta: Meta<Args> = {
     const status = document.createElement("p"); status.setAttribute("aria-live", "polite");
     host.append(launch, status);
     let tool = args.activeTool;
+    let eraserMode: "stroke" | "area" = "stroke";
     const presets: Record<"pen" | "highlighter", PenPreset> = {
       pen: { tool: "pen", penType: "fountain", size: 3.5, color: null, opacity: 1 },
       highlighter: { tool: "highlighter", penType: "fountain", size: 17, color: null, opacity: 0.38 },
@@ -77,9 +78,17 @@ const meta: Meta<Args> = {
     launch.addEventListener("click", () => {
       const document = host.ownerDocument;
       closePenMenu();
-      const menu = new RadialSession(document, createPenActions({ document, tool, colors, favorites,
+      const menu = new RadialSession(document, createRadialPages({ document, tool, colors, favorites,
         currentPreset: tool === "pen" || tool === "highlighter" ? { ...presets[tool], color: colors.selection(tool) } : null,
         penType: presets.pen.penType,
+        highlighterType: presets.highlighter.highlighterType ?? "round", eraserMode,
+        selectPen: (type) => { tool = "pen"; presets.pen.penType = type; presets.pen.opacity = PEN_PROFILES[type].opacity; update(); },
+        selectHighlighter: (type) => { tool = "highlighter"; presets.highlighter.highlighterType = type; update(); },
+        selectEraser: (mode) => { tool = "eraser"; eraserMode = mode; update(); },
+        getSize: () => (tool === "pen" ? presets.pen : presets.highlighter).size,
+        setSize: (size) => { (tool === "pen" ? presets.pen : presets.highlighter).size = size; update(); },
+        undo: () => undefined, redo: () => undefined, canUndo: () => false, canRedo: () => false,
+        openSettings: () => { status.textContent = "Use the tool menu stories to review detailed settings."; },
         defaultColor, selectTool: (value) => { tool = value; update(); },
         applyFavorite: (value) => { presets[value.tool] = { ...value }; tool = value.tool; colors.confirm(value.tool, value.color); update(); },
         colorsChanged: update, openCanvasMenu: () => { status.textContent = "Native Canvas menu requested (preview)."; },
