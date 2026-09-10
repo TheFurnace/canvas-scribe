@@ -57,3 +57,19 @@ describe("handwritten note gesture ownership", () => {
     expect(note.objects).toHaveLength(0);
   });
 });
+
+it("continues text resize across renders and undoes the whole drag", () => {
+  const { note, viewport, pointer } = setup();
+  document.querySelector<HTMLButtonElement>(".canvas-scribe-note-text-tool")!.click();
+  pointer("pointerdown", "pen", 1, 100, 100);
+  const handle = document.querySelector(".canvas-scribe-note-resize")!;
+  handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "pen", pointerId: 2, clientX: 400, clientY: 100 }));
+  pointer("pointermove", "pen", 2, 450, 100);
+  expect(handle.isConnected).toBe(false);
+  pointer("pointermove", "pen", 2, 500, 100);
+  pointer("pointerup", "pen", 2, 500, 100);
+  expect(note.objects[0]?.kind === "text" && note.objects[0].width).toBe(400);
+  document.querySelector<HTMLElement>('[data-action="undo"]')!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+  expect(note.objects[0]?.kind === "text" && note.objects[0].width).toBe(300);
+  expect(viewport.scrollTop).toBe(0);
+});

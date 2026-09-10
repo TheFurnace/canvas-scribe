@@ -53,3 +53,5 @@ Final human review should use those stories and the real-Obsidian sandbox, then 
 3. Desktop and Galaxy Tab/S Pen versions; long-note load/redraw/navigation/history observations; memory evidence; pen latency; touch scrolling; IME/keyboard editing; viewport resize and fit/zoom.
 
 The long-note performance numbers remain proposals until measured on desktop and Galaxy hardware and approved as FER-59 release gates. No arbitrary latency or memory threshold is claimed by this implementation.
+
+Desktop pen and host evidence: [2026-09-10 validation report](validation/2026-09-10-handwritten-notes.md). Physical Galaxy/S Pen and the report's remaining acceptance checks are still required.

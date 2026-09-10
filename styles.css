@@ -612,7 +612,7 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 .canvas-scribe-note-resize { right: -12px; top: 50%; height: 44px !important; transform: translateY(-50%); cursor: ew-resize; }
 .canvas-scribe-note-error { max-width: 560px; margin: 48px auto; padding: 24px; border: 1px solid var(--background-modifier-error); border-radius: var(--radius-m); background: var(--background-primary); }
 
-.canvas-scribe-note-embed { display: flex; flex-direction: column; height: 360px; min-height: 220px; overflow: hidden; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); background: var(--background-secondary); }
+.canvas-scribe-note-embed { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; height: 360px; min-height: 220px; overflow: hidden; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); background: var(--background-secondary); }
 .canvas-scribe-note-embed-viewport { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; background: var(--background-primary); }
 .canvas-scribe-note-embed .canvas-scribe-note-page { width: 100%; min-height: 100%; box-shadow: none; pointer-events: none; }
 .canvas-scribe-note-embed footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 4px 8px; border-top: 1px solid var(--background-modifier-border); background: var(--background-primary); font-family: var(--font-interface); font-size: var(--font-ui-small); }

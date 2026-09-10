@@ -28,6 +28,7 @@ export class HandwrittenNoteEditor {
   private activePointer: number | null = null;
   private pan: { id: number; x: number; y: number } | null = null;
   private activeInk: HandwrittenInkObject | null = null;
+  private handleDrag: ((event: PointerEvent) => void) | null = null;
   private gesturePoints: { x: number; y: number }[] = [];
   private moveOrigin: { x: number; y: number } | null = null;
   private moveSnapshot = new Map<string, HandwrittenObject>();
@@ -152,8 +153,9 @@ export class HandwrittenNoteEditor {
       return;
     }
     if (event.pointerId !== this.activePointer) return;
-    const point = this.point(event); if (!point) return;
     event.preventDefault(); event.stopPropagation();
+    if (this.handleDrag) { this.handleDrag(event); return; }
+    const point = this.point(event); if (!point) return;
     if (this.activeInk) {
       const coalesced = event.getCoalescedEvents?.() ?? [];
       const samples = coalesced.length ? coalesced : [event];
@@ -181,7 +183,8 @@ export class HandwrittenNoteEditor {
     }
     if (event.pointerId !== this.activePointer) return;
     event.preventDefault(); event.stopPropagation();
-    if (this.activeInk) { this.activeInk = null; normalizeContentHeight(this.note); this.changed(); }
+    if (this.handleDrag) { this.handleDrag = null; normalizeContentHeight(this.note); this.changed(); }
+    else if (this.activeInk) { this.activeInk = null; normalizeContentHeight(this.note); this.changed(); }
     else if (this.tool === "lasso" && this.moveOrigin) { this.moveOrigin = null; this.moveSnapshot.clear(); normalizeContentHeight(this.note); this.changed(); }
     else if (this.tool === "lasso" && this.gesturePoints.length > 2) { this.selectGesture(); this.render(); }
     this.gesturePoints = []; this.activePointer = null; this.releasePointer(event.pointerId);
@@ -223,28 +226,34 @@ export class HandwrittenNoteEditor {
     page.append(box);
   }
 
+  private startHandleDrag(event: PointerEvent, move: (event: PointerEvent) => void): void {
+    event.preventDefault(); event.stopPropagation();
+    if (this.activePointer !== null) return;
+    this.history.checkpoint(this.note.objects);
+    this.pan = null; this.activePointer = event.pointerId; this.handleDrag = move;
+    // Handles are rebuilt during rendering; capture on the persistent viewport.
+    this.viewport.setPointerCapture?.(event.pointerId);
+  }
+
   private wireMoveHandle(handle: HTMLButtonElement): void {
     handle.addEventListener("pointerdown", (event) => {
-      event.preventDefault(); event.stopPropagation(); this.history.checkpoint(this.note.objects);
       const startX = event.clientX, startY = event.clientY;
       const originals = new Map(this.selectedObjects().map((object) => [object.id, cloneHandwrittenObjects([object])[0]!]));
-      handle.setPointerCapture?.(event.pointerId);
-      const move = (next: PointerEvent) => {
+      this.startHandleDrag(event, (next) => {
         const dx = (next.clientX - startX) / this.note.viewport.zoom, dy = (next.clientY - startY) / this.note.viewport.zoom;
-        this.note.objects = this.note.objects.map((object) => { const original = originals.get(object.id); return original ? translateHandwrittenObject(original, dx, dy) : object; }); this.render(); this.changed(false);
-      };
-      const up = (next: PointerEvent) => { handle.releasePointerCapture?.(next.pointerId); handle.removeEventListener("pointermove", move); handle.removeEventListener("pointerup", up); normalizeContentHeight(this.note); this.changed(); };
-      handle.addEventListener("pointermove", move); handle.addEventListener("pointerup", up);
+        this.note.objects = this.note.objects.map((object) => { const original = originals.get(object.id); return original ? translateHandwrittenObject(original, dx, dy) : object; });
+        this.render();
+      });
     });
   }
 
   private wireResizeHandle(handle: HTMLButtonElement, object: HandwrittenTextObject): void {
     handle.addEventListener("pointerdown", (event) => {
-      event.preventDefault(); event.stopPropagation(); this.history.checkpoint(this.note.objects);
-      const startX = event.clientX, startWidth = object.width; handle.setPointerCapture?.(event.pointerId);
-      const move = (next: PointerEvent) => { object.width = Math.max(80, startWidth + (next.clientX - startX) / this.note.viewport.zoom); this.render(); this.changed(false); };
-      const up = (next: PointerEvent) => { handle.releasePointerCapture?.(next.pointerId); handle.removeEventListener("pointermove", move); handle.removeEventListener("pointerup", up); normalizeContentHeight(this.note); this.changed(); };
-      handle.addEventListener("pointermove", move); handle.addEventListener("pointerup", up);
+      const startX = event.clientX, startWidth = object.width;
+      this.startHandleDrag(event, (next) => {
+        object.width = Math.max(80, startWidth + (next.clientX - startX) / this.note.viewport.zoom);
+        this.render();
+      });
     });
   }
 
