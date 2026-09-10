@@ -27,7 +27,8 @@ Objects are ordered back-to-front and have stable IDs. Ink objects preserve stro
 
 The dedicated view uses the shared pen, highlighter, eraser, lasso, undo/redo, tool state, stroke geometry, and icon components. Coordinates, scroll, zoom, extent, and file lifecycle remain note-specific.
 
-- Pen contact draws; finger and wheel input retain native viewport scrolling.
+- Pen contact draws without browser panning. The editor disables browser direct manipulation before contact and routes finger drags to viewport scrolling; pen contact takes priority over an active finger drag. Wheel and scrollbar navigation remain native. Finger scrolling is direct (no inertial fling or pinch gesture). Read-only embeds retain native touch scrolling.
+- The toolbar floats vertically on the right. The drawing surface is transparent against the theme background, with an outline, shadow, and document-anchored dot grid that moves with scrolling and scales with zoom. New default ink/text use the theme text color; explicitly stored colors remain unchanged.
 - Text boxes can be created, edited with keyboard/IME composition, moved, width-resized, and deleted. Editing consumes the textarea gesture so it cannot leak ink.
 - Width resize reflows plain text without scaling its font. V2 whole-box styles are font size, text color, and alignment using the Obsidian text font.
 - Lasso can select mixed ink and text. Selected objects move together in layer order. Erasing affects ink only; text deletion is explicit.

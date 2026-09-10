@@ -584,21 +584,21 @@
 .canvas-scribe-destructive { color: var(--text-error); margin-top: 8px; }
 
 /* Handwritten notes keep document coordinates independent from viewport scale. */
-.canvas-scribe-note-editor { height: 100%; display: flex; flex-direction: column; color: var(--text-normal); background: var(--background-secondary); }
-.canvas-scribe-note-toolbar { position: relative; z-index: 4; display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid var(--background-modifier-border); background: var(--background-primary); }
-.canvas-scribe-note-toolbar .canvas-scribe-controls { display: flex; flex-direction: row; }
+.canvas-scribe-note-editor { position: relative; height: 100%; display: flex; flex-direction: column; color: var(--text-normal); background: var(--background-primary); }
+.canvas-scribe-note-toolbar { position: absolute; top: 12px; right: 12px; max-height: calc(100% - 24px); overflow-y: auto; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); box-shadow: var(--shadow-s); background: var(--background-primary); }
+.canvas-scribe-note-toolbar .canvas-scribe-controls { display: flex; flex-direction: column; }
 .canvas-scribe-note-toolbar [data-action="color"] { display: none; }
 .canvas-scribe-note-text-tool { width: 36px; height: 36px; font: 600 20px/1 var(--font-interface); }
 .canvas-scribe-note-text-tool.is-active { color: var(--text-on-accent); background: var(--interactive-accent); }
-.canvas-scribe-note-zoom { display: flex; gap: 4px; margin-left: auto; }
-.canvas-scribe-note-text-style { display: flex; align-items: center; gap: 4px; }
+.canvas-scribe-note-zoom { display: flex; flex-direction: column; gap: 4px; }
+.canvas-scribe-note-text-style { display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 80px; }
 .canvas-scribe-note-text-style[hidden] { display: none; }
 .canvas-scribe-note-text-style input[type="number"] { width: 64px; }
 .canvas-scribe-note-text-style input, .canvas-scribe-note-text-style select { min-height: 36px; }
 .canvas-scribe-note-zoom button { min-width: 36px; min-height: 36px; }
-.canvas-scribe-note-viewport { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; padding: 24px; }
+.canvas-scribe-note-viewport { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; touch-action: none; padding: 24px 100px 24px 24px; }
 .canvas-scribe-note-paper-host { width: max-content; min-width: 100%; display: flex; justify-content: center; }
-.canvas-scribe-note-page { position: relative; flex: 0 0 auto; box-sizing: border-box; width: var(--canvas-scribe-note-width); height: var(--canvas-scribe-note-height); overflow: hidden; color: #1f2937; background: #fff; box-shadow: var(--shadow-s); transform-origin: top center; }
+.canvas-scribe-note-page { position: relative; flex: 0 0 auto; box-sizing: border-box; width: var(--canvas-scribe-note-width); height: var(--canvas-scribe-note-height); overflow: hidden; color: var(--text-normal); background-color: transparent; background-image: radial-gradient(circle, var(--text-faint) 1px, transparent 1.5px); background-size: 24px 24px; outline: 1px solid var(--background-modifier-border); box-shadow: var(--shadow-s); transform-origin: top center; }
 .canvas-scribe-note-ink, .canvas-scribe-note-lasso { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .canvas-scribe-note-text { position: absolute; z-index: 2; box-sizing: border-box; min-height: 48px; margin: 0; padding: 6px; border: 1px solid transparent; border-radius: 4px; resize: none; overflow: hidden; color: inherit; background: transparent; font-family: var(--font-text, system-ui); line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; }
 .canvas-scribe-note-text-readonly { position: static; width: 100%; height: 100%; padding: 6px; border: 0; }
@@ -613,10 +613,10 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 .canvas-scribe-note-error { max-width: 560px; margin: 48px auto; padding: 24px; border: 1px solid var(--background-modifier-error); border-radius: var(--radius-m); background: var(--background-primary); }
 
 .canvas-scribe-note-embed { display: flex; flex-direction: column; height: 360px; min-height: 220px; overflow: hidden; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); background: var(--background-secondary); }
-.canvas-scribe-note-embed-viewport { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; background: var(--background-secondary); }
+.canvas-scribe-note-embed-viewport { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; background: var(--background-primary); }
 .canvas-scribe-note-embed .canvas-scribe-note-page { width: 100%; min-height: 100%; box-shadow: none; pointer-events: none; }
 .canvas-scribe-note-embed footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 4px 8px; border-top: 1px solid var(--background-modifier-border); background: var(--background-primary); font-family: var(--font-interface); font-size: var(--font-ui-small); }
 .canvas-scribe-note-embed footer button { min-height: 36px; }
 .canvas-scribe-note-embed > strong, .canvas-scribe-note-embed > span { padding: 8px 12px 0; }
-.theme-dark .canvas-scribe-note-page { color: #1f2937; background: #f8fafc; }
+
 .is-mobile .canvas-scribe-note-toolbar button, .is-mobile .canvas-scribe-note-text-tool { min-width: 44px; min-height: 44px; }

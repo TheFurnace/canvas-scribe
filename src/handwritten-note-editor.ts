@@ -26,6 +26,7 @@ export class HandwrittenNoteEditor {
   private tool: EditorTool = "pen";
   private enabled = true;
   private activePointer: number | null = null;
+  private pan: { id: number; x: number; y: number } | null = null;
   private activeInk: HandwrittenInkObject | null = null;
   private gesturePoints: { x: number; y: number }[] = [];
   private moveOrigin: { x: number; y: number } | null = null;
@@ -58,6 +59,7 @@ export class HandwrittenNoteEditor {
     this.viewport.addEventListener("pointermove", (event) => this.pointerMove(event));
     this.viewport.addEventListener("pointerup", (event) => this.pointerUp(event));
     this.viewport.addEventListener("pointercancel", (event) => this.pointerUp(event));
+    this.viewport.addEventListener("lostpointercapture", (event) => this.pointerUp(event));
     this.viewport.addEventListener("scroll", () => { this.note.viewport.scrollTop = this.viewport.scrollTop / this.note.viewport.zoom; });
     this.root.addEventListener("keydown", (event) => this.keyDown(event));
     this.render();
@@ -105,10 +107,21 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerDown(event: PointerEvent): void {
+    // Disable browser direct manipulation before contact; route fingers separately
+    // so pen contact cannot both scroll the viewport and produce ink.
+    if (event.pointerType === "touch") {
+      if ((event.target as Element).closest("textarea, button")) return;
+      event.preventDefault(); event.stopPropagation();
+      if (this.activePointer === null && this.pan === null) {
+        this.pan = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        this.viewport.setPointerCapture?.(event.pointerId);
+      }
+      return;
+    }
     if (!this.enabled || (event.pointerType !== "pen" && !(this.allowMouse && event.pointerType === "mouse")) || this.activePointer !== null || (event.target as Element).closest(".canvas-scribe-note-toolbar, textarea, button")) return;
     const point = this.point(event); if (!point) return;
-    event.preventDefault(); event.stopPropagation(); this.activePointer = event.pointerId; this.viewport.setPointerCapture?.(event.pointerId);
-    if (this.tool === "text") { this.addText(point.x, point.y); this.activePointer = null; return; }
+    event.preventDefault(); event.stopPropagation(); this.pan = null; this.activePointer = event.pointerId; this.viewport.setPointerCapture?.(event.pointerId);
+    if (this.tool === "text") { this.addText(point.x, point.y); this.activePointer = null; this.releasePointer(event.pointerId); return; }
     if (this.tool === "eraser") { this.eraseAt(point.x, point.y); return; }
     if (this.tool === "lasso") {
       const bounds = boundsForObjects(this.selectedObjects());
@@ -121,7 +134,7 @@ export class HandwrittenNoteEditor {
     this.history.checkpoint(this.note.objects);
     this.activeInk = {
       kind: "ink", id: createHandwrittenObjectId("ink"), tool: this.tool,
-      color: this.tools.toolColors.current(this.tool, this.tool === "pen" ? "#1f2937" : "#fde047"),
+      color: this.tools.toolColors.current(this.tool, this.tool === "pen" ? "var(--text-normal)" : "#fde047"),
       size: this.tool === "pen" ? this.tools.penSize : this.tools.highlighterSize,
       opacity: this.tool === "pen" ? (this.tools.penOpacity ?? PEN_PROFILES[this.tools.penType].opacity) : this.tools.highlighterOpacity,
       ...(this.tool === "pen" ? { penType: this.tools.penType } : { highlighterType: this.tools.highlighterType }),
@@ -131,11 +144,19 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerMove(event: PointerEvent): void {
+    if (event.pointerId === this.pan?.id) {
+      event.preventDefault(); event.stopPropagation();
+      this.viewport.scrollLeft += this.pan.x - event.clientX;
+      this.viewport.scrollTop += this.pan.y - event.clientY;
+      this.pan = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      return;
+    }
     if (event.pointerId !== this.activePointer) return;
     const point = this.point(event); if (!point) return;
-    event.preventDefault();
+    event.preventDefault(); event.stopPropagation();
     if (this.activeInk) {
-      const samples = typeof event.getCoalescedEvents === "function" ? event.getCoalescedEvents() : [event];
+      const coalesced = event.getCoalescedEvents?.() ?? [];
+      const samples = coalesced.length ? coalesced : [event];
       for (const sample of samples) { const p = this.point(sample); if (p) this.activeInk.points.push(this.inkPoint(sample, p)); }
       this.render(); return;
     }
@@ -149,13 +170,21 @@ export class HandwrittenNoteEditor {
     if (this.tool === "lasso") { this.gesturePoints.push(point); this.renderLasso(); }
   }
 
+  private releasePointer(id: number): void {
+    if (this.viewport.hasPointerCapture?.(id)) this.viewport.releasePointerCapture(id);
+  }
+
   private pointerUp(event: PointerEvent): void {
+    if (event.pointerId === this.pan?.id) {
+      event.preventDefault(); event.stopPropagation(); this.pan = null;
+      this.releasePointer(event.pointerId); return;
+    }
     if (event.pointerId !== this.activePointer) return;
-    event.preventDefault();
+    event.preventDefault(); event.stopPropagation();
     if (this.activeInk) { this.activeInk = null; normalizeContentHeight(this.note); this.changed(); }
     else if (this.tool === "lasso" && this.moveOrigin) { this.moveOrigin = null; this.moveSnapshot.clear(); normalizeContentHeight(this.note); this.changed(); }
     else if (this.tool === "lasso" && this.gesturePoints.length > 2) { this.selectGesture(); this.render(); }
-    this.gesturePoints = []; this.activePointer = null; this.viewport.releasePointerCapture?.(event.pointerId);
+    this.gesturePoints = []; this.activePointer = null; this.releasePointer(event.pointerId);
   }
 
   private selectGesture(): void {
@@ -174,7 +203,7 @@ export class HandwrittenNoteEditor {
 
   private addText(x: number, y: number): void {
     this.history.checkpoint(this.note.objects);
-    const object: HandwrittenTextObject = { kind: "text", id: createHandwrittenObjectId("text"), x, y, width: 300, text: "", fontSize: 18, color: "#1f2937", align: "left" };
+    const object: HandwrittenTextObject = { kind: "text", id: createHandwrittenObjectId("text"), x, y, width: 300, text: "", fontSize: 18, color: "var(--text-normal)", align: "left" };
     this.note.objects.push(object); this.selectedIds.clear(); this.selectedIds.add(object.id); normalizeContentHeight(this.note); this.render(); this.changed();
     requestAnimationFrame(() => this.paperHost.querySelector<HTMLTextAreaElement>(`[data-object-id="${object.id}"]`)?.focus());
   }
@@ -237,7 +266,7 @@ export class HandwrittenNoteEditor {
       const button = document.createElement("button"); button.type = "button"; button.textContent = label; button.setAttribute("aria-label", value < 0 ? "Zoom out" : "Zoom in");
       button.addEventListener("click", () => { this.note.viewport.zoom = Math.max(.25, Math.min(2, this.note.viewport.zoom + value)); this.render(); this.changed(); }); group.append(button);
     }
-    const fit = document.createElement("button"); fit.type = "button"; fit.textContent = "Fit"; fit.addEventListener("click", () => { this.note.viewport.zoom = Math.max(.25, Math.min(1, (this.viewport.clientWidth - 32) / this.note.logicalWidth)); this.render(); this.changed(); }); group.append(fit);
+    const fit = document.createElement("button"); fit.type = "button"; fit.textContent = "Fit"; fit.addEventListener("click", () => { this.note.viewport.zoom = Math.max(.25, Math.min(1, (this.viewport.clientWidth - 124) / this.note.logicalWidth)); this.render(); this.changed(); }); group.append(fit);
     return group;
   }
 
