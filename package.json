@@ -23,6 +23,7 @@
     "build": "tsc --noEmit && node esbuild.config.mjs production",
     "test": "vitest run",
     "sandbox": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/open-sandbox.ps1",
+    "sandbox:agent": "node scripts/sandbox-agent.mjs",
     "sandbox:prepare": "node scripts/sandbox-vault.mjs prepare",
     "sandbox:verify": "node scripts/sandbox-vault.mjs verify",
     "check:versions": "node scripts/check-versions.mjs",

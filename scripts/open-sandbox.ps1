@@ -86,6 +86,9 @@ $arguments = @(
   "`"--user-data-dir=$profilePath`"",
   "--remote-debugging-port=$Port",
   "--remote-debugging-address=127.0.0.1",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-background-timer-throttling",
   "`"obsidian://open?path=$([Uri]::EscapeDataString((Join-Path $vaultPath 'Canvas Scribe Smoke Test.canvas')))`""
 )
 $process = Start-Process -FilePath $resolvedObsidian -ArgumentList $arguments -PassThru
