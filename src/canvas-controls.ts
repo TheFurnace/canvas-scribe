@@ -18,7 +18,7 @@ export interface CanvasControlsActions {
 
 export interface CanvasControlsState {
   highlighterType?: HighlighterType;
-  activeTool: DrawingTool;
+  activeTool: DrawingTool | null;
   activeColor?: string;
   penType?: PenType;
   penColor?: string;
