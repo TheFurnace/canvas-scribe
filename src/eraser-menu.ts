@@ -4,6 +4,7 @@ export interface EraserSettings { mode: "stroke" | "area"; highlighterOnly: bool
 export function createEraserMenu(document: Document, options: {
   settings: EraserSettings; onChange: (settings: EraserSettings) => void;
   canClear: boolean; onClear: () => void; onClose: () => void;
+  clearLabel?: string; clearMessage?: string;
 }): HTMLElement {
   const settings = { ...options.settings };
   const root = createMenuShell(document, "Eraser", options.onClose);
@@ -24,10 +25,10 @@ export function createEraserMenu(document: Document, options: {
     label: "Eraser diameter", value: settings.radius * 2, min: 8, max: 100, step: 2, unit: "screen px",
     onChange: (value) => { settings.radius = value / 2; options.onChange({ ...settings }); },
   }).root);
-  const clear = createAction(document, "Erase all ink on this Canvas…", () => { confirmation.hidden = false; confirm.focus(); });
+  const clear = createAction(document, options.clearLabel ?? "Erase all ink on this Canvas…", () => { confirmation.hidden = false; confirm.focus(); });
   clear.classList.add("canvas-scribe-destructive"); clear.disabled = !options.canClear;
   const confirmation = document.createElement("div"); confirmation.hidden = true;
-  const message = document.createElement("p"); message.textContent = "Erase all pen and highlighter ink? Canvas cards stay in place. You can undo this.";
+  const message = document.createElement("p"); message.textContent = options.clearMessage ?? "Erase all pen and highlighter ink? Canvas cards stay in place. You can undo this.";
   const confirm = createAction(document, "Erase all ink", () => { options.onClear(); options.onClose(); });
   const cancel = createAction(document, "Keep ink", () => { confirmation.hidden = true; clear.focus(); });
   confirmation.append(message, cancel, confirm); root.append(clear, confirmation);
