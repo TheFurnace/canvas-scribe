@@ -90,3 +90,9 @@ Replaced overlapping short SVG strokes with one filled width contour and a singl
 Pointer dragging now retains fractional, unbounded disk position and value until release. The pill displays that temporary value; its physical sample remains within renderable bounds. Release snaps/clamps once and commits a valid tool setting. Pointer cancellation or lost capture restores the starting value. Keyboard changes still commit immediately.
 
 Validation: 152 tests pass, including fractional movement, overshoot, reversing past a limit, release-only commit, and cancellation. Storybook builds. Real Obsidian ui-ux sandbox verified one width contour, one opacity gradient and zero overlapping alpha strokes; screenshot reviewed at `.canvas-scribe-sandbox/artifacts/ui-ux/smooth-disk.png`. Physical S Pen feel remains for device review.
+
+### Opacity transparency reference and bounded readouts
+
+Displayed and accessible adjustment values now round to the valid tool step and clamp to the limits while disk motion stays continuous and commits only on release. The opacity segment and pill preview use a stationary white/gray checkerboard. Removed the legacy inner background from the opacity disk so the checkerboard covers the entire band.
+
+Validation: 152 tests pass; Storybook builds; visually checked in the real Obsidian ui-ux sandbox (checkerboard.png).

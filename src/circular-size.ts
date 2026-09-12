@@ -74,12 +74,14 @@ export function createCircularSize(document: Document, options: {
   const control = createNumericControl(document, {
     ...options, unit: "units", onChange: (next) => update(next),
   });
+  const settledValue = (next: number) => Math.max(options.min, Math.min(options.max, Math.round(next / options.step) * options.step));
   function update(next: number) {
-    value = Math.max(options.min, Math.min(options.max, Math.round(next / options.step) * options.step));
+    value = settledValue(next);
     control.setValue(value); options.onChange(value); sync();
   }
   function sync() {
-    output.value = `${Number(value.toFixed(2))}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
+    const displayedValue = settledValue(value);
+    output.value = `${Number(displayedValue.toFixed(2))}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(displayedValue));
     ring.setAttribute("aria-valuetext", output.value);
     ring.style.setProperty("--size-angle", `${(options.embedded ? options.half ? 164 : 300 : 360) * (value - options.min) / (options.max - options.min)}deg`);
     drawDisk();
