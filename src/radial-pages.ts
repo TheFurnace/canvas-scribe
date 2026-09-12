@@ -81,6 +81,7 @@ export function createRadialPages(options: PenActionsOptions & {
       { id: "size", label: options.tool === "highlighter" ? "Width and opacity" : "Thickness", icon: "sliders-horizontal", disabled: !options.currentPreset,
         preview: options.currentPreset ? (document) => {
           const node = document.createElement("span"); node.className = "canvas-scribe-radial-size-value";
+          if (options.tool === "highlighter") node.classList.add("has-transparency");
           const dot = document.createElement("span"); dot.className = "canvas-scribe-size-dot";
           dot.style.width = dot.style.height = `${Math.min(30, Math.max(4, 4 + 26 * options.getSize() / (options.tool === "pen" ? 20 : 60)))}px`;
           dot.style.backgroundColor = hero().color!; dot.style.opacity = String(options.getOpacity());

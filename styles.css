@@ -799,6 +799,8 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 /* Stationary transparency reference beneath the rotating opacity material. */
 .canvas-scribe-radial-control.is-right-half .canvas-scribe-size-ring.has-disk::before { content: none; }
 .canvas-scribe-radial-control.is-right-half .canvas-scribe-size-ring.has-disk,
-.canvas-scribe-radial-control.is-right-half .canvas-scribe-radial-value-preview {
-  background: repeating-conic-gradient(#fff 0% 25%, #c6c6c6 0% 50%) 0 0 / 8px 8px;
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-radial-value-preview,
+.canvas-scribe-radial-size-value.has-transparency {
+  background: repeating-conic-gradient(var(--background-primary) 0% 25%, var(--background-modifier-border) 0% 50%) 0 0 / 8px 8px;
 }
+.canvas-scribe-radial-size-value.has-transparency { width: 32px; height: 32px; border-radius: 50%; justify-content: center; overflow: hidden; }

@@ -96,3 +96,7 @@ Validation: 152 tests pass, including fractional movement, overshoot, reversing 
 Displayed and accessible adjustment values now round to the valid tool step and clamp to the limits while disk motion stays continuous and commits only on release. The opacity segment and pill preview use a stationary white/gray checkerboard. Removed the legacy inner background from the opacity disk so the checkerboard covers the entire band.
 
 Validation: 152 tests pass; Storybook builds; visually checked in the real Obsidian ui-ux sandbox (checkerboard.png).
+
+### Theme-aware highlighter transparency previews
+
+The main radial width/opacity button now places its highlighter sample over a circular checkerboard. All radial checkerboards share Obsidian background-primary and background-modifier-border colors, adapting to the active theme. Verified the main radial in the Obsidian sandbox; all 152 tests and Storybook build pass.
