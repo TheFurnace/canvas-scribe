@@ -8,6 +8,9 @@ import { DebugLogger } from "./debug-logger";
 import { createDebugReport } from "./debug-report";
 import { InputDiagnostics } from "./input-diagnostics";
 import type { DrawingTool } from "./types";
+import { HANDWRITTEN_NOTE_EXTENSION } from "./handwritten-note";
+import { registerHandwrittenNoteEmbeds } from "./handwritten-note-embeds";
+import { createNewHandwrittenNoteFile, HANDWRITTEN_NOTE_VIEW_TYPE, HandwrittenNoteView } from "./handwritten-note-view";
 
 export default class CanvasScribePlugin extends Plugin {
   private favorites = new FavoritePens();
@@ -19,6 +22,9 @@ export default class CanvasScribePlugin extends Plugin {
 
   async onload(): Promise<void> {
     registerToolIcons(addIcon);
+    this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf));
+    this.registerExtensions([HANDWRITTEN_NOTE_EXTENSION], HANDWRITTEN_NOTE_VIEW_TYPE);
+    registerHandwrittenNoteEmbeds(this);
     const stored = await this.loadData();
     const settings = stored && typeof stored === "object" ? stored : {};
     this.favorites = new FavoritePens(settings.favoritePens, (favoritePens) => {
@@ -30,6 +36,11 @@ export default class CanvasScribePlugin extends Plugin {
     });
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
     this.diagnostics = new InputDiagnostics(document, this.logger);
+    this.addCommand({
+      id: "create-handwritten-note",
+      name: "Create new handwritten note",
+      callback: () => void this.createHandwrittenNote(),
+    });
     this.addCommand({
       id: "toggle-stylus-input",
       name: "Toggle stylus input on active canvas",
@@ -143,6 +154,19 @@ export default class CanvasScribePlugin extends Plugin {
       this.logger.recordError("report_export_failed", error);
       console.error("Canvas Scribe could not export its debug report", error);
       new Notice("Canvas Scribe could not export its debug report. See the developer console.");
+    }
+  }
+
+  private async createHandwrittenNote(): Promise<void> {
+    try {
+      const leaf = this.app.workspace.getLeaf(false);
+      await createNewHandwrittenNoteFile(
+        (path, data) => this.app.vault.create(path, data),
+        (path) => this.app.vault.getAbstractFileByPath(path) !== null,
+      ).then((file) => leaf.openFile(file));
+    } catch (error) {
+      this.logger.recordError("handwritten_note_create_failed", error);
+      new Notice("Could not create the handwritten note.");
     }
   }
 }
