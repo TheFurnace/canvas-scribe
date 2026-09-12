@@ -56,3 +56,9 @@ Validation: 150 tests pass across 31 files, including independent controls for b
 Native Canvas context-menu replay now uses the radial action button's viewport center, captured before dismissing the radial, while retaining the original connected Canvas target. The integration test verifies the new coordinates and one-event replay.
 
 Radial diameter is 260 px. Action centers are positioned relative to the outer edge with a fixed 31 px inset, retaining roughly 10 px outer clearance while reducing the measured gap to the selected-tool circle to 18 px. Browser inspection confirms those dimensions. All 150 tests and Storybook build pass. The ui-ux sandbox was refreshed; its native menu was not available as a DOM element for independent bounds verification.
+
+## Curved page selector and balanced clearance
+
+The top-level page selector follows the lower circular arc, with a rounded SVG track and upright 44 px icon buttons. Submenus still omit page navigation; narrow layouts retain the wrapping fallback. The radial is 252 px across. Accounting for its 1 px border, browser measurement confirms 12 px between the left action button and both the inner tool circle and the outer boundary. The selected-tool circle remains 116 px.
+
+Validation: 150 tests and Storybook build pass; browser page selection and rounded arc visually reviewed. Preview and ui-ux sandbox refreshed.

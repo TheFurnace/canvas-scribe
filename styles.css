@@ -629,7 +629,7 @@
 .canvas-scribe-mode-menu .canvas-scribe-tip-choices button svg { width: 24px; height: 24px; }
 .canvas-scribe-mode-menu > label { display: flex; gap: 10px; align-items: center; padding: 12px 0; border-top: 1px solid var(--background-modifier-border); }
 .canvas-scribe-mode-menu .canvas-scribe-destructive { margin-top: 4px; border-top: 1px solid var(--background-modifier-border); border-radius: 0; background: transparent; }
-.canvas-scribe-radial-palette.has-hero { width: 260px; height: 260px; background: var(--background-primary); box-shadow: var(--shadow-s); backdrop-filter: none; }
+.canvas-scribe-radial-palette.has-hero { width: 252px; height: 252px; background: var(--background-primary); box-shadow: var(--shadow-s); backdrop-filter: none; }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action {
   width: 44px; height: 44px; min-width: 44px; min-height: 44px; transform: translate(-50%, -50%);
   border: 0; box-shadow: none; background: transparent; color: var(--text-normal);
@@ -641,8 +641,10 @@
 .canvas-scribe-radial-hero .svg-icon { width: 80px; height: 80px; }
 .canvas-scribe-radial-hero.is-ink .svg-icon { position: absolute; width: 116px; height: 142px; bottom: -48px; }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-close { left: 50%; top: 71%; width: 36px; height: 36px; min-width: 36px; min-height: 36px; border: 0; box-shadow: none; background: transparent; }
-.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs { top: auto; bottom: 10px; width: 144px; gap: 2px; padding: 3px; border-radius: 24px; background: var(--background-secondary); }
-.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button { min-width: 0; min-height: 44px; border-radius: 22px; border: 0; box-shadow: none; background: transparent; font-size: 11px; }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs { inset: 0; width: 100%; height: 100%; transform: none; display: block; padding: 0; background: none; pointer-events: none; }
+.canvas-scribe-radial-tabs-track { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--background-secondary); }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button { position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 50%; border: 0; box-shadow: none; background: transparent; pointer-events: auto; }
+
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button[aria-pressed="true"] { background: var(--background-primary); outline: 1px solid var(--background-modifier-border); font-weight: 600; }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-paging { top: calc(100% + 8px); }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-title { width: max-content; max-width: 260px; top: -30px; background: var(--background-primary); border-radius: 10px; padding: 4px 10px; }
@@ -686,6 +688,9 @@ button.canvas-scribe-radial-hero:focus-visible { outline: 2px solid var(--intera
   .canvas-scribe-radial-palette.has-hero.has-control .canvas-scribe-radial-hero { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; }
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action,
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-close { position: static; transform: none; }
+  .canvas-scribe-radial-tabs-track { display: none; }
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs { display: flex; height: auto; }
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button { position: static; transform: none; }
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs,
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-paging,
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-title { position: static; transform: none; width: 100%; }

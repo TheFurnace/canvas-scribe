@@ -59,8 +59,8 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
       const degrees = navigation.pageId === "settings" && item.id in settingsAngles ? settingsAngles[item.id]!
         : -200 + index * (220 / Math.max(1, items.length - 1));
       const radians = degrees * Math.PI / 180;
-      button.style.left = `calc(50% + ${Math.cos(radians)} * (50% - 31px))`;
-      button.style.top = `calc(50% + ${Math.sin(radians)} * (50% - 31px))`;
+      button.style.left = `calc(50% + ${Math.cos(radians)} * (50% - 33px))`;
+      button.style.top = `calc(50% + ${Math.sin(radians)} * (50% - 33px))`;
     }
     if (item.preview) { button.append(item.preview(document)); button.classList.add("has-preview"); }
     else if (item.color) {
@@ -87,10 +87,28 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
   if (navigation.tabs?.length) {
     const tabs = document.createElement("div"); tabs.className = "canvas-scribe-radial-tabs";
     tabs.setAttribute("role", "group"); tabs.setAttribute("aria-label", "Radial pages");
+    if (navigation.hero) {
+      const track = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      track.classList.add("canvas-scribe-radial-tabs-track"); track.setAttribute("viewBox", "0 0 250 250"); track.setAttribute("aria-hidden", "true");
+      const point = (radius: number, degrees: number) => {
+        const angle = degrees * Math.PI / 180;
+        return `${125 + radius * Math.cos(angle)} ${125 + radius * Math.sin(angle)}`;
+      };
+      const path = document.createElementNS(track.namespaceURI, "path");
+      path.setAttribute("d", `M ${point(92, 55)} A 92 92 0 0 1 ${point(92, 125)}`);
+      path.setAttribute("fill", "none"); path.setAttribute("stroke", "var(--background-secondary)");
+      path.setAttribute("stroke-width", "44"); path.setAttribute("stroke-linecap", "round");
+      track.append(path); tabs.append(track);
+    }
     navigation.tabs.forEach((tab, index) => {
       const button = document.createElement("button"); button.type = "button"; button.setAttribute("aria-label", tab.label); button.title = tab.label;
       renderIcon(button, tab.icon);
       button.dataset.tab = String(index);
+      if (navigation.hero) {
+        const angle = (125 - index * 70 / Math.max(1, navigation.tabs!.length - 1)) * Math.PI / 180;
+        button.style.left = `calc(50% + ${92 * Math.cos(angle)}px)`;
+        button.style.top = `calc(50% + ${92 * Math.sin(angle)}px)`;
+      }
       button.setAttribute("aria-pressed", String(index === navigation.activeTab));
       button.addEventListener("click", (event) => { consume(event); navigation.onTab?.(index); }); tabs.append(button);
     });
