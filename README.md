@@ -15,6 +15,10 @@ For device testing, run **Canvas Scribe: Toggle stylus input diagnostics** from 
 
 Android handwriting-to-text support and the Galaxy test matrix are documented in [docs/stylus-to-text.md](docs/stylus-to-text.md). Canvas Scribe handles only pen pointer events delivered to the WebView. When Android or Samsung handwriting mode intercepts stylus input upstream, the WebView receives recognized text rather than the pen event stream, so the plugin neither claims nor passes through those stylus inputs.
 
+## PDF annotation beta
+
+Open a PDF normally and toggle Scribe's stylus input to draw, highlight, erase, and select within its pages. Editable companions live under `Scribe PDF annotations/`, independently of source folders. Export creates a new annotated PDF while preserving the original. See the [PDF workflow and recovery guide](docs/pdf-annotations.md) and [validation evidence](docs/pdf-validation.md). Physical Galaxy acceptance remains pending.
+
 ## Galaxy tablet installation
 
 After the first GitHub release is available, install **Obsidian42 - BRAT**, run **BRAT: Add a beta plugin for testing**, and enter:

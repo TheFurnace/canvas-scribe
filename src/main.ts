@@ -1,4 +1,5 @@
 import { addIcon, Notice, Plugin } from "obsidian";
+import { PdfController } from "./pdf-controller";
 import { registerToolIcons } from "./tool-icons";
 
 import { FavoritePens } from "./favorite-pens";
@@ -19,6 +20,7 @@ export default class CanvasScribePlugin extends Plugin {
   private readonly logger = new DebugLogger();
   private diagnostics: InputDiagnostics | null = null;
   private syncFrame: number | null = null;
+  private pdfController: PdfController | null = null;
 
   async onload(): Promise<void> {
     registerToolIcons(addIcon);
@@ -35,6 +37,7 @@ export default class CanvasScribePlugin extends Plugin {
       });
     });
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
+    this.pdfController = new PdfController(this, this.favorites);
     this.diagnostics = new InputDiagnostics(document, this.logger);
     this.addCommand({
       id: "create-handwritten-note",
@@ -86,6 +89,7 @@ export default class CanvasScribePlugin extends Plugin {
   }
 
   onunload(): void {
+    this.pdfController?.destroy(); this.pdfController = null;
     this.logger.record("plugin", "unloading", { layerCount: this.layers.size });
     if (this.syncFrame !== null) window.cancelAnimationFrame(this.syncFrame);
     for (const layer of this.layers.values()) layer.dispose();

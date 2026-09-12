@@ -620,3 +620,20 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 .canvas-scribe-note-embed > strong, .canvas-scribe-note-embed > span { padding: 8px 12px 0; }
 
 .is-mobile .canvas-scribe-note-toolbar button, .is-mobile .canvas-scribe-note-text-tool { min-width: 44px; min-height: 44px; }
+/* PDF overlays use the host viewport transform; they never receive native hit tests. */
+.canvas-scribe-pdf-overlay { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; overflow: hidden; }
+.canvas-scribe-pdf-bar { position: relative; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; background: var(--background-primary); border-bottom: 1px solid var(--background-modifier-border); font-size: var(--font-ui-smaller); }
+.canvas-scribe-pdf-bar > span { flex: 1 1 180px; overflow-wrap: anywhere; }
+.canvas-scribe-pdf-tools { position: absolute; right: 16px; top: 112px; z-index: 15; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-height: calc(100% - 130px); }
+.canvas-scribe-pdf-tools .canvas-scribe-controls { position: static; background: var(--background-primary); box-shadow: var(--shadow-s); border: 1px solid var(--background-modifier-border); }
+.canvas-scribe-pdf-menu { max-width: min(380px, calc(100vw - 60px)); max-height: min(560px, 65vh); overflow: auto; background: var(--background-primary); box-shadow: var(--shadow-s); border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 10px; }
+.canvas-scribe-pdf-tools > .canvas-scribe-picker-backdrop { position: fixed; inset: 0; max-width: none; max-height: none; }
+.canvas-scribe-pdf-annotating .pdfViewer { touch-action: none; }
+.canvas-scribe-pdf-annotating .pdfViewer .page { touch-action: none; }
+.canvas-scribe-pdf-status { padding: 8px; color: var(--text-muted); }
+.canvas-scribe-pdf-bar { flex-direction: column; align-items: stretch; }
+.canvas-scribe-pdf-bar > span { flex: none; }
+.canvas-scribe-pdf-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.canvas-scribe-pdf-actions > button { flex: 1 1 auto; min-width: 0; height: auto; min-height: 30px; white-space: normal; }
+.canvas-scribe-pdf-tools { max-width: calc(100% - 32px); }
+.canvas-scribe-pdf-menu { box-sizing: border-box; width: 360px; max-width: 100%; }
