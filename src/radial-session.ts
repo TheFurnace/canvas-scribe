@@ -116,7 +116,7 @@ export class RadialSession {
 }
 
 export function clampRadialMenuPosition(clientX: number, clientY: number, view: Pick<Window, "innerWidth" | "innerHeight"> | null, hasTabs = false): { x: number; y: number } {
-  const minimum = hasTabs ? 134 : 112;
+  const minimum = hasTabs ? 148 : 112;
   const maximumX = Math.max(minimum, (view?.innerWidth ?? clientX + minimum) - minimum);
   const maximumY = Math.max(minimum, (view?.innerHeight ?? clientY + minimum) - minimum - (hasTabs ? 84 : 48));
   return { x: Math.min(maximumX, Math.max(minimum, clientX)), y: Math.min(maximumY, Math.max(minimum, clientY)) };

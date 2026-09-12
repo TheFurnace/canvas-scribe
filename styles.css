@@ -784,3 +784,12 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 .canvas-scribe-radial-control .canvas-scribe-size-ring.has-disk { background: var(--background-secondary); cursor: grab; }
 .canvas-scribe-radial-control .canvas-scribe-size-ring.has-disk:active { cursor: grabbing; }
 .canvas-scribe-adjustment-disk { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Rounded, wider windows; preview centers sit on the 90px track radius. */
+ .canvas-scribe-radial-control .canvas-scribe-size-ring.has-disk { width: 208px; height: 208px; }
+.canvas-scribe-radial-value-pill { left: -1.5px; }
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-radial-value-pill { right: -1.5px; }
+.canvas-scribe-radial-control.is-left-half .canvas-scribe-size-ring.has-disk { mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20208%20208%22%3E%3Cpath%20d%3D%22M%2088.372%20192.633%20A%2090%2090%200%200%201%2088.372%2015.367%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%2220%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E"); mask-size: 100% 100%; }
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-size-ring.has-disk { mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20208%20208%22%3E%3Cpath%20d%3D%22M%20119.628%2015.367%20A%2090%2090%200%200%201%20119.628%20192.633%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%2220%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E"); mask-size: 100% 100%; }
+.canvas-scribe-radial-control.is-width-arc .canvas-scribe-size-ring.has-disk { mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20208%20208%22%3E%3Cpath%20d%3D%22M%20181.942%20149.000%20A%2090%2090%200%201%201%20181.942%2059.000%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%2220%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E"); mask-size: 100% 100%; }
+@media (max-width: 343px), (max-height: 399px) { .canvas-scribe-radial-palette.has-control .canvas-scribe-radial-control { width: 208px; } }

@@ -29,7 +29,7 @@ export function createCircularSize(document: Document, options: {
   const disk = options.embedded ? document.createElementNS("http://www.w3.org/2000/svg", "svg") : null;
   const scale = disk ? document.createElementNS(disk.namespaceURI, "g") : null;
   if (disk && scale) {
-    disk.classList.add("canvas-scribe-adjustment-disk"); disk.setAttribute("viewBox", "0 0 196 196"); disk.setAttribute("aria-hidden", "true");
+    disk.classList.add("canvas-scribe-adjustment-disk"); disk.setAttribute("viewBox", "-6 -6 208 208"); disk.setAttribute("aria-hidden", "true");
     disk.append(scale); ring.append(disk); ring.classList.add("has-disk");
   }
   function drawDisk() {
@@ -45,7 +45,7 @@ export function createCircularSize(document: Document, options: {
       const mark = document.createElementNS(disk!.namespaceURI, "path");
       mark.setAttribute("d", `M ${point(angle, 90)} A 90 90 0 0 1 ${point(angle + 2.1, 90)}`);
       mark.setAttribute("fill", "none"); mark.setAttribute("stroke", options.inkColor ?? "var(--text-normal)");
-      mark.setAttribute("stroke-width", String(options.half === "right" ? 12 : 2 + 10 * fraction));
+      mark.setAttribute("stroke-width", String(options.half === "right" ? 20 : 3 + 17 * fraction));
       mark.setAttribute("stroke-opacity", String(options.half === "right" ? .05 + .95 * fraction : 1));
       parts.push(mark);
       if (angle >= 0 && angle <= sweep && angle % 10 === 0) {

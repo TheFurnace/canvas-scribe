@@ -76,3 +76,9 @@ Validation: 150 tests pass, including four history slots, fixed history during c
 The segmented windows and selector pills now remain stationary while an ink scale rotates underneath. Width uses a tapered band; opacity uses a constant-width band with varying transparency, both in the selected ink color. Tick marks make rotation visible. Drag direction follows disk motion, and the scale clamps at the limits instead of wrapping maximum to minimum. Keyboard adjustments and pointer cancellation remain supported.
 
 Validation: 151 tests pass, including drag direction, stationary-pill identity and capture cancellation; Storybook builds. Browser dragging changed opacity from 38% to 10% while width stayed 17 px, moved the scale rotation from -56.97 to -8.63 degrees, and left the pill bounds unchanged. Preview and ui-ux sandbox refreshed; physical stylus feel remains for device review.
+
+## Wider rounded tracks and outward pills
+
+Moved the pills outward so each inner preview center aligns with the 90 px track centerline, including the pill border offset. Track windows are now 20 px wide with rounded caps; the width scale tapers from 3 to 20 px and opacity uses the full 20 px band. Expanded the local disk box to retain the rounded edges, and increased viewport clearance for the projecting pills.
+
+Validation: 151 tests and Storybook build pass; browser reviewed wider rounded segments and measured preview placement before the final half-pixel border adjustment. Preview build and ui-ux sandbox refreshed.
