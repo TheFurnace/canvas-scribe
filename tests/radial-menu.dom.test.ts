@@ -63,6 +63,15 @@ describe("RadialMenu DOM behavior", () => {
 });
 
 describe("CanvasInkLayer radial-menu integration", () => {
+  it("dismisses expanded settings on a pen stroke without losing the first ink point", async () => {
+    const { eventTarget } = await mountedLayer();
+    requiredElement<HTMLElement>('.canvas-scribe-controls [data-action="pen"]').dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(document.querySelector('.canvas-scribe-pen-menu')).not.toBeNull();
+    eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 7, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 24, clientY: 32 }));
+    expect(document.querySelector('.canvas-scribe-pen-menu')).toBeNull();
+    expect(document.querySelectorAll('.canvas-scribe-render-layer path')).toHaveLength(1);
+    eventTarget.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, pointerType: "pen", button: 0, buttons: 0, clientX: 24, clientY: 32 }));
+  });
   it("cancels and rolls back an active pen gesture before opening the radial menu", async () => {
     const { layer, logger, wrapper, eventTarget } = await mountedLayer();
 

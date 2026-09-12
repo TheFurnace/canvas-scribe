@@ -1,19 +1,25 @@
 import { createAction, createMenuShell, createNumericControl } from "./ui-controls";
+import type { IconRenderer } from "./canvas-controls";
+import { toolIconId } from "./tool-icons";
 
 export interface EraserSettings { mode: "stroke" | "area"; highlighterOnly: boolean; radius: number; }
 export function createEraserMenu(document: Document, options: {
   settings: EraserSettings; onChange: (settings: EraserSettings) => void;
   canClear: boolean; onClear: () => void; onClose: () => void;
   clearLabel?: string; clearMessage?: string;
+  renderIcon?: IconRenderer;
 }): HTMLElement {
   const settings = { ...options.settings };
   const root = createMenuShell(document, "Eraser", options.onClose);
+  root.classList.add("canvas-scribe-mode-menu");
   const modes = document.createElement("div"); modes.className = "canvas-scribe-tip-choices";
   modes.setAttribute("role", "group"); modes.setAttribute("aria-label", "Eraser mode");
   const buttons = (["stroke", "area"] as const).map((mode) => {
     const button = createAction(document, mode === "stroke" ? "Stroke eraser" : "Area eraser", () => {
       settings.mode = mode; options.onChange({ ...settings }); sync();
     });
+    const icon = document.createElement("span"); icon.setAttribute("aria-hidden", "true");
+    options.renderIcon?.(icon, toolIconId(`eraser-${mode}`)); button.prepend(icon);
     button.dataset.eraserMode = mode; modes.append(button); return button;
   });
   root.append(modes);

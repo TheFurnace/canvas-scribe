@@ -58,7 +58,7 @@ function toolbarPreview() {
   function open() {
     const canvas = root.closest<HTMLElement>(".canvas-wrapper");
     if (!canvas) return;
-    menu = createPenMenu(document, {
+    menu = createPenMenu(document, { onColor: () => undefined,
       renderIcon: renderStoryIcon,
       type, size, color: "var(--text-normal)",
       onType: (value) => { type = value; sync(); },

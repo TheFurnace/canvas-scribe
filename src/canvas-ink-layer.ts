@@ -260,7 +260,12 @@ export class CanvasInkLayer {
       return;
     }
     if (event.pointerType !== "pen") this.penActivationGuard.recordNonPenPointerDown();
-    if (!isControlTarget(event.target)) this.closeRadialMenu();
+    if (!isControlTarget(event.target)) {
+      this.closeRadialMenu();
+      // This capture handler consumes pen input before the document's later
+      // outside-dismiss listener can see it. Dismiss here without stealing focus.
+      this.closePenMenu();
+    }
     const action = stylusPointerDownAction(event, {
       enabled: this.enabled,
       gestureActive: this.activePointerId !== null,
@@ -1140,7 +1145,7 @@ export class CanvasInkLayer {
       this.data.highlighterSettings = { type: this.toolState.highlighterType, size: this.toolState.highlighterSize, opacity: this.toolState.highlighterOpacity };
       this.syncControls(); this.scheduleSave();
     };
-    const menu = this.toolState.activeTool === "lasso" ? createSelectionMenu(document, {
+    const menu = this.toolState.activeTool === "lasso" ? createSelectionMenu(document, { renderIcon: setIcon,
       settings: this.toolState.selectionSettings, count: this.selectedStrokes().length,
       onChange: (settings) => { this.toolState.selectionSettings = settings; }, onRecolor: () => this.recolorSelection(),
       onScale: (scale) => {
@@ -1148,12 +1153,13 @@ export class CanvasInkLayer {
         const cx = (bounds.minX + bounds.maxX) / 2, cy = (bounds.minY + bounds.maxY) / 2;
         this.changeSelectedInk((stroke) => transformInk(stroke, (x, y) => [cx + (x - cx) * scale, cy + (y - cy) * scale], scale));
       }, onClose: () => this.closePenMenu(true),
-    }) : this.toolState.activeTool === "eraser" ? createEraserMenu(document, {
+    }) : this.toolState.activeTool === "eraser" ? createEraserMenu(document, { renderIcon: setIcon,
       settings: this.toolState.eraserSettings, onChange: (settings) => { this.toolState.eraserSettings = settings; this.hideEraserCursor(); },
       canClear: this.data.strokes.length > 0,
       onClear: () => { this.pushUndoSnapshot(); this.data.strokes = []; this.clearSelection(); this.renderAll(); this.scheduleSave(); this.syncControls(); },
       onClose: () => this.closePenMenu(true),
     }) : this.toolState.activeTool === "highlighter" ? createHighlighterMenu(document, {
+      onColor: color => { this.toolState.toolColors.confirm("highlighter", color); rememberHighlighter(); },
       renderIcon: setIcon, type: this.toolState.highlighterType, size: this.toolState.highlighterSize,
       opacity: this.toolState.highlighterOpacity, color: this.getToolColor("highlighter"),
       onType: (value) => { this.toolState.highlighterType = value; rememberHighlighter(); },
@@ -1161,6 +1167,7 @@ export class CanvasInkLayer {
       onOpacity: (value) => { this.toolState.highlighterOpacity = value; rememberHighlighter(); },
       onColors: () => this.toggleColorPalette(), onClose: () => this.closePenMenu(true),
     }) : createPenMenu(document, {
+      onColor: color => { this.toolState.toolColors.confirm("pen", color); remember(); }, onColors: () => this.toggleColorPalette(),
       renderIcon: setIcon,
       type: this.toolState.penType, size: this.toolState.penSize, color: this.getToolColor("pen"),
       onType: (type) => { this.toolState.penType = type; this.toolState.penOpacity = null; remember(); },

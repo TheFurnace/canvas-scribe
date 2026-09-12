@@ -50,7 +50,7 @@ export class RadialSession {
     const topPages = this.actions.filter((item) => item.pageId);
     const top = topPages[this.topPage];
     const items = this.parent?.children?.() ?? top?.children?.() ?? this.actions;
-    const capacity = top?.pageId === "quick" && !this.parent ? 9 : 6;
+    const capacity = top ? 9 : 6;
     const pages = Math.max(1, Math.ceil(items.length / capacity));
     this.page = Math.min(this.page, pages - 1);
     const visible = items.slice(this.page * capacity, this.page * capacity + capacity);
@@ -67,6 +67,7 @@ export class RadialSession {
       else { this.close(); item.run?.(); }
     }, () => this.close(), {
       title: this.parent?.label ?? top?.label ?? "Pen actions",
+      hero: top?.hero?.(), pageId: this.parent ? undefined : top?.pageId,
       back: this.parent ? () => { const id = this.parent!.id; this.parent = null; this.page = 0; this.render(id); } : undefined,
       page: this.page, pages,
       onPage: (page) => { this.page = page; this.render(page > 0 ? "next-page" : "previous-page"); },
@@ -74,22 +75,34 @@ export class RadialSession {
       onTab: (index) => {
         this.topPage = index; this.parent = null; this.page = 0;
         lastPage.set(this.document, topPages[index]!.pageId!); this.render();
+        this.rootEl?.querySelector<HTMLElement>(`[data-tab="${index}"]`)?.focus({ preventScroll: true });
       },
     });
     if (topPages.length) view.palette.classList.add("has-tabs");
+    if (this.parent) view.palette.classList.add("is-submenu");
     view.palette.style.left = `${this.position.x}px`;
     view.palette.style.top = `${this.position.y}px`;
     view.root.classList.add("is-open");
     this.rootEl?.remove();
     this.rootEl = view.root;
     this.mount.append(view.root);
+    // Embedded previews can establish a fixed-position containing block. Convert
+    // viewport coordinates to that block, rather than adding its offset twice.
+    if (this.mount !== this.document.body) {
+      const bounds = view.root.getBoundingClientRect();
+      if (bounds.width && bounds.height) {
+        const local = clampRadialMenuPosition(this.position.x - bounds.left, this.position.y - bounds.top,
+          { innerWidth: bounds.width, innerHeight: bounds.height }, Boolean(topPages.length));
+        view.palette.style.left = `${local.x}px`; view.palette.style.top = `${local.y}px`;
+      }
+    }
     const focus = focusId ? view.root.querySelector<HTMLElement>(`[data-action="${focusId}"]`) : null;
     (focus && !focus.hasAttribute("disabled") ? focus : view.closeButton).focus({ preventScroll: true });
   }
 }
 
-export function clampRadialMenuPosition(clientX: number, clientY: number, view: Window | null, hasTabs = false): { x: number; y: number } {
-  const minimum = hasTabs ? 158 : 112;
+export function clampRadialMenuPosition(clientX: number, clientY: number, view: Pick<Window, "innerWidth" | "innerHeight"> | null, hasTabs = false): { x: number; y: number } {
+  const minimum = hasTabs ? 168 : 112;
   const maximumX = Math.max(minimum, (view?.innerWidth ?? clientX + minimum) - minimum);
   const maximumY = Math.max(minimum, (view?.innerHeight ?? clientY + minimum) - minimum - (hasTabs ? 84 : 48));
   return { x: Math.min(maximumX, Math.max(minimum, clientX)), y: Math.min(maximumY, Math.max(minimum, clientY)) };

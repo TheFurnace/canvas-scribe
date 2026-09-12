@@ -581,6 +581,99 @@
 .canvas-scribe-size-ring output { position: relative; font-size: 24px; pointer-events: none; }
 .canvas-scribe-size-ring:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 3px; }
 .canvas-scribe-size-preview svg { display: block; height: 60px; max-width: 100%; margin: auto; }
+
+/* FER-64 experimental tool shelves and integrated radial. All surfaces inherit the host theme. */
+.canvas-scribe-tool-menu {
+  box-sizing: border-box; width: 360px; max-width: calc(100vw - 24px);
+  padding: 18px; gap: 16px; border-radius: 20px; box-shadow: var(--shadow-s);
+  font-family: var(--font-interface); font-size: var(--font-ui-small);
+}
+.canvas-scribe-tool-menu header { display: flex; align-items: center; margin: 0; font-size: var(--font-ui-medium); }
+.canvas-scribe-tool-menu header button { border-radius: 50%; background: var(--background-secondary); box-shadow: none; }
+.canvas-scribe-tool-menu .canvas-scribe-ui-button { box-shadow: none; border: 1px solid transparent; }
+.canvas-scribe-tool-menu .canvas-scribe-pen-types,
+.canvas-scribe-highlighter-menu .canvas-scribe-tip-choices { display: flex; gap: 6px; margin: 0; padding: 8px 0 12px; border-bottom: 1px solid var(--background-modifier-border); }
+.canvas-scribe-tool-menu .canvas-scribe-pen-types button,
+.canvas-scribe-highlighter-menu .canvas-scribe-tip-choices button {
+  flex: 1; min-width: 0; height: 128px; display: flex; flex-direction: column;
+  justify-content: flex-end; gap: 4px; padding: 6px 2px; border-radius: 12px; background: transparent;
+  font-size: 11px; color: var(--text-muted); outline: none;
+}
+.canvas-scribe-tool-menu .canvas-scribe-pen-types button[aria-pressed="true"],
+.canvas-scribe-highlighter-menu .canvas-scribe-tip-choices button[aria-pressed="true"] {
+  background: var(--background-secondary); border-color: var(--background-modifier-border); color: var(--text-normal);
+}
+.canvas-scribe-tool-menu .canvas-scribe-pen-types button[aria-pressed="true"]::after,
+.canvas-scribe-highlighter-menu .canvas-scribe-tip-choices button[aria-pressed="true"]::after {
+  content: ""; width: 16px; height: 3px; border-radius: 2px; background: var(--interactive-accent);
+}
+.canvas-scribe-tool-menu .canvas-scribe-pen-types .canvas-scribe-pen-artwork { display: flex; height: 90px; justify-content: center; }
+.canvas-scribe-tool-menu .canvas-scribe-illustrated-tip { display: flex; flex: none; justify-content: center; }
+.canvas-scribe-tool-menu .canvas-scribe-illustrated-tip .svg-icon { width: 76px; height: 90px; }
+.canvas-scribe-tool-menu .canvas-scribe-pen-types button:focus-visible,
+.canvas-scribe-highlighter-menu .canvas-scribe-tip-choices button:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 2px; }
+.canvas-scribe-menu-preview { border-radius: 12px; background: var(--background-secondary); height: 66px; display: grid; place-items: center; }
+.canvas-scribe-menu-preview svg { width: 85%; height: 56px; }
+.canvas-scribe-pen-description { margin: 0; font-size: var(--font-ui-smaller); color: var(--text-muted); line-height: 1.5; }
+.canvas-scribe-tool-menu .canvas-scribe-numeric-row { display: flex; align-items: center; gap: 10px; }
+.canvas-scribe-tool-menu .canvas-scribe-numeric-row > button { border-radius: 50%; background: transparent; font-size: 23px; }
+.canvas-scribe-tool-menu .canvas-scribe-numeric label { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.canvas-scribe-tool-menu .canvas-scribe-numeric input { grid-column: 1 / -1; margin: 8px 0; }
+.canvas-scribe-tool-menu .canvas-scribe-numeric output { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.canvas-scribe-menu-colors { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding-top: 12px; border-top: 1px solid var(--background-modifier-border); }
+.canvas-scribe-menu-colors .canvas-scribe-color-swatch { position: relative; padding: 6px; border-radius: 50%; background: transparent; }
+.canvas-scribe-menu-colors .canvas-scribe-color-swatch-preview { position: static; display: block; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--background-modifier-border); }
+.canvas-scribe-highlighter-menu .canvas-scribe-numeric:nth-of-type(3) input { background: repeating-conic-gradient(var(--background-modifier-border) 0% 25%, transparent 0% 50%) 0 / 8px 8px; }
+.canvas-scribe-mode-menu .canvas-scribe-tip-choices { flex-direction: column; gap: 4px; }
+.canvas-scribe-mode-menu .canvas-scribe-tip-choices button { justify-content: flex-start; background: transparent; min-height: 48px; padding: 10px; }
+.canvas-scribe-mode-menu .canvas-scribe-tip-choices button svg { width: 24px; height: 24px; }
+.canvas-scribe-mode-menu > label { display: flex; gap: 10px; align-items: center; padding: 12px 0; border-top: 1px solid var(--background-modifier-border); }
+.canvas-scribe-mode-menu .canvas-scribe-destructive { margin-top: 4px; border-top: 1px solid var(--background-modifier-border); border-radius: 0; background: transparent; }
+.canvas-scribe-radial-palette.has-hero { width: 320px; height: 320px; background: var(--background-primary); box-shadow: var(--shadow-s); backdrop-filter: none; }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action {
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px; transform: translate(-50%, -50%);
+  border: 0; box-shadow: none; background: transparent; color: var(--text-normal);
+}
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action:hover { background: var(--background-modifier-hover); }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action.is-active { background: var(--background-secondary); outline: 1px solid var(--interactive-accent); }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action:disabled { opacity: .35; }
+.canvas-scribe-radial-hero { position: absolute; left: 50%; top: 43%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; width: 116px; height: 142px; border-radius: 50%; background: var(--background-secondary); pointer-events: none; }
+.canvas-scribe-radial-hero .svg-icon { width: 104px; height: 112px; }
+.canvas-scribe-radial-hero > span { font-size: 11px; color: var(--text-muted); }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-close { left: 50%; top: 71%; width: 36px; height: 36px; min-width: 36px; min-height: 36px; border: 0; box-shadow: none; background: transparent; }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs { top: auto; bottom: 21px; width: 246px; gap: 2px; padding: 3px; border-radius: 24px; background: var(--background-secondary); }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button { min-width: 0; min-height: 44px; border-radius: 22px; border: 0; box-shadow: none; background: transparent; font-size: 11px; }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button[aria-pressed="true"] { background: var(--background-primary); outline: 1px solid var(--background-modifier-border); font-weight: 600; }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-paging { top: calc(100% + 8px); }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-title { top: -30px; background: var(--background-primary); border-radius: 10px; padding: 4px 10px; }
+.canvas-scribe-size-ring.has-tool { width: 232px; height: 232px; }
+.canvas-scribe-size-tool { position: absolute; width: 116px; height: 142px; pointer-events: none; z-index: 1; }
+.canvas-scribe-size-tool svg { width: 100%; height: 100%; }
+.canvas-scribe-size-ring.has-tool output { position: absolute; bottom: 30px; z-index: 2; font-size: 16px; }
+.canvas-scribe-icon-button[data-artwork="full"] { width: 112px; height: 120px; }
+.canvas-scribe-icon-button[data-artwork="full"] .svg-icon { width: 96px; height: 96px; }
+.canvas-scribe-tool-menu, .canvas-scribe-radial-palette { font-family: var(--font-interface, system-ui, sans-serif); }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-close { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+.canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button { font-size: 12px; }
+.canvas-scribe-radial-size-value { display: flex; align-items: center; gap: 4px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.canvas-scribe-size-dot { display: block; border-radius: 50%; background: var(--text-normal); }
+.canvas-scribe-radial-favorite { display: flex; flex-direction: column; align-items: center; }
+.canvas-scribe-radial-action.has-preview .canvas-scribe-radial-favorite svg:first-child { width: 36px; height: 12px; }
+.canvas-scribe-radial-action.has-preview .canvas-scribe-radial-favorite svg:last-child { width: 36px; height: 36px; }
+.canvas-scribe-tool-menu button, .canvas-scribe-radial-palette button { font-family: inherit; }
+@media (max-width: 343px), (max-height: 399px) {
+  .canvas-scribe-radial-menu.is-open .canvas-scribe-radial-palette.has-hero {
+    left: 8px !important; top: 8px !important; transform: none; width: calc(100vw - 16px); height: auto;
+    max-height: calc(100vh - 16px); overflow: auto; border-radius: 20px; padding: 12px;
+    box-sizing: border-box; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  }
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-hero { display: none; }
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action,
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-close { position: static; transform: none; }
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs,
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-paging,
+  .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-title { position: static; transform: none; width: 100%; }
+}
 .canvas-scribe-destructive { color: var(--text-error); margin-top: 8px; }
 
 /* Handwritten notes keep document coordinates independent from viewport scale. */

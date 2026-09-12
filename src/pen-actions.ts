@@ -6,9 +6,10 @@ import type { RadialMenuAction } from "./radial-session";
 import type { DrawingTool, InkTool } from "./types";
 import type { PenType } from "./pen-types";
 import { PEN_ICONS, toolDescription } from "./tool-indicator";
-import { toolIconId } from "./tool-icons";
+import { toolIconId, toolIconSvg } from "./tool-icons";
 
 export interface PenActionsOptions {
+  quickColorCount?: number;
   document: Document;
   tool: DrawingTool;
   colors: ToolColors;
@@ -39,7 +40,7 @@ export function createPenActions(options: PenActionsOptions): RadialMenuAction[]
       children: () => {
         if (!colorTool) return [];
         const current = colors.current(colorTool, defaultColor(colorTool));
-        const swatches = [...new Set([...colors.recent(colorTool), ...paletteColors(colorTool, current)])].slice(0, 4);
+        const swatches = [...new Set([...colors.recent(colorTool), ...paletteColors(colorTool, current)])].slice(0, options.quickColorCount ?? 4);
         return [
           { id: "default-color", label: "Use tool default color", icon: "rotate-ccw", run: () => confirm(colorTool, null) },
           ...swatches.map((color) => ({ id: `color-${color.slice(1)}`, label: `Use ${color}`, icon: "circle", color,
@@ -55,7 +56,15 @@ export function createPenActions(options: PenActionsOptions): RadialMenuAction[]
       { id: "manage-favorites", label: "Save / manage favorites", icon: "settings-2",
         panel: (close) => createFavoriteManager(document, favorites, options.currentPreset, (preset) => defaultColor(preset.tool), close) },
       ...favorites.list().map((preset) => ({ id: preset.id, label: `${preset.name} · ${preset.size}px`, icon: "pencil",
-        preview: (document: Document) => favoritePreview(document, preset, defaultColor(preset.tool)),
+        preview: (document: Document) => {
+          const stroke = favoritePreview(document, preset, defaultColor(preset.tool));
+          if (!options.quickColorCount) return stroke;
+          const root = document.createElement("span"); root.className = "canvas-scribe-radial-favorite";
+          root.setAttribute("aria-hidden", "true");
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 100 100");
+          svg.innerHTML = toolIconSvg(preset.tool === "pen" ? preset.penType : `highlighter-${preset.highlighterType ?? "round"}`, "full");
+          root.style.setProperty("--canvas-scribe-tool-color", preset.color ?? defaultColor(preset.tool)); root.append(stroke, svg); return root;
+        },
         run: () => options.applyFavorite(preset) })),
     ] },
     { id: "more", label: "More", icon: "ellipsis", children: () => [

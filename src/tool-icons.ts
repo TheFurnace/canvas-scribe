@@ -77,14 +77,15 @@ const TOOL_BODIES: Partial<Record<keyof typeof TOOL_ARTWORK, string>> = {
 };
 
 export type ToolIcon = keyof typeof TOOL_ARTWORK;
-export type ToolIconStyle = "silhouette" | "tip";
+export type ToolIconStyle = "silhouette" | "tip" | "full";
 
 export function toolIconId(tool: ToolIcon, style: ToolIconStyle = "silhouette"): string {
-  return `canvas-scribe-${tool}${style === "tip" ? "-tip" : ""}`;
+  return `canvas-scribe-${tool}${style === "silhouette" ? "" : `-${style}`}`;
 }
 
 /** SVG body for Obsidian addIcon's 100-unit viewport; no theme or ink colors baked in. */
 export function toolIconSvg(tool: ToolIcon, style: ToolIconStyle = "silhouette"): string {
+  if (style !== "silhouette" && tool in FULL_TOOL_ARTWORK) return fullToolSvg(tool as keyof typeof FULL_TOOL_ARTWORK);
   const art = TOOL_ARTWORK[tool];
   const illustrated = style === "tip";
   // One clean outer contour; no stroked cutouts or stacked strokes to close up small gaps.
@@ -100,6 +101,31 @@ export function toolIconSvg(tool: ToolIcon, style: ToolIconStyle = "silhouette")
 /** Inject Obsidian addIcon in production; Storybook registers these same SVG bodies. */
 export function registerToolIcons(addIcon: (id: string, svg: string) => void): void {
   for (const tool of Object.keys(TOOL_ARTWORK) as ToolIcon[]) {
-    for (const style of ["silhouette", "tip"] as const) addIcon(toolIconId(tool, style), toolIconSvg(tool, style));
+    for (const style of ["silhouette", "tip", "full"] as const) addIcon(toolIconId(tool, style), toolIconSvg(tool, style));
   }
+}
+
+/** Original expanded tools on a 100-unit grid, optically drawn for shelves and radial centers. */
+export const FULL_TOOL_ARTWORK = {
+  ballpoint: { nib: "M43 39L48 12Q50 6 52 12L57 39Z", detail: "M48 13H52M45 31H55", collar: "M41 39H59V49H41Z", barrel: "M41 49H59L61 94H39Z" },
+  fountain: { nib: "M42 43Q29 31 40 18L50 5L60 18Q71 31 58 43Z", detail: "M50 6V27M50 27a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5", collar: "M39 43H61L63 55H37Z", barrel: "M38 55H62V94H38Z" },
+  brush: { nib: "M42 43C23 29 54 22 57 5C72 26 67 38 58 43Z", detail: "M42 37Q54 31 57 17", collar: "M41 43H59L61 56H39Z", barrel: "M39 56H61L58 94H42Z" },
+  pencil: { nib: "M37 43L50 6L63 43L56 40L50 44L44 40Z", detail: "M46 18L50 6L54 18Z", collar: "M37 43L44 40L50 44L56 40L63 43V50H37Z", barrel: "M37 50H63V94H37Z" },
+  "highlighter-round": { nib: "M43 30V17a7 7 0 0 1 14 0V30Z", detail: "M43 25H57", collar: "M40 30H60V40L65 47V54H35V47L40 40Z", barrel: "M35 54H65L67 94H33Z" },
+  "highlighter-chisel": { nib: "M39 30V17L61 7V30Z", detail: "M39 25H61", collar: "M37 30H63V40L67 47V54H33V47L37 40Z", barrel: "M33 54H67L69 94H31Z" },
+} as const;
+
+function fullToolSvg(tool: keyof typeof FULL_TOOL_ARTWORK): string {
+  const art = FULL_TOOL_ARTWORK[tool];
+  const ink = "var(--canvas-scribe-tool-color, currentColor)";
+  const coloredNib = tool === "brush" || tool.startsWith("highlighter");
+  return `<g stroke-linejoin="round" stroke-linecap="round">
+    <path d="${art.barrel}" fill="${ink}" stroke="currentColor" stroke-width="1.3"/>
+    <path d="${art.nib}" fill="${coloredNib ? ink : "var(--background-primary, #fff)"}" stroke="currentColor" stroke-width="1.4"/>
+    <path d="${art.nib}" fill="currentColor" opacity=".09"/>
+    <path d="${art.collar}" fill="var(--text-muted, currentColor)" stroke="currentColor" stroke-width="1.3"/>
+    <path d="${art.detail}" fill="none" stroke="currentColor" stroke-width="1.7"/>
+    <path d="M44 58V90" stroke="white" opacity=".3" stroke-width="4"/>
+    <path d="M56 58V90" stroke="black" opacity=".1" stroke-width="3"/>
+  </g>`;
 }

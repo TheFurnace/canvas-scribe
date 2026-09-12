@@ -4,6 +4,7 @@ export function createCircularSize(document: Document, options: {
   value: number; min: number; max: number; step: number; label: string;
   onChange: (value: number) => void; onBack: () => void; onClose: () => void;
   preview: (value: number) => Element;
+  hero?: (document: Document) => Element;
 }): HTMLElement {
   const backdrop = document.createElement("div"); backdrop.className = "canvas-scribe-size-backdrop";
   const root = createMenuShell(document, options.label, options.onClose);
@@ -12,6 +13,7 @@ export function createCircularSize(document: Document, options: {
   ring.setAttribute("role", "slider"); ring.tabIndex = 0;
   ring.setAttribute("aria-label", options.label); ring.setAttribute("aria-valuemin", String(options.min)); ring.setAttribute("aria-valuemax", String(options.max));
   const output = document.createElement("output"); ring.append(output);
+  if (options.hero) { ring.classList.add("has-tool"); ring.prepend(options.hero(document)); }
   const preview = document.createElement("div"); preview.className = "canvas-scribe-size-preview";
   let value = options.value, pointer: number | null = null, lastAngle: number | null = null;
   let continuousValue = value;

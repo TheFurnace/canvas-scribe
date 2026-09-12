@@ -43,13 +43,13 @@ export class PdfTools {
   private show(menu: HTMLElement): void { this.close(); this.menu = menu; menu.classList.add("canvas-scribe-pdf-menu"); this.root.append(menu); }
   settings(): void {
     const s = this.state, changed = () => this.actions.changed(), onClose = () => this.close();
-    if (s.activeTool === "pen") this.show(createPenMenu(this.document, { renderIcon: this.icons, type: s.penType, size: s.penSize, color: this.color(), onType: type => { s.penType = type; changed(); }, onSize: size => { s.penSize = size; changed(); }, onClose }));
-    else if (s.activeTool === "highlighter") this.show(createHighlighterMenu(this.document, { renderIcon: this.icons, type: s.highlighterType, size: s.highlighterSize, opacity: s.highlighterOpacity, color: this.color(),
+    if (s.activeTool === "pen") this.show(createPenMenu(this.document, { onColor: color => { s.toolColors.confirm("pen", color); changed(); }, onColors: () => this.colors(), renderIcon: this.icons, type: s.penType, size: s.penSize, color: this.color(), onType: type => { s.penType = type; changed(); }, onSize: size => { s.penSize = size; changed(); }, onClose }));
+    else if (s.activeTool === "highlighter") this.show(createHighlighterMenu(this.document, { onColor: color => { s.toolColors.confirm("highlighter", color); changed(); }, renderIcon: this.icons, type: s.highlighterType, size: s.highlighterSize, opacity: s.highlighterOpacity, color: this.color(),
       onType: type => { s.highlighterType = type; changed(); }, onSize: size => { s.highlighterSize = size; changed(); }, onOpacity: value => { s.highlighterOpacity = value; changed(); }, onColors: () => this.colors(), onClose }));
-    else if (s.activeTool === "eraser") this.show(createEraserMenu(this.document, { settings: s.eraserSettings, onChange: value => { s.eraserSettings = value; changed(); }, canClear: this.canClear, onClear: this.actions.clear, onClose,
+    else if (s.activeTool === "eraser") this.show(createEraserMenu(this.document, { renderIcon: this.icons, settings: s.eraserSettings, onChange: value => { s.eraserSettings = value; changed(); }, canClear: this.canClear, onClear: this.actions.clear, onClose,
       clearLabel: "Erase all Scribe ink on this page…", clearMessage: "Erase Scribe pen and highlighter ink on this page? The original PDF stays unchanged. You can undo this." }));
     else {
-      const menu = createSelectionMenu(this.document, { settings: s.selectionSettings, count: this.count, onChange: value => { s.selectionSettings = value; }, onScale: this.actions.scale, onRecolor: () => this.colors(true), onClose });
+      const menu = createSelectionMenu(this.document, { renderIcon: this.icons, settings: s.selectionSettings, count: this.count, onChange: value => { s.selectionSettings = value; }, onScale: this.actions.scale, onRecolor: () => this.colors(true), onClose });
       const remove = createAction(this.document, "Delete selected ink", () => { this.actions.remove(); this.close(); }); remove.disabled = !this.count; menu.append(remove); this.show(menu);
     }
   }

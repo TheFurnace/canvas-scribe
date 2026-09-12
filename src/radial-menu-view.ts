@@ -7,12 +7,14 @@ export interface RadialMenuItem {
   color?: string;
   inkColor?: string;
   preview?: (document: Document) => Element;
+  hero?: () => { icon: string; label: string; color?: string };
 }
 export interface RadialMenuView { root: HTMLElement; palette: HTMLElement; closeButton: HTMLButtonElement; }
 export function createRadialMenuView(document: Document, items: readonly RadialMenuItem[], renderIcon: IconRenderer,
   onAction: (id: string) => void, onClose: () => void,
   navigation: { title?: string; back?: () => void; page?: number; pages?: number; onPage?: (page: number) => void;
-    tabs?: string[]; activeTab?: number; onTab?: (index: number) => void } = {},
+    tabs?: string[]; activeTab?: number; onTab?: (index: number) => void;
+    hero?: { icon: string; label: string; color?: string }; pageId?: string } = {},
 ): RadialMenuView {
   const root = document.createElement("div");
   root.className = "canvas-scribe-radial-menu";
@@ -21,6 +23,15 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
   palette.className = "canvas-scribe-radial-palette";
   palette.setAttribute("role", "menu");
   palette.setAttribute("aria-label", navigation.title ?? "Canvas Scribe pen actions");
+  if (navigation.hero) {
+    palette.classList.add("has-hero");
+    const hero = document.createElement("div"); hero.className = "canvas-scribe-radial-hero";
+    hero.setAttribute("aria-hidden", "true");
+    renderIcon(hero, navigation.hero.icon);
+    if (navigation.hero.color) hero.style.setProperty("--canvas-scribe-tool-color", navigation.hero.color);
+    const label = document.createElement("span"); label.textContent = navigation.hero.label; hero.append(label);
+    palette.append(hero);
+  }
   const title = document.createElement("div");
   title.className = "canvas-scribe-radial-title";
   title.textContent = navigation.title ?? "Pen actions";
@@ -39,6 +50,14 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     const angle = -90 + index * (items.length > 6 ? 360 / items.length : 60);
     button.style.setProperty("--canvas-scribe-radial-angle", `${angle}deg`);
     button.style.setProperty("--canvas-scribe-radial-angle-inverse", `${-angle}deg`);
+    if (navigation.hero) {
+      const settingsAngles: Record<string, number> = { colors: 0, size: 180, undo: -130, redo: -50, "tool-settings": 145, "canvas-menu": 35 };
+      const degrees = navigation.pageId === "settings" && item.id in settingsAngles ? settingsAngles[item.id]!
+        : -200 + index * (220 / Math.max(1, items.length - 1));
+      const radians = degrees * Math.PI / 180;
+      button.style.left = `${50 + Math.cos(radians) * 39}%`;
+      button.style.top = `${47 + Math.sin(radians) * 39}%`;
+    }
     if (item.preview) { button.append(item.preview(document)); button.classList.add("has-preview"); }
     else if (item.color) {
       const swatch = document.createElement("span");
@@ -65,6 +84,7 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     tabs.setAttribute("role", "group"); tabs.setAttribute("aria-label", "Radial pages");
     navigation.tabs.forEach((label, index) => {
       const button = document.createElement("button"); button.type = "button"; button.textContent = label;
+      button.dataset.tab = String(index);
       button.setAttribute("aria-pressed", String(index === navigation.activeTab));
       button.addEventListener("click", (event) => { consume(event); navigation.onTab?.(index); }); tabs.append(button);
     });
