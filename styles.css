@@ -493,7 +493,7 @@
 }
 .canvas-scribe-radial-paging button { min-height: 40px; }
 .canvas-scribe-radial-action.has-preview svg { width: 44px; height: 28px; }
-.canvas-scribe-radial-action .canvas-scribe-color-swatch-preview { width: 28px; height: 28px; border-radius: 50%; }
+.canvas-scribe-radial-action .canvas-scribe-color-swatch-preview { position: static; display: block; margin: 0; width: 28px; height: 28px; border-radius: 50%; }
 .canvas-scribe-radial-palette[hidden] { display: none; }
 .canvas-scribe-favorites-manager {
   width: min(540px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow: auto;
@@ -637,9 +637,9 @@
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action:hover { background: var(--background-modifier-hover); }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action.is-active { background: var(--background-secondary); outline: 1px solid var(--interactive-accent); }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action:disabled { opacity: .35; }
-.canvas-scribe-radial-hero { position: absolute; left: 50%; top: 43%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; width: 116px; height: 142px; border-radius: 50%; background: var(--background-secondary); pointer-events: none; }
-.canvas-scribe-radial-hero .svg-icon { width: 104px; height: 112px; }
-.canvas-scribe-radial-hero > span { font-size: 11px; color: var(--text-muted); }
+.canvas-scribe-radial-hero { position: absolute; left: 50%; top: 43%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; width: 116px; height: 116px; overflow: hidden; border-radius: 50%; background: var(--background-secondary); pointer-events: none; }
+.canvas-scribe-radial-hero .svg-icon { width: 80px; height: 80px; }
+.canvas-scribe-radial-hero.is-ink .svg-icon { position: absolute; width: 116px; height: 142px; bottom: -48px; }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-close { left: 50%; top: 71%; width: 36px; height: 36px; min-width: 36px; min-height: 36px; border: 0; box-shadow: none; background: transparent; }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs { top: auto; bottom: 21px; width: 246px; gap: 2px; padding: 3px; border-radius: 24px; background: var(--background-secondary); }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-tabs button { min-width: 0; min-height: 44px; border-radius: 22px; border: 0; box-shadow: none; background: transparent; font-size: 11px; }
@@ -647,8 +647,8 @@
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-paging { top: calc(100% + 8px); }
 .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-title { top: -30px; background: var(--background-primary); border-radius: 10px; padding: 4px 10px; }
 .canvas-scribe-size-ring.has-tool { width: 232px; height: 232px; }
-.canvas-scribe-size-tool { position: absolute; width: 116px; height: 142px; pointer-events: none; z-index: 1; }
-.canvas-scribe-size-tool svg { width: 100%; height: 100%; }
+.canvas-scribe-size-tool { position: absolute; width: 116px; height: 116px; overflow: hidden; border-radius: 50%; background: var(--background-secondary); pointer-events: none; z-index: 1; }
+.canvas-scribe-size-tool svg { position: absolute; width: 116px; height: 142px; bottom: -48px; }
 .canvas-scribe-size-ring.has-tool output { position: absolute; bottom: 30px; z-index: 2; font-size: 16px; }
 .canvas-scribe-icon-button[data-artwork="full"] { width: 112px; height: 120px; }
 .canvas-scribe-icon-button[data-artwork="full"] .svg-icon { width: 96px; height: 96px; }
@@ -661,12 +661,21 @@
 .canvas-scribe-radial-action.has-preview .canvas-scribe-radial-favorite svg:first-child { width: 36px; height: 12px; }
 .canvas-scribe-radial-action.has-preview .canvas-scribe-radial-favorite svg:last-child { width: 36px; height: 36px; }
 .canvas-scribe-tool-menu button, .canvas-scribe-radial-palette button { font-family: inherit; }
+.canvas-scribe-radial-palette.has-control > .canvas-scribe-radial-hero { display: none; }
+.canvas-scribe-radial-control { position: absolute !important; top: 20px; left: 50%; transform: translateX(-50%); }
+.canvas-scribe-radial-control .canvas-scribe-size-ring.has-tool { width: 196px; height: 196px; }
+.canvas-scribe-radial-control .canvas-scribe-size-ring::before { inset: 12px; }
+.canvas-scribe-radial-control .canvas-scribe-size-tool { top: 20px; }
+.canvas-scribe-radial-control .canvas-scribe-size-ring output { bottom: 26px; }
+.canvas-scribe-radial-palette.has-hero.is-submenu .canvas-scribe-radial-close { top: 74%; }
+.canvas-scribe-radial-palette.has-hero.is-submenu .canvas-scribe-radial-tabs { bottom: 8px; }
 @media (max-width: 343px), (max-height: 399px) {
   .canvas-scribe-radial-menu.is-open .canvas-scribe-radial-palette.has-hero {
     left: 8px !important; top: 8px !important; transform: none; width: calc(100vw - 16px); height: auto;
     max-height: calc(100vh - 16px); overflow: auto; border-radius: 20px; padding: 12px;
     box-sizing: border-box; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
   }
+  .canvas-scribe-radial-control { position: relative !important; top: auto; left: auto; transform: none; order: -1; width: 100%; }
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-hero { display: none; }
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-action,
   .canvas-scribe-radial-palette.has-hero .canvas-scribe-radial-close { position: static; transform: none; }

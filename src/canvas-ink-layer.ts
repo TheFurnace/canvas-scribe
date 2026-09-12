@@ -713,7 +713,16 @@ export class CanvasInkLayer {
         this.scheduleSave(); this.syncControls();
       },
       undo: () => this.undo(), redo: () => this.redo(), canUndo: () => this.history.past.length > 0, canRedo: () => this.history.future.length > 0,
-      openSettings: () => this.togglePenMenu(),
+      getOpacity: () => this.toolState.activeTool === "pen" ? this.toolState.penOpacity ?? PEN_PROFILES[this.toolState.penType].opacity : this.toolState.highlighterOpacity,
+      setOpacity: (opacity) => {
+        if (this.toolState.activeTool === "pen") this.toolState.penOpacity = opacity;
+        else {
+          this.toolState.highlighterOpacity = opacity;
+          this.data.highlighterSettings = { type: this.toolState.highlighterType, size: this.toolState.highlighterSize, opacity };
+          this.scheduleSave();
+        }
+        this.syncControls();
+      },
       defaultColor: (tool) => resolveColor(document, this.getToolDefault(tool)),
       selectTool: (tool) => this.setTool(tool),
       applyFavorite: (preset) => this.applyFavorite(preset),

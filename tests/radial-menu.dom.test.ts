@@ -29,7 +29,7 @@ describe("RadialMenu DOM behavior", () => {
 
   it.each([
     ["the backdrop", () => requiredElement<HTMLElement>(".canvas-scribe-radial-menu").dispatchEvent(pointerEvent("pointerdown"))],
-    ["the close button", () => requiredElement<HTMLButtonElement>(".canvas-scribe-radial-close").click()],
+    ["outside the radial", () => document.body.dispatchEvent(pointerEvent("pointerdown"))],
     ["Escape", () => requiredElement<HTMLElement>(".canvas-scribe-radial-menu").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))],
   ])("dismisses from %s", (_description, dismiss) => {
     const onClose = vi.fn();
@@ -128,7 +128,7 @@ describe("CanvasInkLayer radial-menu integration", () => {
     const radialPen = requiredElement<HTMLElement>('.canvas-scribe-radial-action[data-action="pen-brush"]');
     expect(radialPen.getAttribute("aria-label")).toBe("Brush");
     expect(radialPen.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("#2563eb");
-    requiredElement<HTMLElement>('.canvas-scribe-radial-close').click();
+    document.body.dispatchEvent(pointerEvent("pointerdown"));
     eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 8, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5, clientX: 20, clientY: 30 }));
     const path = requiredElement<SVGPathElement>(".canvas-scribe-render-layer path");
     expect(path.getAttribute("fill")).toBe("#2563eb"); expect(path.getAttribute("opacity")).toBe("0.6");

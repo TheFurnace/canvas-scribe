@@ -11,12 +11,12 @@ import { renderStoryIcon } from "../stories/story-helpers";
 
 afterEach(() => document.body.replaceChildren());
 it("remembers only the top radial page, renders every variant, and keeps history actions open", () => {
-  let count = 1, size = 3.5;
+  let count = 1, size = 3.5, opacity = 1;
   const pages = createRadialPages({ document, tool: "pen", penType: "fountain", highlighterType: "round", eraserMode: "stroke",
     colors: new ToolColors(), favorites: new FavoritePens(), currentPreset: { tool: "pen", penType: "fountain", size, opacity: 1, color: null },
     defaultColor: () => "#111111", selectTool: vi.fn(), applyFavorite: vi.fn(), colorsChanged: vi.fn(), openCanvasMenu: vi.fn(),
     selectPen: vi.fn(), selectHighlighter: vi.fn(), selectEraser: vi.fn(), setSize: (value) => { size = value; }, getSize: () => size,
-    undo: () => { count--; }, redo: () => { count++; }, canUndo: () => count > 0, canRedo: () => count === 0, openSettings: vi.fn(),
+    undo: () => { count--; }, redo: () => { count++; }, canUndo: () => count > 0, canRedo: () => count === 0, getOpacity: () => opacity, setOpacity: (value) => { opacity = value; },
   });
   const session = new RadialSession(document, pages, vi.fn(), renderStoryIcon);
   const button = (text: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((node) => node.textContent === text)!;
@@ -27,10 +27,20 @@ it("remembers only the top radial page, renders every variant, and keeps history
   expect(action("undo").disabled).toBe(true); expect(action("redo").disabled).toBe(false);
   action("size").click();
   const ring = document.querySelector<HTMLElement>('[role="slider"]')!;
+  expect(document.activeElement).toBe(ring);
+  expect(ring.closest('.canvas-scribe-radial-palette')).not.toBeNull();
+  expect(document.querySelector('.canvas-scribe-size-backdrop')).toBeNull();
   ring.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
   expect(size).toBe(4);
-  button("Back to Settings").click();
+  document.querySelector<HTMLButtonElement>('[aria-label="Back to pen actions"]')!.click();
   expect(action("size")).toBeTruthy();
+  expect(action("tool-settings")).toBeNull();
+  action("opacity").click();
+  const opacityRing = document.querySelector<HTMLElement>('[aria-label="Tool opacity"]')!;
+  opacityRing.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+  expect(opacity).toBe(.95);
+  expect(opacityRing.isConnected).toBe(true);
+  document.querySelector<HTMLButtonElement>('[aria-label="Back to pen actions"]')!.click();
   action("colors").click(); session.close(); session.open(200, 200);
   expect(action("colors")).toBeTruthy(); expect(action("default-color")).toBeNull();
   session.close();

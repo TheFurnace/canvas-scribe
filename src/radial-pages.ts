@@ -4,7 +4,8 @@ import { HIGHLIGHTER_TYPES, type HighlighterType } from "./highlighter-types";
 import { toolIconId, toolIconSvg } from "./tool-icons";
 import type { RadialMenuAction } from "./radial-session";
 import { createCircularSize } from "./circular-size";
-import { favoritePreview } from "./favorite-manager";
+import { paletteColors } from "./colors";
+import { createColorPicker } from "./color-picker";
 
 export function createRadialPages(options: PenActionsOptions & {
   highlighterType: HighlighterType; eraserMode: "stroke" | "area";
@@ -12,13 +13,34 @@ export function createRadialPages(options: PenActionsOptions & {
   selectEraser: (mode: "stroke" | "area") => void;
   setSize: (value: number) => void; getSize: () => number;
   undo: () => void; redo: () => void; canUndo: () => boolean; canRedo: () => boolean;
-  openSettings: () => void;
+  getOpacity: () => number; setOpacity: (value: number) => void;
 }): RadialMenuAction[] {
   const existing = createPenActions({ ...options, quickColorCount: 7 });
   const hero = () => ({
     icon: toolIconId(options.tool === "pen" ? options.penType ?? "fountain" : options.tool === "highlighter" ? `highlighter-${options.highlighterType}` : options.tool === "eraser" ? `eraser-${options.eraserMode}` : "lasso", "full"),
     label: options.tool === "pen" ? PEN_PROFILES[options.penType ?? "fountain"].label : options.tool === "highlighter" ? "Highlighter" : options.tool === "eraser" ? "Eraser" : "Selection",
     color: options.tool === "pen" || options.tool === "highlighter" ? options.colors.current(options.tool, options.defaultColor(options.tool)) : undefined,
+  });
+  const colorTool = options.tool === "pen" || options.tool === "highlighter" ? options.tool : null;
+  let originalColor = "", originalSelection: string | null = null, swatches: string[] = [];
+  const confirmColor = (color: string | null) => {
+    if (colorTool) { options.colors.confirm(colorTool, color); options.colorsChanged(); }
+  };
+  const circularControl = (opacity: boolean) => createCircularSize(options.document, {
+    embedded: true, label: opacity ? "Tool opacity" : "Tool thickness", unit: opacity ? "%" : "px",
+    value: opacity ? Math.round(options.getOpacity() * 100) : options.getSize(),
+    min: opacity ? 5 : options.tool === "pen" ? 1 : 2,
+    max: opacity ? 100 : options.tool === "pen" ? 20 : 60,
+    step: opacity ? 5 : options.tool === "pen" ? 0.5 : 1,
+    onChange: opacity ? (value) => options.setOpacity(value / 100) : options.setSize,
+    onBack: () => undefined, onClose: () => undefined,
+    preview: () => options.document.createElement("span"),
+    hero: (document) => {
+      const node = document.createElement("div"); node.className = "canvas-scribe-size-tool";
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 100 100");
+      svg.innerHTML = toolIconSvg(options.tool === "pen" ? options.penType ?? "fountain" : `highlighter-${options.highlighterType}`, "full");
+      node.style.setProperty("--canvas-scribe-tool-color", hero().color!); svg.setAttribute("aria-hidden", "true"); node.append(svg); return node;
+    },
   });
   return [
     { id: "quick-page", pageId: "quick", label: "Quick tools", icon: "pencil", hero, children: () => [
@@ -33,7 +55,21 @@ export function createRadialPages(options: PenActionsOptions & {
       { id: "lasso", label: "Select ink", icon: toolIconId("lasso"), active: options.tool === "lasso", run: () => options.selectTool("lasso") },
     ] },
     { id: "settings-page", pageId: "settings", label: "Settings", icon: "settings", hero, children: () => [
-      { ...existing.find((item) => item.id === "colors")!, color: hero().color },
+      { id: "colors", label: "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
+        onEnter: () => {
+          originalColor = hero().color!; originalSelection = options.colors.selection(colorTool!);
+          swatches = [...new Set([originalColor, ...options.colors.recent(colorTool!), ...paletteColors(colorTool!, originalColor)].map((color) => color.toLowerCase()))].slice(0, 8);
+        },
+        children: () => [
+          ...swatches.map((color, index) => ({ id: `color-${color.slice(1)}`, label: index === 0 ? `Original color ${color}` : `Use ${color}`,
+            icon: "circle", color, active: color === hero().color?.toLowerCase(), keepOpen: true,
+            run: () => confirmColor(index === 0 ? originalSelection : color) })),
+          { id: "full-picker", label: "More colors...", icon: "palette", panel: (close, back) => createColorPicker(options.document, {
+            tool: colorTool!, current: hero().color!, defaultColor: options.defaultColor(colorTool!), recent: options.colors.recent(colorTool!),
+            onConfirm: (color) => { confirmColor(color); (back ?? close)(); }, onCancel: close,
+          }) },
+        ],
+      },
       { id: "size", label: "Thickness", icon: "sliders-horizontal", disabled: !options.currentPreset,
         preview: options.currentPreset ? (document) => {
           const node = document.createElement("span"); node.className = "canvas-scribe-radial-size-value";
@@ -41,22 +77,12 @@ export function createRadialPages(options: PenActionsOptions & {
           dot.style.width = dot.style.height = `${Math.min(18, Math.max(3, options.getSize()))}px`;
           node.append(dot, String(options.getSize())); return node;
         } : undefined,
-        panel: (close, back) => createCircularSize(options.document, {
-          label: "Tool thickness", value: options.getSize(), min: options.tool === "pen" ? 1 : 2,
-          max: options.tool === "pen" ? 20 : 60, step: options.tool === "pen" ? 0.5 : 1,
-          onChange: options.setSize, onBack: back ?? close, onClose: close,
-          preview: (size) => favoritePreview(options.document, { ...options.currentPreset!, size }, options.defaultColor(options.currentPreset!.tool)),
-          hero: (document) => {
-            const node = document.createElement("div"); node.className = "canvas-scribe-size-tool";
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 100 100");
-            svg.innerHTML = toolIconSvg(options.tool === "pen" ? options.penType ?? "fountain" : `highlighter-${options.highlighterType}`, "full");
-            node.style.setProperty("--canvas-scribe-tool-color", hero().color!); svg.setAttribute("aria-hidden", "true"); node.append(svg); return node;
-          },
-        }),
+        content: () => circularControl(false),
       },
+      { id: "opacity", label: "Opacity", icon: "contrast", disabled: !options.currentPreset,
+        content: () => circularControl(true) },
       { id: "undo", label: "Undo ink", icon: "undo-2", disabled: !options.canUndo(), keepOpen: true, run: options.undo },
       { id: "redo", label: "Redo ink", icon: "redo-2", disabled: !options.canRedo(), keepOpen: true, run: options.redo },
-      { id: "tool-settings", label: "Tool settings", icon: "settings-2", run: options.openSettings },
       { id: "canvas-menu", label: "Open Canvas menu", icon: "menu", run: options.openCanvasMenu },
     ] },
     { ...existing.find((item) => item.id === "favorites")!, pageId: "favorites", hero },

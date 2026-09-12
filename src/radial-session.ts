@@ -6,6 +6,8 @@ export interface RadialMenuAction extends RadialMenuItem {
   pageId?: string;
   run?: () => void;
   children?: () => readonly RadialMenuAction[];
+  onEnter?: () => void;
+  content?: () => HTMLElement;
   panel?: (close: () => void, back?: () => void) => HTMLElement;
 }
 
@@ -49,7 +51,7 @@ export class RadialSession {
   private render(focusId?: string): void {
     const topPages = this.actions.filter((item) => item.pageId);
     const top = topPages[this.topPage];
-    const items = this.parent?.children?.() ?? top?.children?.() ?? this.actions;
+    const items = this.parent?.content ? [] : this.parent?.children?.() ?? top?.children?.() ?? this.actions;
     const capacity = top ? 9 : 6;
     const pages = Math.max(1, Math.ceil(items.length / capacity));
     this.page = Math.min(this.page, pages - 1);
@@ -57,9 +59,9 @@ export class RadialSession {
     const view = createRadialMenuView(this.document, visible, this.renderIcon, (id) => {
       const item = visible.find((candidate) => candidate.id === id);
       if (!item || item.disabled) return;
-      if (item.children) { this.parent = item; this.page = 0; this.render(); }
+      if (item.children || item.content) { item.onEnter?.(); this.parent = item; this.page = 0; this.render(); }
       else if (item.panel) {
-        const panel = item.panel(() => this.close(), () => { this.parent = null; this.page = 0; this.render(item.id); });
+        const panel = item.panel(() => this.close(), () => { this.render(item.id); });
         view.palette.hidden = true;
         view.root.append(panel);
         panel.querySelector<HTMLElement>("button, input")?.focus();
@@ -80,6 +82,11 @@ export class RadialSession {
     });
     if (topPages.length) view.palette.classList.add("has-tabs");
     if (this.parent) view.palette.classList.add("is-submenu");
+    if (this.parent?.content) {
+      view.palette.classList.add("has-control");
+      view.palette.setAttribute("role", "dialog");
+      view.palette.append(this.parent.content());
+    }
     view.palette.style.left = `${this.position.x}px`;
     view.palette.style.top = `${this.position.y}px`;
     view.root.classList.add("is-open");
@@ -97,7 +104,7 @@ export class RadialSession {
       }
     }
     const focus = focusId ? view.root.querySelector<HTMLElement>(`[data-action="${focusId}"]`) : null;
-    (focus && !focus.hasAttribute("disabled") ? focus : view.closeButton).focus({ preventScroll: true });
+    (focus && !focus.hasAttribute("disabled") ? focus : view.palette.querySelector<HTMLElement>('[role=slider]') ?? view.palette.querySelector<HTMLElement>('button:not(:disabled)') ?? view.palette).focus({ preventScroll: true });
   }
 }
 

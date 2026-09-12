@@ -33,13 +33,24 @@ it("keeps all radial colors and More colors reachable, cancel transactional, and
     favorites: new FavoritePens(), currentPreset: { tool: "pen", penType: "fountain", size: 3.5, opacity: 1, color: "#2563eb" },
     defaultColor: () => "#111111", selectTool: vi.fn(), applyFavorite: vi.fn(), colorsChanged: vi.fn(), openCanvasMenu: vi.fn(),
     selectPen: vi.fn(), selectHighlighter: vi.fn(), selectEraser: vi.fn(), setSize: vi.fn(), getSize: () => 3.5,
-    undo: vi.fn(), redo: vi.fn(), canUndo: () => false, canRedo: () => false, openSettings: vi.fn() });
+    undo: vi.fn(), redo: vi.fn(), canUndo: () => false, canRedo: () => false, getOpacity: () => 1, setOpacity: vi.fn() });
   const session = new RadialSession(document, pages, vi.fn(), renderStoryIcon);
   session.open(200, 200);
   document.querySelector<HTMLButtonElement>('[data-tab="1"]')!.click();
   expect(document.activeElement?.getAttribute("data-tab")).toBe("1");
   document.querySelector<HTMLButtonElement>('[data-action="colors"]')!.click();
   expect(document.querySelector(".canvas-scribe-radial-paging")).toBeNull();
+  const colorIds = () => Array.from(document.querySelectorAll<HTMLElement>('[data-action^="color-"]')).map((node) => node.dataset.action);
+  const originalOrder = colorIds();
+  document.querySelector<HTMLButtonElement>('[data-action="color-dc2626"]')!.click();
+  expect(colors.current("pen", "#111111")).toBe("#dc2626");
+  expect(colorIds()).toEqual(originalOrder);
+  expect(document.querySelector('[data-action="color-dc2626"]')?.getAttribute("aria-checked")).toBe("true");
+  expect(document.querySelector('[data-action="default-color"]')).toBeNull();
+  document.querySelector<HTMLButtonElement>('[aria-label="Original color #2563eb"]')!.click();
+  expect(colors.current("pen", "#111111")).toBe("#2563eb");
+  expect(document.querySelector('.canvas-scribe-radial-hero > span')).toBeNull();
+  expect(document.querySelector('[aria-label="Close pen actions"]')).toBeNull();
   document.querySelector<HTMLButtonElement>('[data-action="full-picker"]')!.click();
   document.querySelector<HTMLElement>(".canvas-scribe-picker-backdrop")!
     .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));

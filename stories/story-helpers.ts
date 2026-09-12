@@ -5,6 +5,7 @@ registerToolIcons((id, svg) => registeredIcons.set(id, svg));
 
 export type IconName =
   | "sliders-horizontal"
+  | "contrast"
   | "star" | "ellipsis" | "settings-2" | "arrow-left" | "rotate-ccw"
   | "pen"
   | "brush"
@@ -22,6 +23,7 @@ export type IconName =
   | "x";
 
 const ICON_PATHS: Record<IconName, string> = {
+  contrast: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/>',
   "sliders-horizontal": '<path d="M3 6h4m4 0h10M3 12h10m4 0h4M3 18h4m4 0h10M7 3v6M17 9v6M7 15v6"/>',
   star: '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>',
   ellipsis: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',

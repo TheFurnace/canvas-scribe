@@ -5,9 +5,12 @@ export function createCircularSize(document: Document, options: {
   onChange: (value: number) => void; onBack: () => void; onClose: () => void;
   preview: (value: number) => Element;
   hero?: (document: Document) => Element;
+  embedded?: boolean;
+  unit?: string;
 }): HTMLElement {
   const backdrop = document.createElement("div"); backdrop.className = "canvas-scribe-size-backdrop";
-  const root = createMenuShell(document, options.label, options.onClose);
+  const root = options.embedded ? document.createElement("div") : createMenuShell(document, options.label, options.onClose);
+  if (options.embedded) root.className = "canvas-scribe-radial-control";
   root.style.position = "relative";
   const ring = document.createElement("div"); ring.className = "canvas-scribe-size-ring";
   ring.setAttribute("role", "slider"); ring.tabIndex = 0;
@@ -25,7 +28,8 @@ export function createCircularSize(document: Document, options: {
     control.setValue(value); options.onChange(value); sync();
   }
   function sync() {
-    output.value = String(value); ring.setAttribute("aria-valuenow", String(value));
+    output.value = `${value}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
+    ring.setAttribute("aria-valuetext", output.value);
     ring.style.setProperty("--size-angle", `${360 * (value - options.min) / (options.max - options.min)}deg`);
     preview.replaceChildren(options.preview(value));
   }
@@ -56,5 +60,6 @@ export function createCircularSize(document: Document, options: {
       : ["ArrowDown", "ArrowLeft"].includes(event.key) ? value - options.step : null;
     if (next !== null) { event.preventDefault(); update(next); }
   });
+  if (options.embedded) { root.append(ring); sync(); return root; }
   root.append(ring, preview, control.root, createAction(document, "Back to Settings", options.onBack)); backdrop.append(root); sync(); return backdrop;
 }
