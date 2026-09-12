@@ -136,3 +136,27 @@ it("rotates the embedded disk with the drag beneath a stationary value pill", ()
   ring.dispatchEvent(new PointerEvent('pointermove',{pointerId:1,clientX:0,clientY:100,bubbles:true}));
   expect(change).toHaveBeenCalledTimes(calls);
 });
+
+it("keeps fractional and out-of-range disk motion until release, then commits one valid value", () => {
+  const change = vi.fn();
+  const root = createCircularSize(document, {label:"Opacity",value:95,min:5,max:100,step:5,embedded:true,half:"right",unit:"%",onChange:change,onClose:vi.fn(),onBack:vi.fn(),preview:()=>document.createElement("span")});
+  document.body.append(root);
+  const ring=root.querySelector<HTMLElement>('[role=slider]')!;
+  ring.getBoundingClientRect=()=>({left:0,top:0,width:200,height:200} as DOMRect);
+  ring.setPointerCapture=vi.fn(); ring.hasPointerCapture=()=>true; ring.releasePointerCapture=vi.fn();
+  const move=(type:string,x:number,y:number)=>ring.dispatchEvent(new PointerEvent(type,{pointerId:1,button:0,clientX:x,clientY:y,bubbles:true}));
+  move('pointerdown',200,100); move('pointermove',200,98);
+  const fraction=Number(ring.getAttribute('aria-valuenow'));
+  expect(fraction).toBeGreaterThan(95); expect(fraction).toBeLessThan(100); expect(fraction % 5).not.toBe(0);
+  move('pointermove',100,0);
+  const beyond=Number(ring.getAttribute('aria-valuenow')); expect(beyond).toBeGreaterThan(100);
+  move('pointermove',110,0);
+  expect(Number(ring.getAttribute('aria-valuenow'))).toBeLessThan(beyond);
+  expect(Number(ring.getAttribute('aria-valuenow'))).toBeGreaterThan(100);
+  expect(change).not.toHaveBeenCalled();
+  move('pointerup',110,0);
+  expect(change).toHaveBeenCalledExactlyOnceWith(100);
+  expect(ring.getAttribute('aria-valuenow')).toBe('100');
+  expect(root.querySelectorAll('.canvas-scribe-opacity-disk')).toHaveLength(1);
+  expect(root.querySelector('[stroke-opacity]')).toBeNull();
+});

@@ -82,3 +82,11 @@ Validation: 151 tests pass, including drag direction, stationary-pill identity a
 Moved the pills outward so each inner preview center aligns with the 90 px track centerline, including the pill border offset. Track windows are now 20 px wide with rounded caps; the width scale tapers from 3 to 20 px and opacity uses the full 20 px band. Expanded the local disk box to retain the rounded edges, and increased viewport clearance for the projecting pills.
 
 Validation: 151 tests and Storybook build pass; browser reviewed wider rounded segments and measured preview placement before the final half-pixel border adjustment. Preview build and ui-ux sandbox refreshed.
+
+## Smooth bands and release-only snapping
+
+Replaced overlapping short SVG strokes with one filled width contour and a single conic opacity gradient. This removes alpha accumulation at joins. Tick marks remain separate from the continuous material bands.
+
+Pointer dragging now retains fractional, unbounded disk position and value until release. The pill displays that temporary value; its physical sample remains within renderable bounds. Release snaps/clamps once and commits a valid tool setting. Pointer cancellation or lost capture restores the starting value. Keyboard changes still commit immediately.
+
+Validation: 152 tests pass, including fractional movement, overshoot, reversing past a limit, release-only commit, and cancellation. Storybook builds. Real Obsidian ui-ux sandbox verified one width contour, one opacity gradient and zero overlapping alpha strokes; screenshot reviewed at `.canvas-scribe-sandbox/artifacts/ui-ux/smooth-disk.png`. Physical S Pen feel remains for device review.

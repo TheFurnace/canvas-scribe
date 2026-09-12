@@ -24,7 +24,7 @@ export function createCircularSize(document: Document, options: {
   if (options.hero) { ring.classList.add("has-tool"); ring.prepend(options.hero(document)); }
   const preview = document.createElement("div"); preview.className = "canvas-scribe-size-preview";
   let value = options.value, pointer: number | null = null, lastAngle: number | null = null;
-  let continuousValue = value;
+  let continuousValue = value, dragStartValue = value;
   const sweep = options.embedded ? options.half ? 164 : 300 : 360;
   const disk = options.embedded ? document.createElementNS("http://www.w3.org/2000/svg", "svg") : null;
   const scale = disk ? document.createElementNS(disk.namespaceURI, "g") : null;
@@ -32,6 +32,8 @@ export function createCircularSize(document: Document, options: {
     disk.classList.add("canvas-scribe-adjustment-disk"); disk.setAttribute("viewBox", "-6 -6 208 208"); disk.setAttribute("aria-hidden", "true");
     disk.append(scale); ring.append(disk); ring.classList.add("has-disk");
   }
+  const opacityBand = options.embedded && options.half === "right" ? document.createElement("div") : null;
+  if (opacityBand) { opacityBand.className = "canvas-scribe-opacity-disk"; ring.prepend(opacityBand); }
   function drawDisk() {
     if (!scale) return;
     const position = (value - options.min) / (options.max - options.min) * sweep;
@@ -39,15 +41,28 @@ export function createCircularSize(document: Document, options: {
     scale.setAttribute("transform", `rotate(${midpoint - position} 98 98)`);
     const point = (angle: number, radius: number) => `${98 + Math.cos(angle * Math.PI / 180) * radius} ${98 + Math.sin(angle * Math.PI / 180) * radius}`;
     const parts: Element[] = [];
-    // Extend the scale at either limit instead of wrapping maximum back to minimum.
-    for (let angle = Math.floor((position - 180) / 2) * 2; angle < position + 180; angle += 2) {
-      const fraction = Math.max(0, Math.min(1, angle / sweep));
-      const mark = document.createElementNS(disk!.namespaceURI, "path");
-      mark.setAttribute("d", `M ${point(angle, 90)} A 90 90 0 0 1 ${point(angle + 2.1, 90)}`);
-      mark.setAttribute("fill", "none"); mark.setAttribute("stroke", options.inkColor ?? "var(--text-normal)");
-      mark.setAttribute("stroke-width", String(options.half === "right" ? 20 : 3 + 17 * fraction));
-      mark.setAttribute("stroke-opacity", String(options.half === "right" ? .05 + .95 * fraction : 1));
-      parts.push(mark);
+    const start = position - 180;
+    const fraction = (angle: number) => Math.max(0, Math.min(1, angle / sweep));
+    if (opacityBand) {
+      const stops = Array.from({ length: 73 }, (_, index) => {
+        const alpha = .05 + .95 * fraction(start + index * 5);
+        return `color-mix(in srgb, ${options.inkColor ?? "var(--text-normal)"} ${alpha * 100}%, transparent) ${index * 5}deg`;
+      });
+      opacityBand.style.background = `conic-gradient(from ${start + 90}deg, ${stops.join(",")})`;
+      opacityBand.style.transform = `rotate(${midpoint - position}deg)`;
+    } else {
+      // A single filled contour has no alpha-composited joins between samples.
+      const outer: string[] = [], inner: string[] = [];
+      for (let i = 0; i <= 360; i++) {
+        const theta = start + i, halfWidth = (3 + 17 * fraction(theta)) / 2;
+        outer.push(point(theta, 90 + halfWidth)); inner.unshift(point(theta, 90 - halfWidth));
+      }
+      const band = document.createElementNS(disk!.namespaceURI, "path");
+      band.classList.add("canvas-scribe-width-band");
+      band.setAttribute("d", `M ${outer.join(" L ")} L ${inner.join(" L ")} Z`);
+      band.setAttribute("fill", options.inkColor ?? "var(--text-normal)"); parts.push(band);
+    }
+    for (let angle = Math.ceil(start / 10) * 10; angle <= position + 180; angle += 10) {
       if (angle >= 0 && angle <= sweep && angle % 10 === 0) {
         const tick = document.createElementNS(disk!.namespaceURI, "path");
         tick.setAttribute("d", `M ${point(angle, 97)} L ${point(angle, angle % 30 === 0 ? 92 : 94)}`);
@@ -64,11 +79,11 @@ export function createCircularSize(document: Document, options: {
     control.setValue(value); options.onChange(value); sync();
   }
   function sync() {
-    output.value = `${value}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
+    output.value = `${Number(value.toFixed(2))}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
     ring.setAttribute("aria-valuetext", output.value);
     ring.style.setProperty("--size-angle", `${(options.embedded ? options.half ? 164 : 300 : 360) * (value - options.min) / (options.max - options.min)}deg`);
     drawDisk();
-    preview.replaceChildren(options.preview(value));
+    preview.replaceChildren(options.preview(Math.max(options.min, Math.min(options.max, value))));
   }
   const angle = (event: PointerEvent) => {
     const box = ring.getBoundingClientRect();
@@ -76,21 +91,26 @@ export function createCircularSize(document: Document, options: {
   };
   ring.addEventListener("pointerdown", (event) => {
     if (pointer !== null || event.button !== 0) return;
-    event.preventDefault(); pointer = event.pointerId; continuousValue = value; lastAngle = angle(event); ring.setPointerCapture(pointer); ring.focus();
+    event.preventDefault(); pointer = event.pointerId; dragStartValue = value; continuousValue = value; lastAngle = angle(event); ring.setPointerCapture(pointer); ring.focus();
   });
   ring.addEventListener("pointermove", (event) => {
     if (event.pointerId !== pointer || lastAngle === null) return;
     const next = angle(event); let delta = next - lastAngle;
     if (delta > Math.PI) delta -= Math.PI * 2; if (delta < -Math.PI) delta += Math.PI * 2;
-    lastAngle = next; continuousValue = Math.max(options.min, Math.min(options.max, continuousValue + (options.embedded ? -delta : delta) / (Math.PI * (options.embedded ? options.half ? 164 : 300 : 360) / 180) * (options.max - options.min))); update(continuousValue);
+    lastAngle = next;
+    continuousValue += (options.embedded ? -delta : delta) / (Math.PI * sweep / 180) * (options.max - options.min);
+    value = continuousValue; sync();
   });
-  const end = (event: PointerEvent) => {
-    if (event.pointerId !== pointer) return;
-    if (ring.hasPointerCapture(event.pointerId)) ring.releasePointerCapture(event.pointerId);
-    pointer = null; lastAngle = null;
+  const finish = (commit: boolean) => {
+    if (pointer === null) return;
+    const id = pointer; pointer = null; lastAngle = null;
+    if (commit) update(continuousValue);
+    else { value = dragStartValue; sync(); }
+    if (ring.hasPointerCapture(id)) ring.releasePointerCapture(id);
   };
-  ring.addEventListener("pointerup", end); ring.addEventListener("pointercancel", end);
-  ring.addEventListener("lostpointercapture", () => { pointer = null; lastAngle = null; });
+  ring.addEventListener("pointerup", (event) => { if (event.pointerId === pointer) finish(true); });
+  ring.addEventListener("pointercancel", (event) => { if (event.pointerId === pointer) finish(false); });
+  ring.addEventListener("lostpointercapture", () => finish(false));
   ring.addEventListener("keydown", (event) => {
     const next = event.key === "Home" ? options.min : event.key === "End" ? options.max
       : ["ArrowUp", "ArrowRight"].includes(event.key) ? value + options.step
