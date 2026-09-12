@@ -4,7 +4,7 @@ import { createRadialMenuView, type RadialMenuItem } from "./radial-menu-view";
 export interface RadialMenuAction extends RadialMenuItem {
   keepOpen?: boolean;
   pageId?: string;
-  run?: () => void;
+  run?: (anchor?: { x: number; y: number }) => void;
   children?: () => readonly RadialMenuAction[];
   onEnter?: () => void;
   content?: () => HTMLElement;
@@ -66,7 +66,12 @@ export class RadialSession {
         view.root.append(panel);
         panel.querySelector<HTMLElement>("button, input")?.focus();
       } else if (item.keepOpen) { item.run?.(); this.render(id); }
-      else { this.close(); item.run?.(); }
+      else {
+        const button = view.palette.querySelector<HTMLElement>(`[data-action="${id}"]`);
+        const bounds = button?.getBoundingClientRect();
+        const anchor = bounds ? { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 } : undefined;
+        this.close(); item.run?.(anchor);
+      }
     }, () => this.close(), {
       title: this.parent?.label ?? top?.label ?? "Pen actions",
       hero: top?.hero?.(), pageId: this.parent ? undefined : top?.pageId,
@@ -109,7 +114,7 @@ export class RadialSession {
 }
 
 export function clampRadialMenuPosition(clientX: number, clientY: number, view: Pick<Window, "innerWidth" | "innerHeight"> | null, hasTabs = false): { x: number; y: number } {
-  const minimum = hasTabs ? 148 : 112;
+  const minimum = hasTabs ? 138 : 112;
   const maximumX = Math.max(minimum, (view?.innerWidth ?? clientX + minimum) - minimum);
   const maximumY = Math.max(minimum, (view?.innerHeight ?? clientY + minimum) - minimum - (hasTabs ? 84 : 48));
   return { x: Math.min(maximumX, Math.max(minimum, clientX)), y: Math.min(maximumY, Math.max(minimum, clientY)) };

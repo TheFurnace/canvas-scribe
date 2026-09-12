@@ -59,8 +59,8 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
       const degrees = navigation.pageId === "settings" && item.id in settingsAngles ? settingsAngles[item.id]!
         : -200 + index * (220 / Math.max(1, items.length - 1));
       const radians = degrees * Math.PI / 180;
-      button.style.left = `${50 + Math.cos(radians) * 39}%`;
-      button.style.top = `${50 + Math.sin(radians) * 39}%`;
+      button.style.left = `calc(50% + ${Math.cos(radians)} * (50% - 31px))`;
+      button.style.top = `calc(50% + ${Math.sin(radians)} * (50% - 31px))`;
     }
     if (item.preview) { button.append(item.preview(document)); button.classList.add("has-preview"); }
     else if (item.color) {

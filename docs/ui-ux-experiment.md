@@ -50,3 +50,9 @@ The radial diameter is now 280 px (previously 320 px), with matching viewport cl
 Highlighter variants share one submenu with independent left width and right opacity semicircles. Pen variants expose width only. The center tool remains the Back target, and submenu page navigation remains hidden. Half-ring input uses a 180-degree value range while retaining capture and keyboard adjustment.
 
 Validation: 150 tests pass across 31 files, including independent controls for both highlighter variants; Storybook builds. Browser dragging changed opacity from 38% to 60% with width fixed at 17 px, then width from 17 to 31 px with opacity fixed at 60%. The ui-ux sandbox build was refreshed. Physical stylus acceptance remains pending.
+
+## Button-anchored context menu and tighter spacing
+
+Native Canvas context-menu replay now uses the radial action button's viewport center, captured before dismissing the radial, while retaining the original connected Canvas target. The integration test verifies the new coordinates and one-event replay.
+
+Radial diameter is 260 px. Action centers are positioned relative to the outer edge with a fixed 31 px inset, retaining roughly 10 px outer clearance while reducing the measured gap to the selected-tool circle to 18 px. Browser inspection confirms those dimensions. All 150 tests and Storybook build pass. The ui-ux sandbox was refreshed; its native menu was not available as a DOM element for independent bounds verification.

@@ -727,7 +727,7 @@ export class CanvasInkLayer {
       selectTool: (tool) => this.setTool(tool),
       applyFavorite: (preset) => this.applyFavorite(preset),
       colorsChanged: () => this.syncControls(),
-      openCanvasMenu: () => this.openCanvasContextMenu(contextTarget, clientX, clientY),
+      openCanvasMenu: (anchor) => this.openCanvasContextMenu(contextTarget, anchor?.x ?? clientX, anchor?.y ?? clientY),
     });
     this.logger.record("canvas", "radial_menu_opened", { activeTool: this.toolState.activeTool });
     this.radialMenu = new RadialMenu(this.target.containerEl.ownerDocument, actions, () => {

@@ -135,7 +135,7 @@ describe("CanvasInkLayer radial-menu integration", () => {
     layer.dispose();
   });
 
-  it("replays one native contextmenu event on the original connected target", async () => {
+  it("opens one native context menu at the radial button while retaining the original target", async () => {
     const { layer, eventTarget } = await mountedLayer();
     const replayed = vi.fn<(event: MouseEvent) => void>();
     eventTarget.addEventListener("contextmenu", replayed);
@@ -152,11 +152,13 @@ describe("CanvasInkLayer radial-menu integration", () => {
     expect(replayed).not.toHaveBeenCalled();
 
     radialPage("Settings");
-    requiredElement<HTMLButtonElement>('[data-action="canvas-menu"]').click();
+    const menuButton = requiredElement<HTMLButtonElement>('[data-action="canvas-menu"]');
+    vi.spyOn(menuButton, "getBoundingClientRect").mockReturnValue({ left: 200, top: 80, width: 44, height: 44 } as DOMRect);
+    menuButton.click();
 
     expect(replayed).toHaveBeenCalledOnce();
     const replay = replayed.mock.calls[0]?.[0];
-    expect(replay).toMatchObject({ clientX: 81, clientY: 93, button: 2 });
+    expect(replay).toMatchObject({ clientX: 222, clientY: 102, button: 2 });
     expect(replay?.defaultPrevented).toBe(false);
     expect(document.querySelector(".canvas-scribe-radial-menu")).toBeNull();
 

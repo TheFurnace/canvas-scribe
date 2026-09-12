@@ -20,7 +20,7 @@ export interface PenActionsOptions {
   selectTool: (tool: DrawingTool) => void;
   applyFavorite: (preset: PenPreset) => void;
   colorsChanged: () => void;
-  openCanvasMenu: () => void;
+  openCanvasMenu: (anchor?: { x: number; y: number }) => void;
 }
 export function createPenActions(options: PenActionsOptions): RadialMenuAction[] {
   const { document, tool, colors, favorites, defaultColor } = options;
