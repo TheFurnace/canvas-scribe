@@ -17,8 +17,9 @@ export function createCircularSize(document: Document, options: {
   ring.setAttribute("role", "slider"); ring.tabIndex = 0;
   ring.setAttribute("aria-label", options.label); ring.setAttribute("aria-valuemin", String(options.min)); ring.setAttribute("aria-valuemax", String(options.max));
   const output = document.createElement("output");
-  if (options.half) { root.classList.add(`is-${options.half}-half`); root.append(output); }
-  else ring.append(output);
+  if (options.half) root.classList.add(`is-${options.half}-half`);
+  else if (options.embedded) root.classList.add("is-width-arc");
+  if (!options.embedded) ring.append(output);
   if (options.hero) { ring.classList.add("has-tool"); ring.prepend(options.hero(document)); }
   const preview = document.createElement("div"); preview.className = "canvas-scribe-size-preview";
   let value = options.value, pointer: number | null = null, lastAngle: number | null = null;
@@ -31,9 +32,9 @@ export function createCircularSize(document: Document, options: {
     control.setValue(value); options.onChange(value); sync();
   }
   function sync() {
-    output.value = `${options.half ? options.half === "left" ? "Width " : "Opacity " : ""}${value}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
+    output.value = `${value}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
     ring.setAttribute("aria-valuetext", output.value);
-    ring.style.setProperty("--size-angle", `${(options.half ? 180 : 360) * (value - options.min) / (options.max - options.min)}deg`);
+    ring.style.setProperty("--size-angle", `${(options.embedded ? options.half ? 164 : 300 : 360) * (value - options.min) / (options.max - options.min)}deg`);
     preview.replaceChildren(options.preview(value));
   }
   const angle = (event: PointerEvent) => {
@@ -48,7 +49,7 @@ export function createCircularSize(document: Document, options: {
     if (event.pointerId !== pointer || lastAngle === null) return;
     const next = angle(event); let delta = next - lastAngle;
     if (delta > Math.PI) delta -= Math.PI * 2; if (delta < -Math.PI) delta += Math.PI * 2;
-    lastAngle = next; continuousValue = Math.max(options.min, Math.min(options.max, continuousValue + delta / (Math.PI * (options.half ? 1 : 2)) * (options.max - options.min))); update(continuousValue);
+    lastAngle = next; continuousValue = Math.max(options.min, Math.min(options.max, continuousValue + delta / (Math.PI * (options.embedded ? options.half ? 164 : 300 : 360) / 180) * (options.max - options.min))); update(continuousValue);
   });
   const end = (event: PointerEvent) => {
     if (event.pointerId !== pointer) return;
@@ -63,6 +64,10 @@ export function createCircularSize(document: Document, options: {
       : ["ArrowDown", "ArrowLeft"].includes(event.key) ? value - options.step : null;
     if (next !== null) { event.preventDefault(); update(next); }
   });
-  if (options.embedded) { root.append(ring); sync(); return root; }
+  if (options.embedded) {
+    const pill = document.createElement("div"); pill.className = "canvas-scribe-radial-value-pill";
+    pill.setAttribute("aria-hidden", "true"); preview.className = "canvas-scribe-radial-value-preview";
+    pill.append(preview, output); root.append(ring, pill); sync(); return root;
+  }
   root.append(ring, preview, control.root, createAction(document, "Back to Settings", options.onBack)); backdrop.append(root); sync(); return backdrop;
 }

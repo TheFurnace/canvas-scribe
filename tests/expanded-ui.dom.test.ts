@@ -32,6 +32,8 @@ it("remembers only the top radial page, renders every variant, and keeps history
   expect(document.querySelector(".canvas-scribe-radial-close")).toBeNull();
   expect(document.querySelector("button.canvas-scribe-radial-hero")).not.toBeNull();
   expect(ring.closest('.canvas-scribe-radial-palette')).not.toBeNull();
+  expect(ring.closest('.is-width-arc')).not.toBeNull();
+  expect(document.querySelector('.canvas-scribe-radial-value-pill output')?.textContent).toBe("3.5px");
   expect(document.querySelector('.canvas-scribe-size-backdrop')).toBeNull();
   ring.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
   expect(size).toBe(4);

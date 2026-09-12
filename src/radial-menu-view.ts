@@ -4,6 +4,7 @@ import { createToolColor } from "./tool-indicator";
 export interface RadialMenuItem {
   id: string; label: string; icon: string;
   active?: boolean; disabled?: boolean;
+  radialAngle?: number; recentColor?: boolean;
   color?: string;
   inkColor?: string;
   preview?: (document: Document) => Element;
@@ -36,14 +37,23 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     if (navigation.hero.color) { hero.classList.add("is-ink"); hero.style.setProperty("--canvas-scribe-tool-color", navigation.hero.color); }
     palette.append(hero);
   }
-  const title = document.createElement("div");
-  title.className = "canvas-scribe-radial-title";
-  title.textContent = navigation.title ?? "Pen actions";
-  if (navigation.back) palette.append(title);
+  const recentAngles = items.filter((item) => item.recentColor).map((item) => item.radialAngle!);
+  if (recentAngles.length) {
+    const track = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    track.classList.add("canvas-scribe-radial-history-track"); track.setAttribute("viewBox", "0 0 250 250"); track.setAttribute("aria-hidden", "true");
+    const point = (degrees: number) => `${125 + 92 * Math.cos(degrees * Math.PI / 180)} ${125 + 92 * Math.sin(degrees * Math.PI / 180)}`;
+    for (const [width, color] of [[46, "var(--background-modifier-border)"], [44, "var(--background-secondary)"]] as const) {
+      const path = document.createElementNS(track.namespaceURI, "path");
+      path.setAttribute("d", `M ${point(Math.min(...recentAngles))} A 92 92 0 0 1 ${point(Math.max(...recentAngles) + .01)}`);
+      path.setAttribute("fill", "none"); path.setAttribute("stroke", color); path.setAttribute("stroke-width", String(width)); path.setAttribute("stroke-linecap", "round"); track.append(path);
+    }
+    palette.append(track);
+  }
   items.forEach((item, index) => {
     const button = document.createElement("button");
     button.className = "canvas-scribe-radial-action";
-    button.dataset.action = item.id; button.type = "button";
+    button.dataset.action = item.id;
+    if (item.recentColor) button.dataset.colorGroup = "recent"; button.type = "button";
     button.setAttribute("aria-label", item.label); button.title = item.label;
     button.setAttribute("role", typeof item.active === "boolean" ? "menuitemradio" : "menuitem");
     if (typeof item.active === "boolean") {
@@ -56,8 +66,8 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     button.style.setProperty("--canvas-scribe-radial-angle-inverse", `${-angle}deg`);
     if (navigation.hero) {
       const settingsAngles: Record<string, number> = { colors: 0, size: 180, undo: -135, redo: -45, "canvas-menu": -90 };
-      const degrees = navigation.pageId === "settings" && item.id in settingsAngles ? settingsAngles[item.id]!
-        : -200 + index * (220 / Math.max(1, items.length - 1));
+      const degrees = item.radialAngle ?? (navigation.pageId === "settings" && item.id in settingsAngles ? settingsAngles[item.id]!
+        : -200 + index * (220 / Math.max(1, items.length - 1)));
       const radians = degrees * Math.PI / 180;
       button.style.left = `calc(50% + ${Math.cos(radians)} * (50% - 33px))`;
       button.style.top = `calc(50% + ${Math.sin(radians)} * (50% - 33px))`;

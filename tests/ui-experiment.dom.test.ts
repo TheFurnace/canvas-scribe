@@ -28,7 +28,9 @@ it("applies menu quick colors to the model, preview and tool shelf without dismi
 });
 
 it("keeps all radial colors and More colors reachable, cancel transactional, and page focus stable", () => {
-  const colors = new ToolColors(); colors.confirm("pen", "#2563eb");
+  const colors = new ToolColors();
+  for (const color of ["#112233", "#445566", "#778899", "#2563eb"]) colors.confirm("pen", color);
+  const initialHistory = colors.recent("pen");
   const pages = createRadialPages({ document, tool: "pen", penType: "fountain", highlighterType: "round", eraserMode: "stroke", colors,
     favorites: new FavoritePens(), currentPreset: { tool: "pen", penType: "fountain", size: 3.5, opacity: 1, color: "#2563eb" },
     defaultColor: () => "#111111", selectTool: vi.fn(), applyFavorite: vi.fn(), colorsChanged: vi.fn(), openCanvasMenu: vi.fn(),
@@ -42,9 +44,16 @@ it("keeps all radial colors and More colors reachable, cancel transactional, and
   expect(document.querySelector(".canvas-scribe-radial-paging")).toBeNull();
   const colorIds = () => Array.from(document.querySelectorAll<HTMLElement>('[data-action^="color-"]')).map((node) => node.dataset.action);
   const originalOrder = colorIds();
+  const recentLabels = () => Array.from(document.querySelectorAll('[data-color-group="recent"]')).map((node) => node.getAttribute("aria-label"));
+  const initialRecent = recentLabels();
+  expect(initialRecent).toHaveLength(4);
+  expect(document.querySelectorAll('.canvas-scribe-radial-action')).toHaveLength(10);
+  expect(document.querySelector('.canvas-scribe-radial-title')).toBeNull();
   document.querySelector<HTMLButtonElement>('[data-action="color-dc2626"]')!.click();
   expect(colors.current("pen", "#111111")).toBe("#dc2626");
   expect(colorIds()).toEqual(originalOrder);
+  expect(recentLabels()).toEqual(initialRecent);
+  expect(colors.recent("pen")).toEqual(initialHistory);
   expect(document.querySelector('[data-action="color-dc2626"]')?.getAttribute("aria-checked")).toBe("true");
   expect(document.querySelector('[data-action="default-color"]')).toBeNull();
   document.querySelector<HTMLButtonElement>('[aria-label="Original color #2563eb"]')!.click();
@@ -58,5 +67,9 @@ it("keeps all radial colors and More colors reachable, cancel transactional, and
   session.open(200, 200);
   expect(document.querySelector('[data-action="colors"]')).not.toBeNull();
   expect(document.querySelector('[data-action="full-picker"]')).toBeNull();
+  document.querySelector<HTMLButtonElement>('[data-action="colors"]')!.click();
+  document.querySelector<HTMLButtonElement>('[data-action="color-dc2626"]')!.click();
+  expect(colors.recent("pen")).toEqual(initialHistory);
   session.close();
+  expect(colors.recent("pen")[0]).toBe("#dc2626");
 });

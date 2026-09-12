@@ -62,3 +62,11 @@ Radial diameter is 260 px. Action centers are positioned relative to the outer e
 The top-level page selector follows the lower circular arc, with a rounded SVG track and upright 44 px icon buttons. Submenus still omit page navigation; narrow layouts retain the wrapping fallback. The radial is 252 px across. Accounting for its 1 px border, browser measurement confirms 12 px between the left action button and both the inner tool circle and the outer boundary. The selected-tool circle remains 116 px.
 
 Validation: 150 tests and Storybook build pass; browser page selection and rounded arc visually reviewed. Preview and ui-ux sandbox refreshed.
+
+## Submenu refinement
+
+Removed visible submenu headings while retaining accessible names. Colors now use a fixed five-color palette plus More colors, with a separate outlined lower arc containing the opening color and up to three actual recent colors. History and its displayed snapshot remain unchanged during menu selections; only the final changed selection is recorded on leaving the submenu.
+
+Adjustment controls have 16-degree gaps between the two highlighter arcs. The pen-only width arc spans 300 degrees, leaving a gap on the right. Midpoint pills straddle each track: the inner half previews width/opacity and the outer half displays px or percent. Live keyboard/drag behavior and center-tool Back remain intact.
+
+Validation: 150 tests pass, including four history slots, fixed history during choices, final-only history recording and pen-only arc/value-pill coverage. Storybook build passes; browser review covered populated history and split highlighter pills/gaps. Preview and ui-ux sandbox refreshed. Physical stylus acceptance remains pending.

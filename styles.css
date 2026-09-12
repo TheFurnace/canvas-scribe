@@ -763,3 +763,19 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 .canvas-scribe-radial-control.is-right-half > output { right: 0; }
 .canvas-scribe-radial-control.is-left-half .canvas-scribe-size-ring:focus-visible,
 .canvas-scribe-radial-control.is-right-half .canvas-scribe-size-ring:focus-visible { box-shadow: inset 0 0 0 3px var(--text-normal); }
+
+.canvas-scribe-radial-history-track { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.canvas-scribe-radial-control.is-left-half .canvas-scribe-size-ring { background: conic-gradient(from 188deg, var(--interactive-accent) var(--size-angle), var(--background-modifier-border) 0); }
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-size-ring { background: conic-gradient(from 8deg, var(--interactive-accent) var(--size-angle), var(--background-modifier-border) 0); }
+.canvas-scribe-radial-control.is-left-half .canvas-scribe-size-ring,
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-size-ring { mask-image: conic-gradient(from 8deg, black 0deg 164deg, transparent 164deg 180deg, black 180deg 344deg, transparent 344deg); }
+.canvas-scribe-radial-control.is-width-arc .canvas-scribe-size-ring { background: conic-gradient(from 120deg, var(--interactive-accent) var(--size-angle), var(--background-modifier-border) 0); mask-image: conic-gradient(from 120deg, black 0deg 300deg, transparent 300deg); }
+.canvas-scribe-radial-value-pill { position: absolute; left: 6px; top: 50%; transform: translate(-50%, -50%); width: 64px; height: 32px; display: flex; flex-direction: row-reverse; border: 1px solid var(--background-modifier-border); border-radius: 18px; background: var(--background-primary); overflow: hidden; pointer-events: none; }
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-radial-value-pill { left: auto; right: 6px; transform: translate(50%, -50%); flex-direction: row; }
+.canvas-scribe-radial-value-pill > * { width: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.canvas-scribe-radial-value-preview { background: var(--background-secondary); }
+@media (max-width: 343px), (max-height: 399px) {
+  .canvas-scribe-radial-history-track { display: none; }
+  .canvas-scribe-radial-action[data-color-group="recent"] { outline: 1px solid var(--background-modifier-border); background: var(--background-secondary); }
+  .canvas-scribe-radial-palette.has-control .canvas-scribe-radial-control { width: 196px; }
+}

@@ -4,7 +4,7 @@ import { HIGHLIGHTER_TYPES, type HighlighterType } from "./highlighter-types";
 import { toolIconId } from "./tool-icons";
 import type { RadialMenuAction } from "./radial-session";
 import { createCircularSize } from "./circular-size";
-import { paletteColors } from "./colors";
+import { PINNED_TOOL_COLORS } from "./colors";
 import { createColorPicker } from "./color-picker";
 
 export function createRadialPages(options: PenActionsOptions & {
@@ -24,7 +24,7 @@ export function createRadialPages(options: PenActionsOptions & {
   const colorTool = options.tool === "pen" || options.tool === "highlighter" ? options.tool : null;
   let originalColor = "", originalSelection: string | null = null, swatches: string[] = [];
   const confirmColor = (color: string | null) => {
-    if (colorTool) { options.colors.confirm(colorTool, color); options.colorsChanged(); }
+    if (colorTool) { options.colors.confirm(colorTool, color, false); options.colorsChanged(); }
   };
   const circularControl = (opacity: boolean) => createCircularSize(options.document, {
     half: options.tool === "highlighter" ? opacity ? "right" : "left" : undefined,
@@ -35,7 +35,12 @@ export function createRadialPages(options: PenActionsOptions & {
     step: opacity ? 5 : options.tool === "pen" ? 0.5 : 1,
     onChange: opacity ? (value) => options.setOpacity(value / 100) : options.setSize,
     onBack: () => undefined, onClose: () => undefined,
-    preview: () => options.document.createElement("span"),
+    preview: (value) => {
+      const dot = options.document.createElement("span"); dot.className = "canvas-scribe-size-dot";
+      const size = opacity ? 18 : 4 + 18 * value / (options.tool === "pen" ? 20 : 60);
+      dot.style.width = dot.style.height = `${size}px`; dot.style.backgroundColor = hero().color!;
+      dot.style.opacity = String(opacity ? value / 100 : options.getOpacity()); return dot;
+    },
 
   });
   return [
@@ -54,13 +59,19 @@ export function createRadialPages(options: PenActionsOptions & {
       { id: "colors", label: "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
         onEnter: () => {
           originalColor = hero().color!; originalSelection = options.colors.selection(colorTool!);
-          swatches = [...new Set([originalColor, ...options.colors.recent(colorTool!), ...paletteColors(colorTool!, originalColor)].map((color) => color.toLowerCase()))].slice(0, 8);
+          swatches = [originalColor.toLowerCase(), ...options.colors.recent(colorTool!).filter((color) => color.toLowerCase() !== originalColor.toLowerCase()).slice(0, 3)];
+        },
+        onLeave: () => {
+          const selected = options.colors.selection(colorTool!);
+          if (selected !== originalSelection) options.colors.confirm(colorTool!, selected);
         },
         children: () => [
-          ...swatches.map((color, index) => ({ id: `color-${color.slice(1)}`, label: index === 0 ? `Original color ${color}` : `Use ${color}`,
+          ...PINNED_TOOL_COLORS[colorTool!].map((color, index) => ({ id: `color-${color.slice(1)}`, label: `Use ${color}`, icon: "circle", color,
+            radialAngle: -180 + index * 36, active: color === hero().color?.toLowerCase(), keepOpen: true, run: () => confirmColor(color) })),
+          ...swatches.map((color, index) => ({ id: `recent-color-${index}`, radialAngle: 144 - index * 36, recentColor: true, label: index === 0 ? `Original color ${color}` : `Recent color ${color}`,
             icon: "circle", color, active: color === hero().color?.toLowerCase(), keepOpen: true,
             run: () => confirmColor(index === 0 ? originalSelection : color) })),
-          { id: "full-picker", label: "More colors...", icon: "palette", panel: (close, back) => createColorPicker(options.document, {
+          { id: "full-picker", radialAngle: 0, label: "More colors...", icon: "palette", panel: (close, back) => createColorPicker(options.document, {
             tool: colorTool!, current: hero().color!, defaultColor: options.defaultColor(colorTool!), recent: options.colors.recent(colorTool!),
             onConfirm: (color) => { confirmColor(color); (back ?? close)(); }, onCancel: close,
           }) },

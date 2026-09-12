@@ -7,6 +7,7 @@ export interface RadialMenuAction extends RadialMenuItem {
   run?: (anchor?: { x: number; y: number }) => void;
   children?: () => readonly RadialMenuAction[];
   onEnter?: () => void;
+  onLeave?: () => void;
   content?: () => HTMLElement;
   panel?: (close: () => void, back?: () => void) => HTMLElement;
 }
@@ -42,6 +43,7 @@ export class RadialSession {
 
   close(restoreFocus = true): void {
     if (!this.rootEl) return;
+    this.parent?.onLeave?.(); this.parent = null;
     this.document.removeEventListener("pointerdown", this.dismissOutside, true);
     this.rootEl.remove(); this.rootEl = null;
     if (restoreFocus && this.restoreFocus?.isConnected) this.restoreFocus.focus({ preventScroll: true });
@@ -52,7 +54,7 @@ export class RadialSession {
     const topPages = this.actions.filter((item) => item.pageId);
     const top = topPages[this.topPage];
     const items = this.parent?.content ? [] : this.parent?.children?.() ?? top?.children?.() ?? this.actions;
-    const capacity = top ? 9 : 6;
+    const capacity = this.parent?.id === "colors" && top ? 10 : top ? 9 : 6;
     const pages = Math.max(1, Math.ceil(items.length / capacity));
     this.page = Math.min(this.page, pages - 1);
     const visible = items.slice(this.page * capacity, this.page * capacity + capacity);
@@ -75,7 +77,7 @@ export class RadialSession {
     }, () => this.close(), {
       title: this.parent?.label ?? top?.label ?? "Pen actions",
       hero: top?.hero?.(), pageId: this.parent ? undefined : top?.pageId,
-      back: this.parent ? () => { const id = this.parent!.id; this.parent = null; this.page = 0; this.render(id); } : undefined,
+      back: this.parent ? () => { const id = this.parent!.id; this.parent!.onLeave?.(); this.parent = null; this.page = 0; this.render(id); } : undefined,
       page: this.page, pages,
       onPage: (page) => { this.page = page; this.render(page > 0 ? "next-page" : "previous-page"); },
       tabs: this.parent ? [] : topPages.map((item) => ({ label: item.label, icon: item.icon })), activeTab: this.topPage,
