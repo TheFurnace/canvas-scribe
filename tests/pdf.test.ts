@@ -59,4 +59,3 @@ describe("PDF annotation document and export", () => {
     expect(pdfScreenPoint(page, 100 + px / 2, 60 + py / 2)).toEqual({ x: 100, y: 120 });
   });
 });
-

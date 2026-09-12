@@ -42,4 +42,3 @@ describe("native PDF input ownership", () => {
     const f = fixture(); f.enable(); f.session.error = "Source changed"; expect(f.input("pointerdown", 40, 80).defaultPrevented).toBe(false); expect(f.change).not.toHaveBeenCalled(); f.layer.destroy();
   });
 });
-

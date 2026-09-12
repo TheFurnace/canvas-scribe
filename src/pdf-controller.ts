@@ -106,4 +106,3 @@ export class PdfController {
   }
 }
 function message(error: unknown): string { return error instanceof Error ? error.message : "PDF annotations could not be opened. The source and companion files were preserved."; }
-

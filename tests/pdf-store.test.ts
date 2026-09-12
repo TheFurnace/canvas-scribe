@@ -91,4 +91,3 @@ describe("PDF companion save ownership and recovery", () => {
     expect(parsePdfCompanion(f.raw.get(a.path)!).strokes).toEqual(latest); expect(a.reviewing).toBe(false);
   });
 });
-
