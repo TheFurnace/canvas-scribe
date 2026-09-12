@@ -7,6 +7,7 @@ export function createCircularSize(document: Document, options: {
   hero?: (document: Document) => Element;
   embedded?: boolean;
   unit?: string;
+  half?: "left" | "right";
 }): HTMLElement {
   const backdrop = document.createElement("div"); backdrop.className = "canvas-scribe-size-backdrop";
   const root = options.embedded ? document.createElement("div") : createMenuShell(document, options.label, options.onClose);
@@ -15,7 +16,9 @@ export function createCircularSize(document: Document, options: {
   const ring = document.createElement("div"); ring.className = "canvas-scribe-size-ring";
   ring.setAttribute("role", "slider"); ring.tabIndex = 0;
   ring.setAttribute("aria-label", options.label); ring.setAttribute("aria-valuemin", String(options.min)); ring.setAttribute("aria-valuemax", String(options.max));
-  const output = document.createElement("output"); ring.append(output);
+  const output = document.createElement("output");
+  if (options.half) { root.classList.add(`is-${options.half}-half`); root.append(output); }
+  else ring.append(output);
   if (options.hero) { ring.classList.add("has-tool"); ring.prepend(options.hero(document)); }
   const preview = document.createElement("div"); preview.className = "canvas-scribe-size-preview";
   let value = options.value, pointer: number | null = null, lastAngle: number | null = null;
@@ -28,9 +31,9 @@ export function createCircularSize(document: Document, options: {
     control.setValue(value); options.onChange(value); sync();
   }
   function sync() {
-    output.value = `${value}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
+    output.value = `${options.half ? options.half === "left" ? "Width " : "Opacity " : ""}${value}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
     ring.setAttribute("aria-valuetext", output.value);
-    ring.style.setProperty("--size-angle", `${360 * (value - options.min) / (options.max - options.min)}deg`);
+    ring.style.setProperty("--size-angle", `${(options.half ? 180 : 360) * (value - options.min) / (options.max - options.min)}deg`);
     preview.replaceChildren(options.preview(value));
   }
   const angle = (event: PointerEvent) => {
@@ -45,7 +48,7 @@ export function createCircularSize(document: Document, options: {
     if (event.pointerId !== pointer || lastAngle === null) return;
     const next = angle(event); let delta = next - lastAngle;
     if (delta > Math.PI) delta -= Math.PI * 2; if (delta < -Math.PI) delta += Math.PI * 2;
-    lastAngle = next; continuousValue = Math.max(options.min, Math.min(options.max, continuousValue + delta / (Math.PI * 2) * (options.max - options.min))); update(continuousValue);
+    lastAngle = next; continuousValue = Math.max(options.min, Math.min(options.max, continuousValue + delta / (Math.PI * (options.half ? 1 : 2)) * (options.max - options.min))); update(continuousValue);
   });
   const end = (event: PointerEvent) => {
     if (event.pointerId !== pointer) return;

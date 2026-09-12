@@ -42,3 +42,11 @@ The named Obsidian sandbox remains available for hands-on review. Its generated 
 Top-level Quick tools, Settings and Favorites navigation now uses icon buttons with accessible names and tooltips in a 144 px pill. Submenus omit this navigation. The selected-tool circle is centered on the radial; in submenus it is the Back action, including thickness and opacity (a separate sibling of the slider so center input cannot drag the ring). Narrow trays retain the center-tool Back target.
 
 Validated with 148 passing tests, a successful Storybook build, browser center-coordinate measurement (zero horizontal/vertical offset), center-click return from color and thickness submenus, and narrow-layout back access. The named ui-ux sandbox was refreshed for review.
+
+## Combined width and opacity
+
+The radial diameter is now 280 px (previously 320 px), with matching viewport clamping. The context menu action occupies the top slot. The left settings action is a color/width/opacity preview circle without a numerical label. Its size scales across the selected tool's width range.
+
+Highlighter variants share one submenu with independent left width and right opacity semicircles. Pen variants expose width only. The center tool remains the Back target, and submenu page navigation remains hidden. Half-ring input uses a 180-degree value range while retaining capture and keyboard adjustment.
+
+Validation: 150 tests pass across 31 files, including independent controls for both highlighter variants; Storybook builds. Browser dragging changed opacity from 38% to 60% with width fixed at 17 px, then width from 17 to 31 px with opacity fixed at 60%. The ui-ux sandbox build was refreshed. Physical stylus acceptance remains pending.

@@ -27,6 +27,7 @@ export function createRadialPages(options: PenActionsOptions & {
     if (colorTool) { options.colors.confirm(colorTool, color); options.colorsChanged(); }
   };
   const circularControl = (opacity: boolean) => createCircularSize(options.document, {
+    half: options.tool === "highlighter" ? opacity ? "right" : "left" : undefined,
     embedded: true, label: opacity ? "Tool opacity" : "Tool thickness", unit: opacity ? "%" : "px",
     value: opacity ? Math.round(options.getOpacity() * 100) : options.getSize(),
     min: opacity ? 5 : options.tool === "pen" ? 1 : 2,
@@ -65,17 +66,21 @@ export function createRadialPages(options: PenActionsOptions & {
           }) },
         ],
       },
-      { id: "size", label: "Thickness", icon: "sliders-horizontal", disabled: !options.currentPreset,
+      { id: "size", label: options.tool === "highlighter" ? "Width and opacity" : "Thickness", icon: "sliders-horizontal", disabled: !options.currentPreset,
         preview: options.currentPreset ? (document) => {
           const node = document.createElement("span"); node.className = "canvas-scribe-radial-size-value";
           const dot = document.createElement("span"); dot.className = "canvas-scribe-size-dot";
-          dot.style.width = dot.style.height = `${Math.min(18, Math.max(3, options.getSize()))}px`;
-          node.append(dot, String(options.getSize())); return node;
+          dot.style.width = dot.style.height = `${Math.min(30, Math.max(4, 4 + 26 * options.getSize() / (options.tool === "pen" ? 20 : 60)))}px`;
+          dot.style.backgroundColor = hero().color!; dot.style.opacity = String(options.getOpacity());
+          node.append(dot); return node;
         } : undefined,
-        content: () => circularControl(false),
+        content: () => {
+          const controls = options.document.createElement("div"); controls.className = "canvas-scribe-radial-adjustments";
+          controls.append(circularControl(false));
+          if (options.tool === "highlighter") controls.append(circularControl(true));
+          return controls;
+        },
       },
-      { id: "opacity", label: "Opacity", icon: "contrast", disabled: !options.currentPreset,
-        content: () => circularControl(true) },
       { id: "undo", label: "Undo ink", icon: "undo-2", disabled: !options.canUndo(), keepOpen: true, run: options.undo },
       { id: "redo", label: "Redo ink", icon: "redo-2", disabled: !options.canRedo(), keepOpen: true, run: options.redo },
       { id: "canvas-menu", label: "Open Canvas menu", icon: "menu", run: options.openCanvasMenu },

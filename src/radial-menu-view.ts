@@ -55,7 +55,7 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     button.style.setProperty("--canvas-scribe-radial-angle", `${angle}deg`);
     button.style.setProperty("--canvas-scribe-radial-angle-inverse", `${-angle}deg`);
     if (navigation.hero) {
-      const settingsAngles: Record<string, number> = { colors: 0, size: 180, opacity: -90, undo: -135, redo: -45, "canvas-menu": 35 };
+      const settingsAngles: Record<string, number> = { colors: 0, size: 180, undo: -135, redo: -45, "canvas-menu": -90 };
       const degrees = navigation.pageId === "settings" && item.id in settingsAngles ? settingsAngles[item.id]!
         : -200 + index * (220 / Math.max(1, items.length - 1));
       const radians = degrees * Math.PI / 180;
