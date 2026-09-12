@@ -1,7 +1,7 @@
 import { createPenActions, type PenActionsOptions } from "./pen-actions";
 import { PEN_PROFILES, PEN_TYPES, type PenType } from "./pen-types";
 import { HIGHLIGHTER_TYPES, type HighlighterType } from "./highlighter-types";
-import { toolIconId, toolIconSvg } from "./tool-icons";
+import { toolIconId } from "./tool-icons";
 import type { RadialMenuAction } from "./radial-session";
 import { createCircularSize } from "./circular-size";
 import { paletteColors } from "./colors";
@@ -35,12 +35,7 @@ export function createRadialPages(options: PenActionsOptions & {
     onChange: opacity ? (value) => options.setOpacity(value / 100) : options.setSize,
     onBack: () => undefined, onClose: () => undefined,
     preview: () => options.document.createElement("span"),
-    hero: (document) => {
-      const node = document.createElement("div"); node.className = "canvas-scribe-size-tool";
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 100 100");
-      svg.innerHTML = toolIconSvg(options.tool === "pen" ? options.penType ?? "fountain" : `highlighter-${options.highlighterType}`, "full");
-      node.style.setProperty("--canvas-scribe-tool-color", hero().color!); svg.setAttribute("aria-hidden", "true"); node.append(svg); return node;
-    },
+
   });
   return [
     { id: "quick-page", pageId: "quick", label: "Quick tools", icon: "pencil", hero, children: () => [
@@ -54,7 +49,7 @@ export function createRadialPages(options: PenActionsOptions & {
         active: options.tool === "eraser" && options.eraserMode === mode, run: () => options.selectEraser(mode) })),
       { id: "lasso", label: "Select ink", icon: toolIconId("lasso"), active: options.tool === "lasso", run: () => options.selectTool("lasso") },
     ] },
-    { id: "settings-page", pageId: "settings", label: "Settings", icon: "settings", hero, children: () => [
+    { id: "settings-page", pageId: "settings", label: "Settings", icon: "sliders-horizontal", hero, children: () => [
       { id: "colors", label: "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
         onEnter: () => {
           originalColor = hero().color!; originalSelection = options.colors.selection(colorTool!);

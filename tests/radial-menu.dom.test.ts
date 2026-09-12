@@ -175,7 +175,7 @@ function requiredElement<T extends Element>(selector: string): T {
 }
 
 function radialPage(label: string): void {
-  const button = Array.from(document.querySelectorAll<HTMLButtonElement>(".canvas-scribe-radial-tabs button")).find((node) => node.textContent === label);
+  const button = Array.from(document.querySelectorAll<HTMLButtonElement>(".canvas-scribe-radial-tabs button")).find((node) => node.getAttribute("aria-label") === label);
   if (!button) throw new Error(`Missing radial page ${label}`);
   button.click();
 }

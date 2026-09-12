@@ -19,7 +19,7 @@ it("remembers only the top radial page, renders every variant, and keeps history
     undo: () => { count--; }, redo: () => { count++; }, canUndo: () => count > 0, canRedo: () => count === 0, getOpacity: () => opacity, setOpacity: (value) => { opacity = value; },
   });
   const session = new RadialSession(document, pages, vi.fn(), renderStoryIcon);
-  const button = (text: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((node) => node.textContent === text)!;
+  const button = (text: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((node) => node.getAttribute("aria-label") === text)!;
   const action = (id: string) => document.querySelector<HTMLButtonElement>(`[data-action="${id}"]`)!;
   session.open(200, 200); button("Quick tools").click();
   expect(document.querySelectorAll(".canvas-scribe-radial-action")).toHaveLength(9);
@@ -28,6 +28,9 @@ it("remembers only the top radial page, renders every variant, and keeps history
   action("size").click();
   const ring = document.querySelector<HTMLElement>('[role="slider"]')!;
   expect(document.activeElement).toBe(ring);
+  expect(document.querySelector(".canvas-scribe-radial-tabs")).toBeNull();
+  expect(document.querySelector(".canvas-scribe-radial-close")).toBeNull();
+  expect(document.querySelector("button.canvas-scribe-radial-hero")).not.toBeNull();
   expect(ring.closest('.canvas-scribe-radial-palette')).not.toBeNull();
   expect(document.querySelector('.canvas-scribe-size-backdrop')).toBeNull();
   ring.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));

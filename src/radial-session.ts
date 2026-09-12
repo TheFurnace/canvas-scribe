@@ -73,14 +73,14 @@ export class RadialSession {
       back: this.parent ? () => { const id = this.parent!.id; this.parent = null; this.page = 0; this.render(id); } : undefined,
       page: this.page, pages,
       onPage: (page) => { this.page = page; this.render(page > 0 ? "next-page" : "previous-page"); },
-      tabs: topPages.map((item) => item.label), activeTab: this.topPage,
+      tabs: this.parent ? [] : topPages.map((item) => ({ label: item.label, icon: item.icon })), activeTab: this.topPage,
       onTab: (index) => {
         this.topPage = index; this.parent = null; this.page = 0;
         lastPage.set(this.document, topPages[index]!.pageId!); this.render();
         this.rootEl?.querySelector<HTMLElement>(`[data-tab="${index}"]`)?.focus({ preventScroll: true });
       },
     });
-    if (topPages.length) view.palette.classList.add("has-tabs");
+    if (topPages.length && !this.parent) view.palette.classList.add("has-tabs");
     if (this.parent) view.palette.classList.add("is-submenu");
     if (this.parent?.content) {
       view.palette.classList.add("has-control");

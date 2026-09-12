@@ -36,3 +36,9 @@ The named Obsidian sandbox remains available for hands-on review. Its generated 
 - Thickness and opacity use an inline circular slider in the same radial, with live values, keyboard focus, arrow/Home/End support and continuous pointer capture. No separate thickness/opacity popup.
 - Final checks: 148 tests across 31 files pass; Storybook builds. Browser review covered light colors, dark opacity and 320 x 640 layout (304 px palette, 196 px slider, no horizontal overflow).
 - Refreshed real Obsidian disposable ui-ux sandbox: color selection stayed open, swatch order stayed fixed, original default color restored, and inline opacity changed to 95% with matching toolbar state and slider focus. Screenshot: `.canvas-scribe-sandbox/artifacts/ui-ux/radial-opacity-review.png`. This is desktop DOM-driven host evidence; physical S Pen gesture acceptance remains pending.
+
+## Compact radial navigation
+
+Top-level Quick tools, Settings and Favorites navigation now uses icon buttons with accessible names and tooltips in a 144 px pill. Submenus omit this navigation. The selected-tool circle is centered on the radial; in submenus it is the Back action, including thickness and opacity (a separate sibling of the slider so center input cannot drag the ring). Narrow trays retain the center-tool Back target.
+
+Validated with 148 passing tests, a successful Storybook build, browser center-coordinate measurement (zero horizontal/vertical offset), center-click return from color and thickness submenus, and narrow-layout back access. The named ui-ux sandbox was refreshed for review.
