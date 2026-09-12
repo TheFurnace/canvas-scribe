@@ -114,3 +114,25 @@ it.each(["round", "chisel"] as const)("keeps %s highlighter width and opacity in
   expect(document.querySelector<HTMLElement>('[data-action="size"] .canvas-scribe-size-dot')!.style.opacity).toBe("0.45");
   session.close();
 });
+
+it("rotates the embedded disk with the drag beneath a stationary value pill", () => {
+  const change = vi.fn();
+  const root = createCircularSize(document, {label: "Opacity", value:75, min:0, max:100, step:1,
+    embedded:true, half:"right", unit:"%", onChange:change,onClose:vi.fn(),onBack:vi.fn(),preview:()=>document.createElement("span")});
+  document.body.append(root);
+  const ring = root.querySelector<HTMLElement>('[role=slider]')!;
+  const pill = root.querySelector('.canvas-scribe-radial-value-pill')!;
+  const disk = root.querySelector('.canvas-scribe-adjustment-disk g')!;
+  const before = Number(disk.getAttribute('transform')!.match(/rotate\(([-\d.]+)/)![1]);
+  ring.getBoundingClientRect = () => ({left:0,top:0,width:200,height:200} as DOMRect);
+  ring.setPointerCapture = vi.fn(); ring.hasPointerCapture = () => true; ring.releasePointerCapture = vi.fn();
+  ring.dispatchEvent(new PointerEvent('pointerdown',{pointerId:1,button:0,clientX:200,clientY:100,bubbles:true}));
+  ring.dispatchEvent(new PointerEvent('pointermove',{pointerId:1,clientX:100,clientY:200,bubbles:true}));
+  expect(Number(ring.getAttribute('aria-valuenow'))).toBeLessThan(75);
+  expect(Number(disk.getAttribute('transform')!.match(/rotate\(([-\d.]+)/)![1])).toBeGreaterThan(before);
+  expect(root.querySelector('.canvas-scribe-radial-value-pill')).toBe(pill);
+  ring.dispatchEvent(new PointerEvent('pointercancel',{pointerId:1,bubbles:true}));
+  const calls = change.mock.calls.length;
+  ring.dispatchEvent(new PointerEvent('pointermove',{pointerId:1,clientX:0,clientY:100,bubbles:true}));
+  expect(change).toHaveBeenCalledTimes(calls);
+});

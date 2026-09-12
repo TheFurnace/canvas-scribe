@@ -779,3 +779,8 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
   .canvas-scribe-radial-action[data-color-group="recent"] { outline: 1px solid var(--background-modifier-border); background: var(--background-secondary); }
   .canvas-scribe-radial-palette.has-control .canvas-scribe-radial-control { width: 196px; }
 }
+
+/* The masked window and value pill stay fixed while the material scale rotates. */
+.canvas-scribe-radial-control .canvas-scribe-size-ring.has-disk { background: var(--background-secondary); cursor: grab; }
+.canvas-scribe-radial-control .canvas-scribe-size-ring.has-disk:active { cursor: grabbing; }
+.canvas-scribe-adjustment-disk { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }

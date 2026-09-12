@@ -28,6 +28,7 @@ export function createRadialPages(options: PenActionsOptions & {
   };
   const circularControl = (opacity: boolean) => createCircularSize(options.document, {
     half: options.tool === "highlighter" ? opacity ? "right" : "left" : undefined,
+    inkColor: hero().color,
     embedded: true, label: opacity ? "Tool opacity" : "Tool thickness", unit: opacity ? "%" : "px",
     value: opacity ? Math.round(options.getOpacity() * 100) : options.getSize(),
     min: opacity ? 5 : options.tool === "pen" ? 1 : 2,

@@ -8,6 +8,7 @@ export function createCircularSize(document: Document, options: {
   embedded?: boolean;
   unit?: string;
   half?: "left" | "right";
+  inkColor?: string;
 }): HTMLElement {
   const backdrop = document.createElement("div"); backdrop.className = "canvas-scribe-size-backdrop";
   const root = options.embedded ? document.createElement("div") : createMenuShell(document, options.label, options.onClose);
@@ -24,6 +25,37 @@ export function createCircularSize(document: Document, options: {
   const preview = document.createElement("div"); preview.className = "canvas-scribe-size-preview";
   let value = options.value, pointer: number | null = null, lastAngle: number | null = null;
   let continuousValue = value;
+  const sweep = options.embedded ? options.half ? 164 : 300 : 360;
+  const disk = options.embedded ? document.createElementNS("http://www.w3.org/2000/svg", "svg") : null;
+  const scale = disk ? document.createElementNS(disk.namespaceURI, "g") : null;
+  if (disk && scale) {
+    disk.classList.add("canvas-scribe-adjustment-disk"); disk.setAttribute("viewBox", "0 0 196 196"); disk.setAttribute("aria-hidden", "true");
+    disk.append(scale); ring.append(disk); ring.classList.add("has-disk");
+  }
+  function drawDisk() {
+    if (!scale) return;
+    const position = (value - options.min) / (options.max - options.min) * sweep;
+    const midpoint = options.half === "right" ? 0 : 180;
+    scale.setAttribute("transform", `rotate(${midpoint - position} 98 98)`);
+    const point = (angle: number, radius: number) => `${98 + Math.cos(angle * Math.PI / 180) * radius} ${98 + Math.sin(angle * Math.PI / 180) * radius}`;
+    const parts: Element[] = [];
+    // Extend the scale at either limit instead of wrapping maximum back to minimum.
+    for (let angle = Math.floor((position - 180) / 2) * 2; angle < position + 180; angle += 2) {
+      const fraction = Math.max(0, Math.min(1, angle / sweep));
+      const mark = document.createElementNS(disk!.namespaceURI, "path");
+      mark.setAttribute("d", `M ${point(angle, 90)} A 90 90 0 0 1 ${point(angle + 2.1, 90)}`);
+      mark.setAttribute("fill", "none"); mark.setAttribute("stroke", options.inkColor ?? "var(--text-normal)");
+      mark.setAttribute("stroke-width", String(options.half === "right" ? 12 : 2 + 10 * fraction));
+      mark.setAttribute("stroke-opacity", String(options.half === "right" ? .05 + .95 * fraction : 1));
+      parts.push(mark);
+      if (angle >= 0 && angle <= sweep && angle % 10 === 0) {
+        const tick = document.createElementNS(disk!.namespaceURI, "path");
+        tick.setAttribute("d", `M ${point(angle, 97)} L ${point(angle, angle % 30 === 0 ? 92 : 94)}`);
+        tick.setAttribute("stroke", "var(--text-muted)"); tick.setAttribute("stroke-width", "1"); parts.push(tick);
+      }
+    }
+    scale.replaceChildren(...parts);
+  }
   const control = createNumericControl(document, {
     ...options, unit: "units", onChange: (next) => update(next),
   });
@@ -35,6 +67,7 @@ export function createCircularSize(document: Document, options: {
     output.value = `${value}${options.unit ?? ""}`; ring.setAttribute("aria-valuenow", String(value));
     ring.setAttribute("aria-valuetext", output.value);
     ring.style.setProperty("--size-angle", `${(options.embedded ? options.half ? 164 : 300 : 360) * (value - options.min) / (options.max - options.min)}deg`);
+    drawDisk();
     preview.replaceChildren(options.preview(value));
   }
   const angle = (event: PointerEvent) => {
@@ -49,7 +82,7 @@ export function createCircularSize(document: Document, options: {
     if (event.pointerId !== pointer || lastAngle === null) return;
     const next = angle(event); let delta = next - lastAngle;
     if (delta > Math.PI) delta -= Math.PI * 2; if (delta < -Math.PI) delta += Math.PI * 2;
-    lastAngle = next; continuousValue = Math.max(options.min, Math.min(options.max, continuousValue + delta / (Math.PI * (options.embedded ? options.half ? 164 : 300 : 360) / 180) * (options.max - options.min))); update(continuousValue);
+    lastAngle = next; continuousValue = Math.max(options.min, Math.min(options.max, continuousValue + (options.embedded ? -delta : delta) / (Math.PI * (options.embedded ? options.half ? 164 : 300 : 360) / 180) * (options.max - options.min))); update(continuousValue);
   });
   const end = (event: PointerEvent) => {
     if (event.pointerId !== pointer) return;

@@ -70,3 +70,9 @@ Removed visible submenu headings while retaining accessible names. Colors now us
 Adjustment controls have 16-degree gaps between the two highlighter arcs. The pen-only width arc spans 300 degrees, leaving a gap on the right. Midpoint pills straddle each track: the inner half previews width/opacity and the outer half displays px or percent. Live keyboard/drag behavior and center-tool Back remain intact.
 
 Validation: 150 tests pass, including four history slots, fixed history during choices, final-only history recording and pen-only arc/value-pill coverage. Storybook build passes; browser review covered populated history and split highlighter pills/gaps. Preview and ui-ux sandbox refreshed. Physical stylus acceptance remains pending.
+
+## Rotating adjustment disks
+
+The segmented windows and selector pills now remain stationary while an ink scale rotates underneath. Width uses a tapered band; opacity uses a constant-width band with varying transparency, both in the selected ink color. Tick marks make rotation visible. Drag direction follows disk motion, and the scale clamps at the limits instead of wrapping maximum to minimum. Keyboard adjustments and pointer cancellation remain supported.
+
+Validation: 151 tests pass, including drag direction, stationary-pill identity and capture cancellation; Storybook builds. Browser dragging changed opacity from 38% to 10% while width stayed 17 px, moved the scale rotation from -56.97 to -8.63 degrees, and left the pill bounds unchanged. Preview and ui-ux sandbox refreshed; physical stylus feel remains for device review.
