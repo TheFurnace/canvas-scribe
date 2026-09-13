@@ -50,6 +50,8 @@ The launcher prints a local debugging endpoint that browser-capable agents can a
 
 Run the Obsidian-hosted component workshop at `http://localhost:6006`:
 
+Start with **Canvas Scribe / Style Guide / 01 Foundations** to explore how theme, ink, typography and spacing build into elements, controls, components and surface layouts. The [style guide](docs/style-guide.md) explains the rules and review proposals; the [component inventory](docs/component-inventory.md) maps them to production sources.
+
 ```sh
 pnpm storybook
 ```

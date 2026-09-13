@@ -1,34 +1,40 @@
 # Canvas Scribe component inventory
 
-FER-46 historical baseline · audited against main 7222be4 on 2026-09-08. “Current” in the table below describes that baseline, not this branch or device validation. Desired rules are in [the style guide](style-guide.md). The FER-51 branch now implements the shared menus, original tool icons, three radial pages, circular thickness control, quick colors, highlighter settings, area eraser, and selection modes/transforms. See [shared UI adoption and remaining acceptance](shared-ui-tools.md) for the current implementation, measurements, and host/device gaps.
+FER-77 · baseline `3fc6dc7` from colors PR #24. Read alongside the [style guide](style-guide.md). This replaces the historical FER-46 inventory; Git history retains that audit.
 
-| Area | Current production source | Current stories | Gap / next owner |
+The visual guide progresses from foundations to surface layouts. Production examples retain their real styling; labelled target samples show proposed corrections separately.
+
+| Level | Ingredient/component | Production source | Guide location / further story |
 | --- | --- | --- | --- |
-| Toolbar | `src/canvas-controls.ts`; integration in `canvas-ink-layer.ts` | Toolbar; Pen Menu | Native Canvas control classes; only pen repeat-tap opens settings. Shared sizing, states, and activation: FER-51 |
-| Tool identity | `src/tool-indicator.ts` | Toolbar variants | Generic host IDs and separate story SVG fixtures. Shared original silhouettes + matching settings illustrations: FER-49 |
-| Pen settings | `src/pen-menu.ts`, `src/pen-types.ts` | Pen Menu | Four pen types, stroke previews, linear thickness slider. No illustrated tips; fixed sizes/radii mixed with host tokens. FER-49/51 |
-| Highlighter settings | State and actions in `canvas-ink-layer.ts`, `pen-actions.ts` | Ink; Color Picker | Dedicated type/width/opacity menu and over-text preview: FER-42 |
-| Eraser settings | Gesture/render orchestration in `canvas-ink-layer.ts` | Toolbar; Radial Menu | Whole-stroke baseline; area mode and highlighter-only filter: FER-23 |
-| Selection | `src/selection.ts`, SVG affordances in `canvas-ink-layer.ts` | Toolbar lasso state | Lasso path/bounds and selected glow; reusable resize handles and isolated selection-state stories absent. FER-22/51; mixed objects FER-57 |
-| Radial shell | `src/radial-menu-view.ts`, `radial-menu.ts`, `radial-session.ts` | Radial Menu | Six fixed positions, nested actions, collection paging. Three top-level tabs/swipes and session memory are not implemented. FER-51 |
-| Radial actions | `src/pen-actions.ts` | Radial Menu | Existing Pen/Highlighter/Eraser, Colors, Favorites, More hierarchy. Variant slots, circular size selector and palette redesign: FER-51 with tool issues |
-| Quick-color drawer | `canvas-ink-layer.ts` | Toolbar palette state | Inline builder; extract/shared controls and stronger current/default/recent hierarchy: FER-39/51 |
-| Full picker | `src/color-picker.ts`, `colors.ts` | Color Picker | Production Swatches/Spectrum, pending edits, Done/Cancel, defaults/recent colors. Preserve transactional behavior; unify shell/focus: FER-51 |
-| Favorites | `src/favorite-manager.ts`, `favorite-pens.ts` | Radial Menu empty/paged favorites | Production preset rows/editor; no dedicated manager state story. Preserve save/cancel semantics; shared fields/dialog and new top-level page: FER-51 |
-| Popup positioning | `src/popover.ts`; lifecycle in `canvas-ink-layer.ts` | Pen Menu | Reusable placement math, separate dismissal/focus handling. Standardize shell and gesture dismissal: FER-51 |
-| Dialogs/destructive actions | Picker/favorite backdrops; host UI in `src/main.ts` | Picker; Diagnostics | Audit keyboard focus/restore, validation, destructive labels and empty states before shared adoption. FER-51 |
-| Handwriting hint | `src/handwriting-affordance.ts` | Handwriting Affordance | Existing theme-based outline/hint; preserve native text and pen routing |
-| Diagnostics | `src/input-diagnostics.ts`, `debug-report.ts` | Diagnostics | Secondary support UI should inherit typography/focus tokens |
-| PDF / handwritten-note controls | No production adapters in this baseline | None | Apply same component vocabulary when FER-53/55 adapters exist; do not claim host integration from Canvas stories |
+| Foundation | Theme roles, typography, dimensions | `styles.css`; host Obsidian CSS | 01 Foundations |
+| Foundation | Pen/highlighter ink palettes and semantic defaults | `src/colors.ts`; surface default resolvers | 01 Foundations / Color Curation |
+| Element | Original tool artwork | `src/tool-icons.ts` | 02 Basic elements / Tool Icons |
+| Element | Ink indicators | `src/tool-indicator.ts` | 02 Basic elements / Toolbar |
+| Element | Labels, values, boundaries and state marks | `src/ui-controls.ts`; `styles.css` | 02 Basic elements |
+| Control | Tool icon button | `src/tool-icon-button.ts` | 03 Controls |
+| Control | Toolbar actions and synchronization | `src/canvas-controls.ts` | 05 Surface layouts / Toolbar |
+| Control | Swatches, actions and numeric controls | `src/ui-controls.ts` | 02 Basic elements / 03 Controls |
+| Control | Pen/highlighter previews | `src/pen-menu.ts`; `src/highlighter-menu.ts`; `src/geometry.ts` | 03 Controls / Pen Menu / Highlighter Menu |
+| Control | Circular width/opacity | `src/circular-size.ts` | 04 Components / Radial Menu |
+| Component | Shared tool-menu shell and composition | `src/ui-controls.ts`; `src/tool-suite.ts` | 04 Components |
+| Component | Pen/highlighter settings | `src/pen-menu.ts`; `src/highlighter-menu.ts`; `src/tool-menu-colors.ts` | 04 Components |
+| Component | Eraser/selection settings | `src/eraser-menu.ts`; `src/selection-menu.ts` | Expanded Tools |
+| Component | Color drawer | `src/quick-colors.ts`; `src/tool-suite.ts` | 04 Components / Quick Colors |
+| Component | Full picker | `src/color-picker.ts` | 04 Components / Color Picker |
+| Component | Radial shell, pages and color arc | `src/radial-menu-view.ts`; `src/radial-session.ts`; `src/radial-pages.ts`; `src/radial-colors.ts` | 04 Components / Radial Menu |
+| Component | Favorites | `src/favorite-manager.ts`; `src/favorite-pens.ts` | 04 Components radial / Favorite Manager |
+| Composition | Popup placement and lifecycle | `src/popover.ts`; view adapters | Host integration review |
+| Surface | Global tool preference state | `src/ink-tool-state.ts`; `src/tool-suite.ts` | 05 Surface layouts / Shared Tools |
+| Surface | Canvas | `src/canvas-ink-layer.ts`; `src/canvas-controls.ts` | 05 Surface layouts / Toolbar; real host for native behavior |
+| Surface | Handwritten note | `src/handwritten-note-editor.ts`; renderer and embeds | 05 Surface layouts / Handwritten Note |
+| Surface | PDF annotation | `src/pdf-tools.ts`; PDF adapter | 05 Surface layouts / PDF Tools; real native viewer review |
 
-## Audit findings
+## Proposed consistency work
 
-- Styles already use Obsidian colors, but spacing, typography, radii, and shadows mix literals with tokens. Pen menu has 44 px minimum buttons, radial buttons use 50 px, toolbar inherits host sizing, and radial paging has 40 px minimum height.
-- Selected toolbar/radial buttons use accent fill; pen choices use a border/tinted background. Disabled opacity varies. Define semantics first, then harmonize treatments without obscuring ink color.
-- Current production pen types exist in this baseline; older rollback notes do not describe current main.
-- Storybook imports production DOM builders, but icons use local fixtures and host JavaScript is not running. The mobile fixture is capped at 430 px: it is a narrow-layout example, not a Galaxy tablet viewport or device validation.
-- No production circular slider, three-page radial navigation, or complete original icon family exists yet. The draft records their contract; implementation belongs to linked delivery work.
+P1 spacing roles, P2 floating-shell geometry/elevation, P3 independent selected/focus treatments, and P4 focus restoration are described in the guide's review register. They are not hidden CSS overrides on production samples. The guide does not claim those migrations are complete.
 
-## Coverage to add during adoption
+## Coverage boundaries
 
-Every interactive component: light/dark, desktop/tablet, keyboard focus, selected, disabled, large text, long labels, and viewport edges. Add dedicated favorites edit/error/empty cases, selection handles at different document zooms, radial overflow and page-memory cases, circular-slider seam/cancel/keyboard cases, and picker cancel/confirm return paths. Keep stories tied to production builders; do not duplicate implementation markup to make a preview look complete.
+The guide's interactive examples use temporary local state. Component builders own their rendered behavior; the fixture supplies document-independent callbacks, disabled history where there is no document, and cleanup. Light/dark links work in a standalone preview as well as Storybook. The narrow fixture constrains the guide to 390 px; a mobile story is not physical Galaxy validation.
+
+Dedicated stories remain appropriate for long documents, selection transforms, favorites error/empty states and radial edge cases. The guide explains how their parts compose; it does not replace full interaction, accessibility, real-host or physical-device acceptance.
