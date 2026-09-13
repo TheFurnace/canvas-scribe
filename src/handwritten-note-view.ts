@@ -1,5 +1,6 @@
 import { Notice, setIcon, TextFileView, type TFile, type WorkspaceLeaf } from "obsidian";
 import { HandwrittenNoteEditor } from "./handwritten-note-editor";
+import { FavoritePens } from "./favorite-pens";
 import { createHandwrittenNote, parseHandwrittenNote, serializeHandwrittenNote, UnsupportedHandwrittenNoteError } from "./handwritten-note";
 
 export const HANDWRITTEN_NOTE_VIEW_TYPE = "canvas-scribe-handwritten-note";
@@ -10,7 +11,7 @@ export class HandwrittenNoteView extends TextFileView {
   private error: HTMLElement | null = null;
   private rawData = serializeHandwrittenNote(createHandwrittenNote());
 
-  constructor(leaf: WorkspaceLeaf) { super(leaf); }
+  constructor(leaf: WorkspaceLeaf, private readonly favorites = new FavoritePens()) { super(leaf); }
   getViewType(): string { return HANDWRITTEN_NOTE_VIEW_TYPE; }
   getDisplayText(): string { return this.file?.basename ?? "Handwritten note"; }
   getIcon(): string { return "pencil"; }
@@ -24,7 +25,7 @@ export class HandwrittenNoteView extends TextFileView {
       this.error?.remove(); this.error = null;
       if (this.editor) this.editor.setDocument(note, clear);
       else {
-        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, (changed) => { if (!this.editable) return; this.rawData = serializeHandwrittenNote(changed); this.requestSave(); }, setIcon);
+        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, (changed) => { if (!this.editable) return; this.rawData = serializeHandwrittenNote(changed); this.requestSave(); }, setIcon, false, this.favorites);
         this.contentEl.replaceChildren(this.editor.root);
       }
       this.editable = true;

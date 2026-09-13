@@ -27,13 +27,6 @@
 .canvas-scribe-pen-types button:focus-visible {
   outline: 2px solid var(--interactive-accent); outline-offset: 3px;
 }
-.canvas-scribe-icon-button[aria-pressed="true"]::after,
-.canvas-scribe-controls [data-action]:not([data-action="color"]).is-active::before,
-.canvas-scribe-radial-action.is-active::after {
-  content: ""; position: absolute; right: 3px; top: 3px; width: 5px; height: 3px;
-  border-left: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg); pointer-events: none;
-}
 .canvas-scribe-controls [data-action] { position: relative; }
 .canvas-scribe-controls .canvas-scribe-tool-icon .svg-icon { width: 24px; height: 24px; }
 .canvas-scribe-pen-types .canvas-scribe-pen-artwork {
@@ -666,7 +659,12 @@
 button.canvas-scribe-radial-hero { pointer-events: auto; border: 0; padding: 0; box-shadow: none; z-index: 2; background: var(--background-secondary); }
 button.canvas-scribe-radial-hero:hover { background: linear-gradient(var(--background-modifier-hover), var(--background-modifier-hover)), var(--background-secondary); }
 button.canvas-scribe-radial-hero:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 3px; }
-.canvas-scribe-radial-tabs .svg-icon { width: 20px; height: 20px; }
+.canvas-scribe-radial-tabs button { display: inline-flex; align-items: center; justify-content: center; }
+.canvas-scribe-radial-tabs button .svg-icon { --icon-size: 24px; width: 24px; height: 24px; flex: 0 0 24px; }
+.is-mobile .canvas-scribe-radial-tabs button .svg-icon { --icon-size: 28px; width: 28px; height: 28px; flex-basis: 28px; }
+@media (pointer: coarse) {
+  .canvas-scribe-radial-tabs button .svg-icon { --icon-size: 28px; width: 28px; height: 28px; flex-basis: 28px; }
+}
 .canvas-scribe-radial-control { position: absolute !important; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 .canvas-scribe-radial-control .canvas-scribe-size-ring { width: 196px; height: 196px; }
 .canvas-scribe-radial-control .canvas-scribe-size-ring::before { inset: 12px; }
@@ -701,7 +699,6 @@ button.canvas-scribe-radial-hero:focus-visible { outline: 2px solid var(--intera
 .canvas-scribe-note-editor { position: relative; height: 100%; display: flex; flex-direction: column; color: var(--text-normal); background: var(--background-primary); }
 .canvas-scribe-note-toolbar { position: absolute; top: 12px; right: 12px; max-height: calc(100% - 24px); overflow-y: auto; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); box-shadow: var(--shadow-s); background: var(--background-primary); }
 .canvas-scribe-note-toolbar .canvas-scribe-controls { display: flex; flex-direction: column; }
-.canvas-scribe-note-toolbar [data-action="color"] { display: none; }
 .canvas-scribe-note-text-tool { width: 36px; height: 36px; font: 600 20px/1 var(--font-interface); }
 .canvas-scribe-note-text-tool.is-active { color: var(--text-on-accent); background: var(--interactive-accent); }
 .canvas-scribe-note-zoom { display: flex; flex-direction: column; gap: 4px; }

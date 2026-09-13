@@ -18,7 +18,7 @@ function fixture(long = false): HandwrittenNoteDocument {
 
 function editorStory(long = false): HTMLElement {
   const host = document.createElement("div"); host.style.cssText = "position:absolute;inset:0;display:flex;flex-direction:column;background:var(--background-primary)";
-  const note = fixture(long); const editor = new HandwrittenNoteEditor(document, note, () => undefined, renderStoryIcon, true);
+  const note = fixture(long); const editor = new HandwrittenNoteEditor(document, note, () => undefined, renderStoryIcon, true, undefined, host);
   const hint = document.createElement("p"); hint.className = "canvas-scribe-story-hint"; hint.textContent = "Desktop preview: mouse gestures stand in for the stylus. Try Text, Lasso, resize, Delete, Undo, zoom, and scrolling.";
   editor.root.style.cssText = "flex:1;min-height:0;height:auto";
   host.append(hint, editor.root); return host;

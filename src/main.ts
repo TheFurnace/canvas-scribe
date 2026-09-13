@@ -24,9 +24,6 @@ export default class CanvasScribePlugin extends Plugin {
 
   async onload(): Promise<void> {
     registerToolIcons(addIcon);
-    this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf));
-    this.registerExtensions([HANDWRITTEN_NOTE_EXTENSION], HANDWRITTEN_NOTE_VIEW_TYPE);
-    registerHandwrittenNoteEmbeds(this);
     const stored = await this.loadData();
     const settings = stored && typeof stored === "object" ? stored : {};
     this.favorites = new FavoritePens(settings.favoritePens, (favoritePens) => {
@@ -37,6 +34,9 @@ export default class CanvasScribePlugin extends Plugin {
       });
     });
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
+    this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf, this.favorites));
+    this.registerExtensions([HANDWRITTEN_NOTE_EXTENSION], HANDWRITTEN_NOTE_VIEW_TYPE);
+    registerHandwrittenNoteEmbeds(this);
     this.pdfController = new PdfController(this, this.favorites);
     this.diagnostics = new InputDiagnostics(document, this.logger);
     this.addCommand({
