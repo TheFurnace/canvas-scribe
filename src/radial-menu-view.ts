@@ -4,15 +4,18 @@ import { createToolColor } from "./tool-indicator";
 export interface RadialMenuItem {
   id: string; label: string; icon: string;
   active?: boolean; disabled?: boolean;
+  radialAngle?: number; recentColor?: boolean;
   color?: string;
   inkColor?: string;
   preview?: (document: Document) => Element;
+  hero?: () => { icon: string; label: string; color?: string };
 }
-export interface RadialMenuView { root: HTMLElement; palette: HTMLElement; closeButton: HTMLButtonElement; }
+export interface RadialMenuView { root: HTMLElement; palette: HTMLElement; }
 export function createRadialMenuView(document: Document, items: readonly RadialMenuItem[], renderIcon: IconRenderer,
   onAction: (id: string) => void, onClose: () => void,
   navigation: { title?: string; back?: () => void; page?: number; pages?: number; onPage?: (page: number) => void;
-    tabs?: string[]; activeTab?: number; onTab?: (index: number) => void } = {},
+    tabs?: { label: string; icon: string }[]; activeTab?: number; onTab?: (index: number) => void;
+    hero?: { icon: string; label: string; color?: string }; pageId?: string } = {},
 ): RadialMenuView {
   const root = document.createElement("div");
   root.className = "canvas-scribe-radial-menu";
@@ -20,15 +23,37 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
   const palette = document.createElement("div");
   palette.className = "canvas-scribe-radial-palette";
   palette.setAttribute("role", "menu");
+  palette.tabIndex = -1;
   palette.setAttribute("aria-label", navigation.title ?? "Canvas Scribe pen actions");
-  const title = document.createElement("div");
-  title.className = "canvas-scribe-radial-title";
-  title.textContent = navigation.title ?? "Pen actions";
-  if (navigation.back) palette.append(title);
+  if (navigation.hero) {
+    palette.classList.add("has-hero");
+    const hero = document.createElement(navigation.back ? "button" : "div"); hero.className = "canvas-scribe-radial-hero";
+    if (navigation.back) {
+      hero.setAttribute("type", "button"); hero.setAttribute("aria-label", "Back to pen actions");
+      hero.title = "Back to pen actions";
+      hero.addEventListener("click", (event) => { consume(event); navigation.back!(); });
+    } else hero.setAttribute("aria-hidden", "true");
+    renderIcon(hero, navigation.hero.icon);
+    if (navigation.hero.color) { hero.classList.add("is-ink"); hero.style.setProperty("--canvas-scribe-tool-color", navigation.hero.color); }
+    palette.append(hero);
+  }
+  const recentAngles = items.filter((item) => item.recentColor).map((item) => item.radialAngle!);
+  if (recentAngles.length) {
+    const track = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    track.classList.add("canvas-scribe-radial-history-track"); track.setAttribute("viewBox", "0 0 250 250"); track.setAttribute("aria-hidden", "true");
+    const point = (degrees: number) => `${125 + 92 * Math.cos(degrees * Math.PI / 180)} ${125 + 92 * Math.sin(degrees * Math.PI / 180)}`;
+    for (const [width, color] of [[46, "var(--background-modifier-border)"], [44, "var(--background-secondary)"]] as const) {
+      const path = document.createElementNS(track.namespaceURI, "path");
+      path.setAttribute("d", `M ${point(Math.min(...recentAngles))} A 92 92 0 0 1 ${point(Math.max(...recentAngles) + .01)}`);
+      path.setAttribute("fill", "none"); path.setAttribute("stroke", color); path.setAttribute("stroke-width", String(width)); path.setAttribute("stroke-linecap", "round"); track.append(path);
+    }
+    palette.append(track);
+  }
   items.forEach((item, index) => {
     const button = document.createElement("button");
     button.className = "canvas-scribe-radial-action";
-    button.dataset.action = item.id; button.type = "button";
+    button.dataset.action = item.id;
+    if (item.recentColor) button.dataset.colorGroup = "recent"; button.type = "button";
     button.setAttribute("aria-label", item.label); button.title = item.label;
     button.setAttribute("role", typeof item.active === "boolean" ? "menuitemradio" : "menuitem");
     if (typeof item.active === "boolean") {
@@ -39,6 +64,14 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     const angle = -90 + index * (items.length > 6 ? 360 / items.length : 60);
     button.style.setProperty("--canvas-scribe-radial-angle", `${angle}deg`);
     button.style.setProperty("--canvas-scribe-radial-angle-inverse", `${-angle}deg`);
+    if (navigation.hero) {
+      const settingsAngles: Record<string, number> = { colors: 0, size: 180, undo: -135, redo: -45, "canvas-menu": -90 };
+      const degrees = item.radialAngle ?? (navigation.pageId === "settings" && item.id in settingsAngles ? settingsAngles[item.id]!
+        : -200 + index * (220 / Math.max(1, items.length - 1)));
+      const radians = degrees * Math.PI / 180;
+      button.style.left = `calc(50% + ${Math.cos(radians)} * (50% - 33px))`;
+      button.style.top = `calc(50% + ${Math.sin(radians)} * (50% - 33px))`;
+    }
     if (item.preview) { button.append(item.preview(document)); button.classList.add("has-preview"); }
     else if (item.color) {
       const swatch = document.createElement("span");
@@ -47,24 +80,45 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     } else renderIcon(button, item.icon);
     if (item.inkColor) {
       button.style.setProperty("--canvas-scribe-tool-color", item.inkColor);
-      if (!item.icon.startsWith("canvas-scribe-")) button.append(createToolColor(document, item.inkColor));
+      if (!item.color && !item.icon.startsWith("canvas-scribe-")) button.append(createToolColor(document, item.inkColor));
     }
     button.addEventListener("click", (event) => { consume(event); if (!button.disabled) onAction(item.id); });
     palette.append(button);
   });
-  const closeButton = document.createElement("button");
-  closeButton.className = "canvas-scribe-radial-close"; closeButton.type = "button";
-  closeButton.setAttribute("role", "menuitem");
-  closeButton.setAttribute("aria-label", navigation.back ? "Back to pen actions" : "Close pen actions");
-  closeButton.title = navigation.back ? "Back" : "Close";
-  renderIcon(closeButton, navigation.back ? "arrow-left" : "x");
-  closeButton.addEventListener("click", (event) => { consume(event); (navigation.back ?? onClose)(); });
-  palette.append(closeButton);
+  if (navigation.back && !navigation.hero) {
+    const backButton = document.createElement("button");
+    backButton.className = "canvas-scribe-radial-close"; backButton.type = "button";
+    backButton.setAttribute("role", "menuitem");
+    backButton.setAttribute("aria-label", "Back to pen actions"); backButton.title = "Back";
+    renderIcon(backButton, "arrow-left");
+    backButton.addEventListener("click", (event) => { consume(event); navigation.back!(); });
+    palette.append(backButton);
+  }
   if (navigation.tabs?.length) {
     const tabs = document.createElement("div"); tabs.className = "canvas-scribe-radial-tabs";
     tabs.setAttribute("role", "group"); tabs.setAttribute("aria-label", "Radial pages");
-    navigation.tabs.forEach((label, index) => {
-      const button = document.createElement("button"); button.type = "button"; button.textContent = label;
+    if (navigation.hero) {
+      const track = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      track.classList.add("canvas-scribe-radial-tabs-track"); track.setAttribute("viewBox", "0 0 250 250"); track.setAttribute("aria-hidden", "true");
+      const point = (radius: number, degrees: number) => {
+        const angle = degrees * Math.PI / 180;
+        return `${125 + radius * Math.cos(angle)} ${125 + radius * Math.sin(angle)}`;
+      };
+      const path = document.createElementNS(track.namespaceURI, "path");
+      path.setAttribute("d", `M ${point(92, 55)} A 92 92 0 0 1 ${point(92, 125)}`);
+      path.setAttribute("fill", "none"); path.setAttribute("stroke", "var(--background-secondary)");
+      path.setAttribute("stroke-width", "44"); path.setAttribute("stroke-linecap", "round");
+      track.append(path); tabs.append(track);
+    }
+    navigation.tabs.forEach((tab, index) => {
+      const button = document.createElement("button"); button.type = "button"; button.setAttribute("aria-label", tab.label); button.title = tab.label;
+      renderIcon(button, tab.icon);
+      button.dataset.tab = String(index);
+      if (navigation.hero) {
+        const angle = (125 - index * 70 / Math.max(1, navigation.tabs!.length - 1)) * Math.PI / 180;
+        button.style.left = `calc(50% + ${92 * Math.cos(angle)}px)`;
+        button.style.top = `calc(50% + ${92 * Math.sin(angle)}px)`;
+      }
       button.setAttribute("aria-pressed", String(index === navigation.activeTab));
       button.addEventListener("click", (event) => { consume(event); navigation.onTab?.(index); }); tabs.append(button);
     });
@@ -114,6 +168,6 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
     if (event.key !== "Escape") return;
     consume(event); onClose();
   });
-  return { root, palette, closeButton };
+  return { root, palette };
 }
 function consume(event: Event): void { if (event.cancelable) event.preventDefault(); event.stopPropagation(); }

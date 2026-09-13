@@ -9,7 +9,7 @@ function preview(type: HighlighterType = "round", size = 17, opacity = 0.38) {
   const open = document.createElement("button"); open.textContent = "Highlighter settings";
   function show() {
     menu?.remove();
-    menu = createHighlighterMenu(document, {
+    menu = createHighlighterMenu(document, { onColor: () => undefined,
       type, size, opacity, color: "#fde047", renderIcon: renderStoryIcon,
       onType: (value) => { type = value; }, onSize: (value) => { size = value; },
       onOpacity: (value) => { opacity = value; }, onClose: () => { menu?.remove(); open.focus(); },

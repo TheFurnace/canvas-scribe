@@ -4,7 +4,8 @@ import { HIGHLIGHTER_TYPES, type HighlighterType } from "./highlighter-types";
 import { toolIconId } from "./tool-icons";
 import type { RadialMenuAction } from "./radial-session";
 import { createCircularSize } from "./circular-size";
-import { favoritePreview } from "./favorite-manager";
+import { PINNED_TOOL_COLORS } from "./colors";
+import { createColorPicker } from "./color-picker";
 
 export function createRadialPages(options: PenActionsOptions & {
   highlighterType: HighlighterType; eraserMode: "stroke" | "area";
@@ -12,11 +13,40 @@ export function createRadialPages(options: PenActionsOptions & {
   selectEraser: (mode: "stroke" | "area") => void;
   setSize: (value: number) => void; getSize: () => number;
   undo: () => void; redo: () => void; canUndo: () => boolean; canRedo: () => boolean;
-  openSettings: () => void;
+  getOpacity: () => number; setOpacity: (value: number) => void;
 }): RadialMenuAction[] {
-  const existing = createPenActions(options);
+  const existing = createPenActions({ ...options, quickColorCount: 7 });
+  const hero = () => ({
+    icon: toolIconId(options.tool === "pen" ? options.penType ?? "fountain" : options.tool === "highlighter" ? `highlighter-${options.highlighterType}` : options.tool === "eraser" ? `eraser-${options.eraserMode}` : "lasso", "full"),
+    label: options.tool === "pen" ? PEN_PROFILES[options.penType ?? "fountain"].label : options.tool === "highlighter" ? "Highlighter" : options.tool === "eraser" ? "Eraser" : "Selection",
+    color: options.tool === "pen" || options.tool === "highlighter" ? options.colors.current(options.tool, options.defaultColor(options.tool)) : undefined,
+  });
+  const colorTool = options.tool === "pen" || options.tool === "highlighter" ? options.tool : null;
+  if (colorTool) options.colors.initializeHistory(colorTool, options.defaultColor(colorTool));
+  let originalColor = "", originalSelection: string | null = null, swatches: string[] = [];
+  const confirmColor = (color: string | null) => {
+    if (colorTool) { options.colors.confirm(colorTool, color, false); options.colorsChanged(); }
+  };
+  const circularControl = (opacity: boolean) => createCircularSize(options.document, {
+    half: options.tool === "highlighter" ? opacity ? "right" : "left" : undefined,
+    inkColor: hero().color,
+    embedded: true, label: opacity ? "Tool opacity" : "Tool thickness", unit: opacity ? "%" : "px",
+    value: opacity ? Math.round(options.getOpacity() * 100) : options.getSize(),
+    min: opacity ? 5 : options.tool === "pen" ? 1 : 2,
+    max: opacity ? 100 : options.tool === "pen" ? 20 : 60,
+    step: opacity ? 5 : options.tool === "pen" ? 0.5 : 1,
+    onChange: opacity ? (value) => options.setOpacity(value / 100) : options.setSize,
+    onBack: () => undefined, onClose: () => undefined,
+    preview: (value) => {
+      const dot = options.document.createElement("span"); dot.className = "canvas-scribe-size-dot";
+      const size = opacity ? 18 : 4 + 18 * value / (options.tool === "pen" ? 20 : 60);
+      dot.style.width = dot.style.height = `${size}px`; dot.style.backgroundColor = hero().color!;
+      dot.style.opacity = String(opacity ? value / 100 : 1); return dot;
+    },
+
+  });
   return [
-    { id: "quick-page", pageId: "quick", label: "Quick tools", icon: "pencil", children: () => [
+    { id: "quick-page", pageId: "quick", label: "Quick tools", icon: "pencil", hero, children: () => [
       ...PEN_TYPES.map((type) => ({ id: `pen-${type}`, label: PEN_PROFILES[type].label, icon: toolIconId(type),
         active: options.tool === "pen" && options.penType === type,
         inkColor: options.colors.current("pen", options.defaultColor("pen")), run: () => options.selectPen(type) })),
@@ -27,21 +57,48 @@ export function createRadialPages(options: PenActionsOptions & {
         active: options.tool === "eraser" && options.eraserMode === mode, run: () => options.selectEraser(mode) })),
       { id: "lasso", label: "Select ink", icon: toolIconId("lasso"), active: options.tool === "lasso", run: () => options.selectTool("lasso") },
     ] },
-    { id: "settings-page", pageId: "settings", label: "Settings", icon: "settings", children: () => [
-      existing.find((item) => item.id === "colors")!,
-      { id: "size", label: "Thickness", icon: "sliders-horizontal", disabled: !options.currentPreset,
-        panel: (close, back) => createCircularSize(options.document, {
-          label: "Tool thickness", value: options.getSize(), min: options.tool === "pen" ? 1 : 2,
-          max: options.tool === "pen" ? 20 : 60, step: options.tool === "pen" ? 0.5 : 1,
-          onChange: options.setSize, onBack: back ?? close, onClose: close,
-          preview: (size) => favoritePreview(options.document, { ...options.currentPreset!, size }, options.defaultColor(options.currentPreset!.tool)),
-        }),
+    { id: "settings-page", pageId: "settings", label: "Settings", icon: "sliders-horizontal", hero, children: () => [
+      { id: "colors", label: "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
+        onEnter: () => {
+          originalColor = hero().color!; originalSelection = options.colors.selection(colorTool!);
+          swatches = [originalColor.toLowerCase(), ...options.colors.recent(colorTool!).filter((color) => color.toLowerCase() !== originalColor.toLowerCase()).slice(0, 3)];
+        },
+        onLeave: () => {
+          const selected = options.colors.selection(colorTool!);
+          if (selected !== originalSelection) options.colors.confirm(colorTool!, selected);
+        },
+        children: () => [
+          ...PINNED_TOOL_COLORS[colorTool!].map((color, index) => ({ id: `color-${color.slice(1)}`, label: `Use ${color}`, icon: "circle", color,
+            radialAngle: -180 + index * 36, active: color === hero().color?.toLowerCase(), keepOpen: true, run: () => confirmColor(color) })),
+          ...swatches.map((color, index) => ({ id: `recent-color-${index}`, radialAngle: 144 - index * 36, recentColor: true, label: index === 0 ? `Original color ${color}` : `Recent color ${color}`,
+            icon: "circle", color, active: color === hero().color?.toLowerCase(), keepOpen: true,
+            run: () => confirmColor(index === 0 ? originalSelection : color) })),
+          { id: "full-picker", radialAngle: 0, label: "More colors...", icon: "palette", panel: (close, back) => createColorPicker(options.document, {
+            tool: colorTool!, current: hero().color!, defaultColor: options.defaultColor(colorTool!), recent: options.colors.recent(colorTool!),
+            onConfirm: (color) => { confirmColor(color); (back ?? close)(); }, onCancel: close,
+          }) },
+        ],
+      },
+      { id: "size", label: options.tool === "highlighter" ? "Width and opacity" : "Thickness", icon: "sliders-horizontal", disabled: !options.currentPreset,
+        preview: options.currentPreset ? (document) => {
+          const node = document.createElement("span"); node.className = "canvas-scribe-radial-size-value";
+          if (options.tool === "highlighter") node.classList.add("has-transparency");
+          const dot = document.createElement("span"); dot.className = "canvas-scribe-size-dot";
+          dot.style.width = dot.style.height = `${Math.min(30, Math.max(4, 4 + 26 * options.getSize() / (options.tool === "pen" ? 20 : 60)))}px`;
+          dot.style.backgroundColor = hero().color!; dot.style.opacity = String(options.getOpacity());
+          node.append(dot); return node;
+        } : undefined,
+        content: () => {
+          const controls = options.document.createElement("div"); controls.className = "canvas-scribe-radial-adjustments";
+          controls.append(circularControl(false));
+          if (options.tool === "highlighter") controls.append(circularControl(true));
+          return controls;
+        },
       },
       { id: "undo", label: "Undo ink", icon: "undo-2", disabled: !options.canUndo(), keepOpen: true, run: options.undo },
       { id: "redo", label: "Redo ink", icon: "redo-2", disabled: !options.canRedo(), keepOpen: true, run: options.redo },
-      { id: "tool-settings", label: "Tool settings", icon: "settings-2", run: options.openSettings },
       { id: "canvas-menu", label: "Open Canvas menu", icon: "menu", run: options.openCanvasMenu },
     ] },
-    { ...existing.find((item) => item.id === "favorites")!, pageId: "favorites" },
+    { ...existing.find((item) => item.id === "favorites")!, pageId: "favorites", hero },
   ];
 }

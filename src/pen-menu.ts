@@ -4,6 +4,7 @@ import type { InkStroke } from "./types";
 import { toolIconId } from "./tool-icons";
 import type { IconRenderer } from "./canvas-controls";
 import { createAction, createMenuShell, createNumericControl } from "./ui-controls";
+import { createToolMenuColors } from "./tool-menu-colors";
 
 
 export function penPreviewStroke(type: PenType, size: number, color: string, tilt = false): InkStroke {
@@ -39,11 +40,14 @@ export interface PenMenuOptions {
   onType: (type: PenType) => void;
   onSize: (size: number) => void;
   onClose: () => void;
+  onColor?: (color: string) => void;
+  onColors?: () => void;
 }
 
 export function createPenMenu(document: Document, options: PenMenuOptions): HTMLElement {
   let type = options.type;
   let size = options.size;
+  let color = options.color;
   const root = createMenuShell(document, "Pen", options.onClose);
   root.classList.add("canvas-scribe-pen-menu");
   const button = (parent: HTMLElement, label: string, run: () => void) => {
@@ -71,6 +75,10 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
   const description = document.createElement("p");
   description.className = "canvas-scribe-pen-description";
   root.append(description);
+  const preview = document.createElement("div"); preview.className = "canvas-scribe-menu-preview";
+  root.insertBefore(preview, numeric.root);
+  if (options.onColor) root.append(createToolMenuColors(document, { tool: "pen", color,
+    onColor: value => { color = value; options.onColor!(value); sync(); }, onColors: options.onColors }));
   function sync() {
     choices.forEach((node, index) => {
       const value = PEN_TYPES[index]!;
@@ -82,13 +90,14 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
       artwork.setAttribute("aria-hidden", "true");
       const tip = document.createElement("span");
       tip.className = "canvas-scribe-illustrated-tip";
-      options.renderIcon(tip, toolIconId(value, "tip"));
-      tip.style.setProperty("--canvas-scribe-tool-color", options.color);
-      artwork.append(tip, createPenPreview(document, value, size, options.color));
+      options.renderIcon(tip, toolIconId(value, "full"));
+      tip.style.setProperty("--canvas-scribe-tool-color", color);
+      artwork.append(tip);
       node.replaceChildren(artwork, name);
     });
     numeric.setValue(size);
     description.textContent = PEN_PROFILES[type].description;
+    preview.replaceChildren(createPenPreview(document, type, size, color));
   }
   sync();
   return root;

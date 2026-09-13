@@ -4,8 +4,11 @@ import { createRadialMenuView, type RadialMenuItem } from "./radial-menu-view";
 export interface RadialMenuAction extends RadialMenuItem {
   keepOpen?: boolean;
   pageId?: string;
-  run?: () => void;
+  run?: (anchor?: { x: number; y: number }) => void;
   children?: () => readonly RadialMenuAction[];
+  onEnter?: () => void;
+  onLeave?: () => void;
+  content?: () => HTMLElement;
   panel?: (close: () => void, back?: () => void) => HTMLElement;
 }
 
@@ -40,6 +43,7 @@ export class RadialSession {
 
   close(restoreFocus = true): void {
     if (!this.rootEl) return;
+    this.parent?.onLeave?.(); this.parent = null;
     this.document.removeEventListener("pointerdown", this.dismissOutside, true);
     this.rootEl.remove(); this.rootEl = null;
     if (restoreFocus && this.restoreFocus?.isConnected) this.restoreFocus.focus({ preventScroll: true });
@@ -49,47 +53,70 @@ export class RadialSession {
   private render(focusId?: string): void {
     const topPages = this.actions.filter((item) => item.pageId);
     const top = topPages[this.topPage];
-    const items = this.parent?.children?.() ?? top?.children?.() ?? this.actions;
-    const capacity = top?.pageId === "quick" && !this.parent ? 9 : 6;
+    const items = this.parent?.content ? [] : this.parent?.children?.() ?? top?.children?.() ?? this.actions;
+    const capacity = this.parent?.id === "colors" && top ? 10 : top ? 9 : 6;
     const pages = Math.max(1, Math.ceil(items.length / capacity));
     this.page = Math.min(this.page, pages - 1);
     const visible = items.slice(this.page * capacity, this.page * capacity + capacity);
     const view = createRadialMenuView(this.document, visible, this.renderIcon, (id) => {
       const item = visible.find((candidate) => candidate.id === id);
       if (!item || item.disabled) return;
-      if (item.children) { this.parent = item; this.page = 0; this.render(); }
+      if (item.children || item.content) { item.onEnter?.(); this.parent = item; this.page = 0; this.render(); }
       else if (item.panel) {
-        const panel = item.panel(() => this.close(), () => { this.parent = null; this.page = 0; this.render(item.id); });
+        const panel = item.panel(() => this.close(), () => { this.render(item.id); });
         view.palette.hidden = true;
         view.root.append(panel);
         panel.querySelector<HTMLElement>("button, input")?.focus();
       } else if (item.keepOpen) { item.run?.(); this.render(id); }
-      else { this.close(); item.run?.(); }
+      else {
+        const button = view.palette.querySelector<HTMLElement>(`[data-action="${id}"]`);
+        const bounds = button?.getBoundingClientRect();
+        const anchor = bounds ? { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 } : undefined;
+        this.close(); item.run?.(anchor);
+      }
     }, () => this.close(), {
       title: this.parent?.label ?? top?.label ?? "Pen actions",
-      back: this.parent ? () => { const id = this.parent!.id; this.parent = null; this.page = 0; this.render(id); } : undefined,
+      hero: top?.hero?.(), pageId: this.parent ? undefined : top?.pageId,
+      back: this.parent ? () => { const id = this.parent!.id; this.parent!.onLeave?.(); this.parent = null; this.page = 0; this.render(id); } : undefined,
       page: this.page, pages,
       onPage: (page) => { this.page = page; this.render(page > 0 ? "next-page" : "previous-page"); },
-      tabs: topPages.map((item) => item.label), activeTab: this.topPage,
+      tabs: this.parent ? [] : topPages.map((item) => ({ label: item.label, icon: item.icon })), activeTab: this.topPage,
       onTab: (index) => {
         this.topPage = index; this.parent = null; this.page = 0;
         lastPage.set(this.document, topPages[index]!.pageId!); this.render();
+        this.rootEl?.querySelector<HTMLElement>(`[data-tab="${index}"]`)?.focus({ preventScroll: true });
       },
     });
-    if (topPages.length) view.palette.classList.add("has-tabs");
+    if (topPages.length && !this.parent) view.palette.classList.add("has-tabs");
+    if (this.parent) view.palette.classList.add("is-submenu");
+    if (this.parent?.content) {
+      view.palette.classList.add("has-control");
+      view.palette.setAttribute("role", "dialog");
+      view.palette.append(this.parent.content());
+    }
     view.palette.style.left = `${this.position.x}px`;
     view.palette.style.top = `${this.position.y}px`;
     view.root.classList.add("is-open");
     this.rootEl?.remove();
     this.rootEl = view.root;
     this.mount.append(view.root);
+    // Embedded previews can establish a fixed-position containing block. Convert
+    // viewport coordinates to that block, rather than adding its offset twice.
+    if (this.mount !== this.document.body) {
+      const bounds = view.root.getBoundingClientRect();
+      if (bounds.width && bounds.height) {
+        const local = clampRadialMenuPosition(this.position.x - bounds.left, this.position.y - bounds.top,
+          { innerWidth: bounds.width, innerHeight: bounds.height }, Boolean(topPages.length));
+        view.palette.style.left = `${local.x}px`; view.palette.style.top = `${local.y}px`;
+      }
+    }
     const focus = focusId ? view.root.querySelector<HTMLElement>(`[data-action="${focusId}"]`) : null;
-    (focus && !focus.hasAttribute("disabled") ? focus : view.closeButton).focus({ preventScroll: true });
+    (focus && !focus.hasAttribute("disabled") ? focus : view.palette.querySelector<HTMLElement>('[role=slider]') ?? view.palette.querySelector<HTMLElement>('button:not(:disabled)') ?? view.palette).focus({ preventScroll: true });
   }
 }
 
-export function clampRadialMenuPosition(clientX: number, clientY: number, view: Window | null, hasTabs = false): { x: number; y: number } {
-  const minimum = hasTabs ? 158 : 112;
+export function clampRadialMenuPosition(clientX: number, clientY: number, view: Pick<Window, "innerWidth" | "innerHeight"> | null, hasTabs = false): { x: number; y: number } {
+  const minimum = hasTabs ? 148 : 112;
   const maximumX = Math.max(minimum, (view?.innerWidth ?? clientX + minimum) - minimum);
   const maximumY = Math.max(minimum, (view?.innerHeight ?? clientY + minimum) - minimum - (hasTabs ? 84 : 48));
   return { x: Math.min(maximumX, Math.max(minimum, clientX)), y: Math.min(maximumY, Math.max(minimum, clientY)) };

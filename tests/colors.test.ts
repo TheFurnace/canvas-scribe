@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { paletteColors, PINNED_TOOL_COLORS, parseHex, hexToRgb, rgbToHex, hexToHsv, hsvToHex } from "../src/colors";
+import { ToolColors, paletteColors, PINNED_TOOL_COLORS, parseHex, hexToRgb, rgbToHex, hexToHsv, hsvToHex } from "../src/colors";
+
+it("seeds history with the default and preserves it after the first radial color change", () => {
+  const colors = new ToolColors();
+  colors.initializeHistory("pen", "#ABC");
+  expect(colors.recent("pen")).toEqual(["#aabbcc"]);
+  expect(colors.selection("pen")).toBeNull();
+  colors.confirm("pen", "#112233", false);
+  expect(colors.recent("pen")).toEqual(["#aabbcc"]);
+  colors.confirm("pen", "#112233");
+  colors.initializeHistory("pen", "#ffffff");
+  expect(colors.recent("pen")).toEqual(["#112233", "#aabbcc"]);
+  expect(colors.recent("highlighter")).toEqual([]);
+});
 
 describe("color conversions", () => {
   it("normalizes shorthand and rejects malformed hex and RGB", () => {

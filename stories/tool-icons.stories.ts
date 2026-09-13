@@ -17,7 +17,7 @@ function gallery() {
   };
   text("p", "CANVAS SCRIBE / TOOL FAMILY", root).className = "scribe-icon-eyebrow";
   text("h1", "Color in the barrel");
-  text("p", "Ink-colored, elongated barrels at 24 px and expanded tips at 48 px. Select a sample to inspect its state; Tab through to inspect focus.");
+  text("p", "Compact silhouettes at 24 px, expanded tools at 48 px and full-size artwork at 96 px. Select a sample to inspect its state; Tab through to inspect focus.");
   const grid = document.createElement("div"); grid.className = "scribe-icon-grid"; root.append(grid);
   const status = document.createElement("p"); status.setAttribute("aria-live", "polite");
   status.textContent = "Artwork review · planned variants are samples, not drawing controls.";
@@ -25,7 +25,7 @@ function gallery() {
     const card = document.createElement("section"); card.className = "scribe-icon-card";
     text("h2", TOOL_ARTWORK[tool].label, card);
     const row = document.createElement("div"); row.className = "scribe-icon-samples";
-    for (const style of ["silhouette", "tip"] as const) {
+    for (const style of ["silhouette", "tip", "full"] as const) {
       const button = createToolIconButton(document, renderStoryIcon, { tool, style, color: "#287bc1",
         onSelect: () => {
           button.setAttribute("aria-pressed", String(button.getAttribute("aria-pressed") !== "true"));

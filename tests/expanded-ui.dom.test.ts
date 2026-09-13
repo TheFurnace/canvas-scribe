@@ -11,15 +11,15 @@ import { renderStoryIcon } from "../stories/story-helpers";
 
 afterEach(() => document.body.replaceChildren());
 it("remembers only the top radial page, renders every variant, and keeps history actions open", () => {
-  let count = 1, size = 3.5;
+  let count = 1, size = 3.5, opacity = 1;
   const pages = createRadialPages({ document, tool: "pen", penType: "fountain", highlighterType: "round", eraserMode: "stroke",
     colors: new ToolColors(), favorites: new FavoritePens(), currentPreset: { tool: "pen", penType: "fountain", size, opacity: 1, color: null },
     defaultColor: () => "#111111", selectTool: vi.fn(), applyFavorite: vi.fn(), colorsChanged: vi.fn(), openCanvasMenu: vi.fn(),
     selectPen: vi.fn(), selectHighlighter: vi.fn(), selectEraser: vi.fn(), setSize: (value) => { size = value; }, getSize: () => size,
-    undo: () => { count--; }, redo: () => { count++; }, canUndo: () => count > 0, canRedo: () => count === 0, openSettings: vi.fn(),
+    undo: () => { count--; }, redo: () => { count++; }, canUndo: () => count > 0, canRedo: () => count === 0, getOpacity: () => opacity, setOpacity: (value) => { opacity = value; },
   });
   const session = new RadialSession(document, pages, vi.fn(), renderStoryIcon);
-  const button = (text: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((node) => node.textContent === text)!;
+  const button = (text: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find((node) => node.getAttribute("aria-label") === text)!;
   const action = (id: string) => document.querySelector<HTMLButtonElement>(`[data-action="${id}"]`)!;
   session.open(200, 200); button("Quick tools").click();
   expect(document.querySelectorAll(".canvas-scribe-radial-action")).toHaveLength(9);
@@ -27,10 +27,20 @@ it("remembers only the top radial page, renders every variant, and keeps history
   expect(action("undo").disabled).toBe(true); expect(action("redo").disabled).toBe(false);
   action("size").click();
   const ring = document.querySelector<HTMLElement>('[role="slider"]')!;
+  expect(document.activeElement).toBe(ring);
+  expect(document.querySelector(".canvas-scribe-radial-tabs")).toBeNull();
+  expect(document.querySelector(".canvas-scribe-radial-close")).toBeNull();
+  expect(document.querySelector("button.canvas-scribe-radial-hero")).not.toBeNull();
+  expect(ring.closest('.canvas-scribe-radial-palette')).not.toBeNull();
+  expect(ring.closest('.is-width-arc')).not.toBeNull();
+  expect(document.querySelector('.canvas-scribe-radial-value-pill output')?.textContent).toBe("3.5px");
+  expect(document.querySelector('.canvas-scribe-size-backdrop')).toBeNull();
   ring.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
   expect(size).toBe(4);
-  button("Back to Settings").click();
+  document.querySelector<HTMLButtonElement>('[aria-label="Back to pen actions"]')!.click();
   expect(action("size")).toBeTruthy();
+  expect(action("tool-settings")).toBeNull();
+  expect(action("opacity")).toBeNull();
   action("colors").click(); session.close(); session.open(200, 200);
   expect(action("colors")).toBeTruthy(); expect(action("default-color")).toBeNull();
   session.close();
@@ -77,4 +87,80 @@ it("offers tool-specific quick colors, recent custom colors, and an explicit def
   root.querySelector<HTMLButtonElement>('[aria-label="Use default color"]')!.click(); expect(select).toHaveBeenCalledWith(null);
   root.querySelector<HTMLButtonElement>('[aria-label="Use #fb7185 for highlighter"]')!.click(); expect(select).toHaveBeenCalledWith("#fb7185");
   Array.from(root.querySelectorAll("button")).find((node) => node.textContent === "More colors…")!.click(); expect(more).toHaveBeenCalledOnce();
+});
+
+it.each(["round", "chisel"] as const)("keeps %s highlighter width and opacity independent in a split submenu", (highlighterType) => {
+  let size = 17, opacity = .4;
+  const pages = createRadialPages({ document, tool: "highlighter", penType: "fountain", highlighterType, eraserMode: "stroke",
+    colors: new ToolColors(), favorites: new FavoritePens(), currentPreset: { tool: "highlighter", penType: "fountain", highlighterType, size, opacity, color: null },
+    defaultColor: () => "#fde047", selectTool: vi.fn(), applyFavorite: vi.fn(), colorsChanged: vi.fn(), openCanvasMenu: vi.fn(),
+    selectPen: vi.fn(), selectHighlighter: vi.fn(), selectEraser: vi.fn(), setSize: (value) => { size = value; }, getSize: () => size,
+    undo: vi.fn(), redo: vi.fn(), canUndo: () => false, canRedo: () => false, getOpacity: () => opacity, setOpacity: (value) => { opacity = value; } });
+  const session = new RadialSession(document, pages, vi.fn(), renderStoryIcon);
+  session.open(200, 200);
+  document.querySelector<HTMLButtonElement>('[data-tab="1"]')!.click();
+  const opener = document.querySelector<HTMLButtonElement>('[data-action="size"]')!;
+  expect(opener.textContent).toBe("");
+  expect(opener.querySelector<HTMLElement>('.canvas-scribe-size-dot')!.style.opacity).toBe("0.4");
+  opener.click();
+  const width = document.querySelector<HTMLElement>('[aria-label="Tool thickness"]')!;
+  const alpha = document.querySelector<HTMLElement>('[aria-label="Tool opacity"]')!;
+  expect(document.querySelectorAll('[role="slider"]')).toHaveLength(2);
+  width.dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowRight", bubbles:true}));
+  expect(size).toBe(18); expect(opacity).toBe(.4);
+  alpha.dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowRight", bubbles:true}));
+  expect(size).toBe(18); expect(opacity).toBe(.45); expect(width.isConnected).toBe(true);
+  document.querySelector<HTMLButtonElement>('button.canvas-scribe-radial-hero')!.click();
+  expect(document.querySelector<HTMLElement>('[data-action="size"] .canvas-scribe-size-dot')!.style.opacity).toBe("0.45");
+  session.close();
+});
+
+it("rotates the embedded disk with the drag beneath a stationary value pill", () => {
+  const change = vi.fn();
+  const root = createCircularSize(document, {label: "Opacity", value:75, min:0, max:100, step:1,
+    embedded:true, half:"right", unit:"%", onChange:change,onClose:vi.fn(),onBack:vi.fn(),preview:()=>document.createElement("span")});
+  document.body.append(root);
+  const ring = root.querySelector<HTMLElement>('[role=slider]')!;
+  const pill = root.querySelector('.canvas-scribe-radial-value-pill')!;
+  const disk = root.querySelector('.canvas-scribe-adjustment-disk g')!;
+  const before = Number(disk.getAttribute('transform')!.match(/rotate\(([-\d.]+)/)![1]);
+  ring.getBoundingClientRect = () => ({left:0,top:0,width:200,height:200} as DOMRect);
+  ring.setPointerCapture = vi.fn(); ring.hasPointerCapture = () => true; ring.releasePointerCapture = vi.fn();
+  ring.dispatchEvent(new PointerEvent('pointerdown',{pointerId:1,button:0,clientX:200,clientY:100,bubbles:true}));
+  ring.dispatchEvent(new PointerEvent('pointermove',{pointerId:1,clientX:100,clientY:200,bubbles:true}));
+  expect(Number(ring.getAttribute('aria-valuenow'))).toBeLessThan(75);
+  expect(Number(disk.getAttribute('transform')!.match(/rotate\(([-\d.]+)/)![1])).toBeGreaterThan(before);
+  expect(root.querySelector('.canvas-scribe-radial-value-pill')).toBe(pill);
+  ring.dispatchEvent(new PointerEvent('pointercancel',{pointerId:1,bubbles:true}));
+  const calls = change.mock.calls.length;
+  ring.dispatchEvent(new PointerEvent('pointermove',{pointerId:1,clientX:0,clientY:100,bubbles:true}));
+  expect(change).toHaveBeenCalledTimes(calls);
+});
+
+it("keeps fractional and out-of-range disk motion until release, then commits one valid value", () => {
+  const change = vi.fn();
+  const root = createCircularSize(document, {label:"Opacity",value:95,min:5,max:100,step:5,embedded:true,half:"right",unit:"%",onChange:change,onClose:vi.fn(),onBack:vi.fn(),preview:()=>document.createElement("span")});
+  document.body.append(root);
+  const ring=root.querySelector<HTMLElement>('[role=slider]')!;
+  ring.getBoundingClientRect=()=>({left:0,top:0,width:200,height:200} as DOMRect);
+  ring.setPointerCapture=vi.fn(); ring.hasPointerCapture=()=>true; ring.releasePointerCapture=vi.fn();
+  const move=(type:string,x:number,y:number)=>ring.dispatchEvent(new PointerEvent(type,{pointerId:1,button:0,clientX:x,clientY:y,bubbles:true}));
+  const rotation = () => root.querySelector('svg g')!.getAttribute('transform');
+  const initial = rotation();
+  move('pointerdown',200,100); move('pointermove',200,98);
+  expect(rotation()).not.toBe(initial);
+  expect(ring.getAttribute('aria-valuenow')).toBe('95');
+  expect(root.querySelector('output')!.value).toBe('95%');
+  move('pointermove',100,0);
+  const beyond=rotation(); expect(ring.getAttribute('aria-valuenow')).toBe('100');
+  expect(root.querySelector('output')!.value).toBe('100%');
+  move('pointermove',110,0);
+  expect(rotation()).not.toBe(beyond);
+  expect(ring.getAttribute('aria-valuenow')).toBe('100');
+  expect(change).not.toHaveBeenCalled();
+  move('pointerup',110,0);
+  expect(change).toHaveBeenCalledExactlyOnceWith(100);
+  expect(ring.getAttribute('aria-valuenow')).toBe('100');
+  expect(root.querySelectorAll('.canvas-scribe-opacity-disk')).toHaveLength(1);
+  expect(root.querySelector('[stroke-opacity]')).toBeNull();
 });

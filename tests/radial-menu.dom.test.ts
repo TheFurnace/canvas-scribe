@@ -29,7 +29,7 @@ describe("RadialMenu DOM behavior", () => {
 
   it.each([
     ["the backdrop", () => requiredElement<HTMLElement>(".canvas-scribe-radial-menu").dispatchEvent(pointerEvent("pointerdown"))],
-    ["the close button", () => requiredElement<HTMLButtonElement>(".canvas-scribe-radial-close").click()],
+    ["outside the radial", () => document.body.dispatchEvent(pointerEvent("pointerdown"))],
     ["Escape", () => requiredElement<HTMLElement>(".canvas-scribe-radial-menu").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))],
   ])("dismisses from %s", (_description, dismiss) => {
     const onClose = vi.fn();
@@ -63,6 +63,15 @@ describe("RadialMenu DOM behavior", () => {
 });
 
 describe("CanvasInkLayer radial-menu integration", () => {
+  it("dismisses expanded settings on a pen stroke without losing the first ink point", async () => {
+    const { eventTarget } = await mountedLayer();
+    requiredElement<HTMLElement>('.canvas-scribe-controls [data-action="pen"]').dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(document.querySelector('.canvas-scribe-pen-menu')).not.toBeNull();
+    eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 7, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 24, clientY: 32 }));
+    expect(document.querySelector('.canvas-scribe-pen-menu')).toBeNull();
+    expect(document.querySelectorAll('.canvas-scribe-render-layer path')).toHaveLength(1);
+    eventTarget.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, pointerType: "pen", button: 0, buttons: 0, clientX: 24, clientY: 32 }));
+  });
   it("cancels and rolls back an active pen gesture before opening the radial menu", async () => {
     const { layer, logger, wrapper, eventTarget } = await mountedLayer();
 
@@ -119,14 +128,14 @@ describe("CanvasInkLayer radial-menu integration", () => {
     const radialPen = requiredElement<HTMLElement>('.canvas-scribe-radial-action[data-action="pen-brush"]');
     expect(radialPen.getAttribute("aria-label")).toBe("Brush");
     expect(radialPen.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("#2563eb");
-    requiredElement<HTMLElement>('.canvas-scribe-radial-close').click();
+    document.body.dispatchEvent(pointerEvent("pointerdown"));
     eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 8, pointerType: "pen", button: 0, buttons: 1, pressure: 0.5, clientX: 20, clientY: 30 }));
     const path = requiredElement<SVGPathElement>(".canvas-scribe-render-layer path");
     expect(path.getAttribute("fill")).toBe("#2563eb"); expect(path.getAttribute("opacity")).toBe("0.6");
     layer.dispose();
   });
 
-  it("replays one native contextmenu event on the original connected target", async () => {
+  it("opens one native context menu at the radial button while retaining the original target", async () => {
     const { layer, eventTarget } = await mountedLayer();
     const replayed = vi.fn<(event: MouseEvent) => void>();
     eventTarget.addEventListener("contextmenu", replayed);
@@ -143,11 +152,13 @@ describe("CanvasInkLayer radial-menu integration", () => {
     expect(replayed).not.toHaveBeenCalled();
 
     radialPage("Settings");
-    requiredElement<HTMLButtonElement>('[data-action="canvas-menu"]').click();
+    const menuButton = requiredElement<HTMLButtonElement>('[data-action="canvas-menu"]');
+    vi.spyOn(menuButton, "getBoundingClientRect").mockReturnValue({ left: 200, top: 80, width: 44, height: 44 } as DOMRect);
+    menuButton.click();
 
     expect(replayed).toHaveBeenCalledOnce();
     const replay = replayed.mock.calls[0]?.[0];
-    expect(replay).toMatchObject({ clientX: 81, clientY: 93, button: 2 });
+    expect(replay).toMatchObject({ clientX: 222, clientY: 102, button: 2 });
     expect(replay?.defaultPrevented).toBe(false);
     expect(document.querySelector(".canvas-scribe-radial-menu")).toBeNull();
 
@@ -166,7 +177,7 @@ function requiredElement<T extends Element>(selector: string): T {
 }
 
 function radialPage(label: string): void {
-  const button = Array.from(document.querySelectorAll<HTMLButtonElement>(".canvas-scribe-radial-tabs button")).find((node) => node.textContent === label);
+  const button = Array.from(document.querySelectorAll<HTMLButtonElement>(".canvas-scribe-radial-tabs button")).find((node) => node.getAttribute("aria-label") === label);
   if (!button) throw new Error(`Missing radial page ${label}`);
   button.click();
 }

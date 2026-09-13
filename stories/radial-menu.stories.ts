@@ -61,7 +61,10 @@ const meta: Meta<Args> = {
     });
     toolbar.style.cssText = "position:absolute;right:12px;top:12px;display:flex;flex-direction:column";
     host.append(toolbar);
-    const colors = new ToolColors(); colors.confirm("pen", "#2563eb"); colors.confirm("pen", "#dc2626");
+    const colors = new ToolColors();
+    for (const color of ["#754c98", "#287d76", "#2563eb", "#dc2626"]) colors.confirm("pen", color);
+    for (const color of ["#c4b5fd", "#fda4af", "#67e8f9"]) colors.confirm("highlighter", color);
+    colors.confirm("highlighter", null);
     const favorites = new FavoritePens(Array.from({ length: args.favoriteCount }, (_, i) => ({
       id: `favorite-${i}`, name: `Favorite ${i + 1}`, tool: i % 3 === 0 ? "highlighter" : "pen",
       penType: i % 2 === 0 ? "brush" : "fountain", size: i % 3 === 0 ? 17 : 3 + i % 5,
@@ -88,7 +91,8 @@ const meta: Meta<Args> = {
         getSize: () => (tool === "pen" ? presets.pen : presets.highlighter).size,
         setSize: (size) => { (tool === "pen" ? presets.pen : presets.highlighter).size = size; update(); },
         undo: () => undefined, redo: () => undefined, canUndo: () => false, canRedo: () => false,
-        openSettings: () => { status.textContent = "Use the tool menu stories to review detailed settings."; },
+        getOpacity: () => (tool === "pen" ? presets.pen : presets.highlighter).opacity,
+        setOpacity: (opacity) => { (tool === "pen" ? presets.pen : presets.highlighter).opacity = opacity; update(); },
         defaultColor, selectTool: (value) => { tool = value; update(); },
         applyFavorite: (value) => { presets[value.tool] = { ...value }; tool = value.tool; colors.confirm(value.tool, value.color); update(); },
         colorsChanged: update, openCanvasMenu: () => { status.textContent = "Native Canvas menu requested (preview)."; },

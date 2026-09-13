@@ -1,3 +1,4 @@
+import { renderStoryIcon } from "./story-helpers";
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 import { createEraserMenu, type EraserSettings } from "../src/eraser-menu";
 import { createSelectionMenu, type SelectionSettings } from "../src/selection-menu";
@@ -34,10 +35,10 @@ function preview(tool: "eraser" | "selection", empty = false) {
   undo.addEventListener("click", () => { const previous = history.pop(); if (previous) strokes = previous; render(); });
   demo.append(caption, surface, undo); root.append(panel, demo);
   function menu() {
-    const child = tool === "eraser" ? createEraserMenu(document, {
+    const child = tool === "eraser" ? createEraserMenu(document, { renderIcon: renderStoryIcon,
       settings: eraser, onChange: (value) => { eraser = value; }, canClear: strokes.length > 0,
       onClear: () => { history.push(cloneStrokes(strokes)); strokes = []; render(); }, onClose: () => { panel.replaceChildren(); },
-    }) : createSelectionMenu(document, {
+    }) : createSelectionMenu(document, { renderIcon: renderStoryIcon,
       settings: selection, count: selected.size, onChange: (value) => { selection = value; },
       onScale: (scale) => { history.push(cloneStrokes(strokes)); strokes = strokes.map((stroke) => selected.has(stroke.id) ? transformInk(stroke, (x, y) => [150 + (x - 150) * scale, 115 + (y - 115) * scale], scale) : stroke); render(); },
       onRecolor: () => { history.push(cloneStrokes(strokes)); strokes = strokes.map((stroke) => selected.has(stroke.id) ? { ...stroke, color: "#dc2626" } : stroke); render(); },

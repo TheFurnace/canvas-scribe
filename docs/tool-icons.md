@@ -1,5 +1,7 @@
 # Tool icon family
 
+On the FER-64 experimental branch, expanded ink artwork and menu adoption are described in [UI/UX experiment](ui-ux-experiment.md). The compact baseline below remains the starting identity system; expanded `tip` artwork now shares the new `full` family.
+
 FER-49 provides the user-approved upright icon family with ink-colored, elongated bodies and open tips. Real Obsidian and Galaxy Tab/S Pen validation remain pending.
 
 Pen and highlighter barrels end at y=22.5 and contain the ink color. Their tips remain open and neutral. The extra 1.5 units use the space freed by the removed underline swatch. Text uses a colored T with a neutral outline; erasers and selection remain neutral. Color is inherited through `--canvas-scribe-tool-color` and accessible names retain the ink value. Palette actions retain their existing indicator because they have no tool barrel.
