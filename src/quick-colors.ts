@@ -15,16 +15,8 @@ export function createQuickColors(document: Document, options: {
   const close = createAction(document, "×", options.onClose);
   close.setAttribute("aria-label", "Close quick colors");
   heading.append(title, close); root.append(heading);
-  const current = document.createElement("div");
-  current.className = "canvas-scribe-quick-current";
-  const mark = document.createElement("span");
-  mark.className = "canvas-scribe-color-swatch-preview";
-  mark.style.backgroundColor = options.current;
-  const label = document.createElement("span");
-  label.textContent = options.isDefault ? `Current: ${defaultColorLabel(options.tool)}` : `Current: ${options.current}`;
-  current.append(mark, label); root.append(current);
   const row = document.createElement("div");
-  row.className = "canvas-scribe-quick-swatches";
+  row.className = "canvas-scribe-quick-swatches canvas-scribe-quick-palette";
   row.setAttribute("role", "group"); row.setAttribute("aria-label", "Quick colors");
   const defaultButton = createSwatch(document, {
     color: options.defaultColor, label: defaultColorDescription(options.tool), selected: options.isDefault,
@@ -32,22 +24,19 @@ export function createQuickColors(document: Document, options: {
   });
   const defaultLabel = document.createElement("span"); defaultLabel.textContent = defaultColorLabel(options.tool);
   defaultLabel.setAttribute("aria-hidden", "true"); defaultButton.append(defaultLabel);
-  row.append(defaultButton);
   const recent = recentColors(options.isDefault ? null : options.current, options.recent);
-  const pinned = toolSwatches(options.tool).slice(0, 5);
+  const pinned = toolSwatches(options.tool).slice(0, 10);
   const add = (parent: HTMLElement, color: string) => parent.append(createSwatch(document, {
     color, label: `Use ${color} for ${options.tool}`,
     selected: !options.isDefault && color.toLowerCase() === options.current.toLowerCase(),
     onSelect: () => options.onSelect(color),
   }));
   pinned.forEach((color) => add(row, color)); root.append(row);
-  if (recent.length) {
-    const group = document.createElement("div");
-    group.className = "canvas-scribe-quick-swatches";
-    group.setAttribute("role", "group"); group.setAttribute("aria-label", "Recent colors");
-    const caption = document.createElement("span"); caption.textContent = "Recent"; group.append(caption);
-    recent.forEach((color) => add(group, color)); root.append(group);
-  }
+  const group = document.createElement("div");
+  group.className = "canvas-scribe-quick-swatches canvas-scribe-quick-recents";
+  group.setAttribute("role", "group"); group.setAttribute("aria-label", "Recent colors");
+  group.append(defaultButton);
+  recent.forEach((color) => add(group, color)); root.append(group);
   root.append(createAction(document, "More colors…", options.onMore));
   root.addEventListener("keydown", (event) => {
     if (event.key === "Escape") { event.preventDefault(); options.onClose(); }

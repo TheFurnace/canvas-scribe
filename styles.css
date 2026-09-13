@@ -549,9 +549,16 @@
 .canvas-scribe-favorites-manager .canvas-scribe-numeric input[type=range] { min-height: 0; }
 .canvas-scribe-favorites-manager { font-family: var(--font-interface); font-size: var(--font-ui-small); }
 .canvas-scribe-quick-swatches { flex-wrap: wrap; }
+.canvas-scribe-quick-palette { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.canvas-scribe-quick-recents { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding-top: 8px; border-top: 1px solid var(--background-modifier-border); }
+.canvas-scribe-quick-recents > button:first-child { grid-column: span 2; }
+.canvas-scribe-quick-colors .canvas-scribe-quick-swatches .canvas-scribe-color-swatch { box-sizing: border-box; width: 100%; min-width: 0; height: 44px; padding: 0; display: grid; place-items: center; }
+.canvas-scribe-quick-swatches .canvas-scribe-color-swatch-preview { position: static; width: 28px; height: 28px; flex: none; }
 .canvas-scribe-quick-current .canvas-scribe-color-swatch-preview { position: static; width: 24px; height: 24px; flex-shrink: 0; }
 .canvas-scribe-quick-colors .canvas-scribe-color-swatch { position: relative; padding: 6px; }
 .canvas-scribe-quick-colors .canvas-scribe-color-swatch > span:last-child:not(:first-child) { position: absolute; right: 0; bottom: 0; padding: 0 3px; background: var(--background-primary); font-size: 10px; border-radius: 3px; }
+.canvas-scribe-quick-colors .canvas-scribe-quick-recents > button:first-child { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.canvas-scribe-quick-colors .canvas-scribe-quick-recents > button:first-child > span:last-child { position: static; padding: 0; background: transparent; font-size: 12px; }
 .is-mobile .canvas-scribe-tool-menu,
 .is-mobile .canvas-scribe-quick-colors { --canvas-scribe-ui-target: 44px; }
 .canvas-scribe-tip-choices { display: flex; gap: 8px; }
