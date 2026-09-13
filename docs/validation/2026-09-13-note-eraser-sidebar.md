@@ -40,4 +40,4 @@ and can be restored with Undo, and finger scrolling still works. Repeat near bot
 screen edges and with a palm resting on the screen. Check sidebar access outside
 the note viewport. Record the device, Obsidian version, and beta version.
 
-No version bump or release is included in this change.
+This fix was subsequently included in 2.0.0-beta.7 for device validation.

@@ -7,8 +7,8 @@
   strokes; the color toolbar action opens the full transactional picker.
 - Stylus barrel-button input and context-menu input open the shared radial.
   The paired contextmenu event is suppressed after barrel activation, and no
-  stroke is created by the opening action. The note radial offers Tool settings
-  in place of Open Canvas menu.
+  stroke is created by the opening action. The note radial omits the host-menu
+  shortcut; settings remain available by tapping the active toolbar tool again.
 - Stroke/area erasing, highlighter-only filtering and screen-space eraser size
   use the selected settings. Clear ink preserves text and is undoable. Selection
   supports rectangle/lasso, partial ink selection, ink scaling and recoloring.
@@ -27,7 +27,7 @@
   barrel/contextmenu deduplication without ink, radial highlighter selection,
   area/highlighter-only erasing with text preservation and undo, rectangle
   selection with scaling and undo, shared favorite application, overlay cleanup,
-  color confirmation, and radial undo/redo/settings routing.
+  color confirmation, radial undo/redo, and omission of the host-menu shortcut.
 - Browser verification on the production handwritten-note Tablet story:
   settings opened from the active Pen button; Pencil selection updated the
   toolbar; the full color picker opened; right-click opened the radial.
@@ -41,9 +41,11 @@
 
 ## Remaining acceptance
 
-Publish a new immutable beta before physical tablet acceptance. Verify the
+Beta 2.0.0-beta.7 was published for tablet validation. The final removal of the
+note radial's Tool settings shortcut was committed afterward and requires a
+new beta for device testing. Verify the
 three radial page icons at normal device scaling, active-tool second tap,
 S Pen barrel-button opening and dismissal, tool setting effects on new strokes,
 favorites, erasing, undo, finger scrolling, and the FER-70 sidebar fix.
 Tool settings remain editor-local; favorites use plugin persistence.
-No version bump or release is included in this change.
+The branch includes the beta.7 version metadata; its published tag is unchanged.
