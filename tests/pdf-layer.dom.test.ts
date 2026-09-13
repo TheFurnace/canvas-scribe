@@ -23,6 +23,18 @@ function fixture() {
   return { content, page, viewer, session, host, change, layer, input, enable };
 }
 describe("native PDF input ownership", () => {
+  it("passes the radial context action to the originating PDF page without recursion", () => {
+    const f = fixture(), native = vi.fn();
+    f.page.addEventListener("contextmenu", native);
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 80, clientY: 120 });
+    f.page.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true); expect(native).not.toHaveBeenCalled();
+    document.querySelector<HTMLButtonElement>('.canvas-scribe-radial-tabs [data-tab="1"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="canvas-menu"]')!.click();
+    expect(native).toHaveBeenCalledOnce();
+    expect(native.mock.calls[0]![0]).toMatchObject({ clientX: 80, clientY: 120, target: f.page });
+    expect(document.querySelector(".canvas-scribe-radial-menu")).toBeNull(); f.layer.destroy();
+  });
   it("leaves reading and mouse input native, consumes only annotation pen gestures", () => {
     const f = fixture(); expect(f.input("pointerdown", 40, 80).defaultPrevented).toBe(false);
     f.enable(); expect(f.input("pointerdown", 40, 80, "mouse").defaultPrevented).toBe(false);
@@ -34,8 +46,9 @@ describe("native PDF input ownership", () => {
     const f = fixture(); f.enable(); f.input("pointerdown", 40, 200, "touch"); f.input("pointermove", 40, 150, "touch"); f.input("pointerup", 40, 150, "touch");
     expect(f.viewer.scrollTop).toBe(50); expect(f.change).not.toHaveBeenCalled(); f.layer.destroy();
   });
-  it("discards canceled gestures and gestures superseded by another view", () => {
-    const f = fixture(); f.enable(); f.input("pointerdown", 40, 80); f.input("pointermove", 90, 120); f.input("pointercancel", 90, 120); expect(f.change).not.toHaveBeenCalled();
+  it("keeps partial ink on cancellation without reviving a superseded document", () => {
+    const f = fixture(); f.enable(); f.input("pointerdown", 40, 80); f.input("pointermove", 90, 120); f.input("pointercancel", 90, 120);
+    expect(f.change).toHaveBeenCalledOnce(); expect(f.session.document.strokes[0]?.points).toHaveLength(2); f.change.mockClear();
     f.input("pointerdown", 40, 80); f.session.document.strokes = []; f.session.notify(); f.input("pointerup", 90, 120); expect(f.change).not.toHaveBeenCalled(); f.layer.destroy();
   });
   it("blocks drawing after a source or companion conflict", () => {

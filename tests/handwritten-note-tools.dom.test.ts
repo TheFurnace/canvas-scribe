@@ -86,7 +86,9 @@ it("uses shared favorites and cleans up menus and radials on destroy", () => {
 
 it("applies the color picker transaction and radial history actions to the note", () => {
   const { note, tool, stroke, radial } = setup();
-  tool("color"); click('[aria-label="Use #ff4d4d"]');
+  tool("color");
+  Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "More colors…")!.click();
+  click('[aria-label="Use #ff4d4d"]');
   Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "Done")!.click();
   stroke(); expect(note.objects[0]).toMatchObject({ color: "#ff4d4d" });
   radial(); click('.canvas-scribe-radial-tabs [data-tab="1"]');

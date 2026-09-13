@@ -1,3 +1,6 @@
+import { InkToolState } from "./ink-tool-state";
+import type { DrawingTool } from "./types";
+import { isStylusBarrelButton, pointerSamples, pointerToInkPoint } from "./pointer-input";
 import { setIcon } from "obsidian";
 import type { InkSurfaceAdapter, SurfaceTransform } from "./ink-surface";
 import { strokeToSvgPath } from "./geometry";
@@ -13,7 +16,7 @@ import type { FavoritePens } from "./favorite-pens";
 
 const NS = "http://www.w3.org/2000/svg";
 type Point = { x: number; y: number };
-interface Gesture { id: number; page: number; before: PdfInk[]; working: PdfInk[]; points: Point[]; origin: Point; stroke?: PdfInk; moving: boolean; }
+interface Gesture { tools: InkToolState; id: number; page: number; before: PdfInk[]; working: PdfInk[]; points: Point[]; origin: Point; stroke?: PdfInk; moving: boolean; }
 
 export class PdfSurface implements InkSurfaceAdapter<PdfCompanion> {
   constructor(private readonly store: PdfStore, readonly session: PdfSession) {}
@@ -30,6 +33,10 @@ export class PdfSurface implements InkSurfaceAdapter<PdfCompanion> {
 export class PdfLayer {
   readonly tools: PdfTools;
   private enabled = false;
+  private allowContext = false;
+  private suppressContextUntil = 0;
+  private undoAction: () => void = () => undefined;
+  private redoAction: () => void = () => undefined;
   private readonly selected = new Set<string>();
   private selectedPage = 0;
   private gesture: Gesture | null = null;
@@ -44,16 +51,23 @@ export class PdfLayer {
   private readonly redraw = () => this.schedule();
   private readonly viewportChanged = () => { this.cancel(); this.schedule(); };
   constructor(private readonly view: NativePdfView, private readonly host: NativePdfHost, private readonly session: PdfSession,
-    store: PdfStore, favorites: FavoritePens, private readonly status: (message: string) => void) {
+    store: PdfStore, favorites: FavoritePens, private readonly status: (message: string) => void, state = new InkToolState()) {
     this.surface = new PdfSurface(store, session);
+    this.undoAction = () => { this.cancel(); store.undo(session); };
+    this.redoAction = () => { this.cancel(); store.undo(session, true); };
     this.tools = new PdfTools(view.contentEl.ownerDocument, setIcon, {
-      changed: () => { this.cancel(); this.sync(); }, toggle: () => this.toggle(), undo: () => { this.cancel(); store.undo(session); }, redo: () => { this.cancel(); store.undo(session, true); },
+      changed: () => { this.sync(); }, toggle: () => this.toggle(), undo: () => { this.cancel(); store.undo(session); }, redo: () => { this.cancel(); store.undo(session, true); },
       clear: () => this.commit(session.document.strokes.filter(s => s.page !== this.pageIndex())),
       scale: scale => this.scale(scale), recolor: color => this.commit(session.document.strokes.map(s => this.selected.has(s.id) ? { ...s, color } : s)),
       remove: () => this.commit(session.document.strokes.filter(s => !this.selected.has(s.id))),
-    }, favorites);
+    }, favorites, state);
     view.contentEl.append(this.tools.root);
     const options = { capture: true, signal: this.abort.signal };
+    view.contentEl.addEventListener("contextmenu", event => {
+      if (this.allowContext || !(event.target as Element).closest(".pdfViewer .page")) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      if (!this.gesture && Date.now() > this.suppressContextUntil) this.openRadial(event);
+    }, options);
     view.contentEl.addEventListener("pointerdown", event => this.down(event), options);
     view.contentEl.addEventListener("pointermove", event => this.move(event), options);
     view.contentEl.addEventListener("pointerup", event => this.up(event), options);
@@ -71,12 +85,24 @@ export class PdfLayer {
     host.pdfViewer.container.addEventListener("scroll", this.redraw, { signal: this.abort.signal, passive: true });
     session.listeners.add(this.changed); this.schedule();
   }
+  setTool(tool: DrawingTool): void { this.tools.setTool(tool); }
+  undo(): void { this.undoAction(); }
+  redo(): void { this.redoAction(); }
+  toggleEnabled(): void { this.toggle(); }
+  private openRadial(event: MouseEvent): void {
+    const target = event.target as Element, x = event.clientX, y = event.clientY;
+    this.tools.openRadial(x, y, () => {
+      this.allowContext = true;
+      try { target.dispatchEvent(new this.view.contentEl.ownerDocument.defaultView!.MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2, clientX: x, clientY: y })); }
+      finally { this.allowContext = false; }
+    });
+  }
   destroy(): void {
     this.cancel(); this.abort.abort(); this.touches.clear(); this.view.contentEl.classList.remove("canvas-scribe-pdf-annotating");
     for (const event of this.events) this.host.eventBus.off(event, this.redraw);
     this.host.eventBus.off("scalechanging", this.viewportChanged); this.host.eventBus.off("rotationchanging", this.viewportChanged);
     this.session.listeners.delete(this.changed); if (this.frame !== null) cancelAnimationFrame(this.frame);
-    for (const svg of this.overlays.values()) svg.remove(); this.overlays.clear(); this.tools.close(); this.tools.root.remove();
+    for (const svg of this.overlays.values()) svg.remove(); this.overlays.clear(); this.tools.destroy();
   }
   private toggle(): void {
     if (this.session.error) { this.status(this.session.error); return; }
@@ -109,7 +135,7 @@ export class PdfLayer {
         group.append(path);
       }
       const gesture = this.gesture;
-      if (gesture?.page === i && this.tools.state.activeTool === "lasso" && !gesture.moving && gesture.points.length > 1) {
+      if (gesture?.page === i && gesture.tools.activeTool === "lasso" && !gesture.moving && gesture.points.length > 1) {
         const outline = svg.ownerDocument.createElementNS(NS, "path"); outline.setAttribute("d", `M ${this.polygon(gesture.points).map(p => `${p.x} ${p.y}`).join(" L ")} Z`);
         outline.setAttribute("fill", "none"); outline.setAttribute("stroke", "#5688ff"); outline.setAttribute("stroke-width", String(1 / page.viewport.scale)); group.append(outline);
       }
@@ -119,6 +145,9 @@ export class PdfLayer {
   private point(event: PointerEvent, index: number): Point | null { const page = this.host.pdfViewer.getPageView(index); return page ? pdfScreenPoint(page, event.clientX, event.clientY) : null; }
   private consume(event: PointerEvent): void { event.preventDefault(); event.stopImmediatePropagation(); }
   private down(event: PointerEvent): void {
+    if (event.pointerType === "pen" && isStylusBarrelButton(event) && (event.target as Element).closest(".pdfViewer .page")) {
+      this.consume(event); if (!this.gesture) { this.openRadial(event); this.suppressContextUntil = Date.now() + 800; } return;
+    }
     if (!this.enabled || this.session.error || this.session.reviewing || !(event.target as Element).closest(".pdfViewer .page")) return;
     if (event.pointerType === "touch") { this.consume(event); if (this.gesture) return; this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY }); this.view.contentEl.setPointerCapture(event.pointerId); this.touchScale = this.touchDistance(); return; }
     if (event.pointerType !== "pen" || this.gesture) return;
@@ -127,9 +156,9 @@ export class PdfLayer {
     this.consume(event); this.tools.close(); this.touches.clear(); this.view.contentEl.setPointerCapture(event.pointerId);
     const before = this.session.document.strokes, working = before.map(stroke => stroke.page === index ? clonePdfInk([stroke])[0]! : stroke);
     const bounds = boundsForStrokes(working.filter(s => this.selected.has(s.id) && s.page === index));
-    const g: Gesture = { id: event.pointerId, page: index, before, working, points: [point], origin: point, moving: this.tools.state.activeTool === "lasso" && !!bounds && pointInBounds(point, bounds) };
+    const g: Gesture = { tools: this.tools.state.snapshot(), id: event.pointerId, page: index, before, working, points: [point], origin: point, moving: this.tools.state.activeTool === "lasso" && !!bounds && pointInBounds(point, bounds) };
     this.gesture = g; this.selectedPage = index;
-    const s = this.tools.state;
+    const s = g.tools;
     if (s.activeTool === "pen" || s.activeTool === "highlighter") {
       this.selected.clear();
       g.stroke = { id: createStrokeId(), page: index, tool: s.activeTool, color: this.tools.color(), size: s.activeTool === "pen" ? s.penSize : s.highlighterSize,
@@ -152,9 +181,8 @@ export class PdfLayer {
     const g = this.gesture; if (!g || g.id !== event.pointerId) return;
     this.consume(event); const point = this.point(event, g.page); if (!point) return;
     if (g.stroke) {
-      const coalesced = event.getCoalescedEvents?.() ?? [];
-      for (const sample of coalesced.length ? coalesced : [event]) { const p = this.point(sample, g.page); if (p) g.stroke.points.push(this.inkPoint(sample, p)); }
-    } else if (this.tools.state.activeTool === "eraser") this.erase(point);
+      for (const sample of pointerSamples(event)) { const p = this.point(sample, g.page); if (p) g.stroke.points.push(this.inkPoint(sample, p)); }
+    } else if (g.tools.activeTool === "eraser") this.erase(point);
     else if (g.moving) {
       const bounds = boundsForStrokes(g.before.filter(s => this.selected.has(s.id))); if (!bounds) return;
       const [x0, y0, x1, y1] = this.session.document.source.pages[g.page]!.box;
@@ -165,16 +193,16 @@ export class PdfLayer {
   }
   private erase(point: Point): void {
     const g = this.gesture!; const scale = this.host.pdfViewer.getPageView(g.page)?.viewport.scale ?? 1;
-    const result = eraseInk(g.working.filter(s => s.page === g.page), eraserOutline(point.x, point.y, this.tools.state.eraserSettings.radius / scale), this.tools.state.eraserSettings);
+    const result = eraseInk(g.working.filter(s => s.page === g.page), eraserOutline(point.x, point.y, g.tools.eraserSettings.radius / scale), g.tools.eraserSettings);
     if (result.changed) g.working = [...g.working.filter(s => s.page !== g.page), ...result.strokes.map(s => ({ ...s, page: g.page }))];
   }
   private up(event: PointerEvent, canceled = false): void {
     if (this.touches.delete(event.pointerId)) { this.consume(event); this.touchScale = this.touchDistance(); this.release(event.pointerId); return; }
     const g = this.gesture; if (!g || g.id !== event.pointerId) return;
     this.consume(event); this.gesture = null; this.release(event.pointerId);
-    if (!canceled && g.before === this.session.document.strokes && !this.session.error) {
-      if (this.tools.state.activeTool === "lasso" && !g.moving) {
-        for (const stroke of g.working.filter(s => s.page === g.page)) if (selectRenderedStroke(stroke, this.polygon(g.points), this.tools.state.selectionSettings.partial)) this.selected.add(stroke.id);
+    if ((!canceled || !!g.stroke) && g.before === this.session.document.strokes && !this.session.error) {
+      if (g.tools.activeTool === "lasso" && !g.moving) {
+        for (const stroke of g.working.filter(s => s.page === g.page)) if (selectRenderedStroke(stroke, this.polygon(g.points, g.tools), g.tools.selectionSettings.partial)) this.selected.add(stroke.id);
       } else {
         const strokes = g.working.flatMap(s => { const clipped = s.page === g.page ? clipPdfInk(s, this.session.document.source.pages[s.page]!) : s; return clipped ? [clipped] : []; });
         if (JSON.stringify(strokes) !== JSON.stringify(g.before)) this.commit(strokes);
@@ -182,11 +210,11 @@ export class PdfLayer {
     }
     this.schedule();
   }
-  private polygon(points: Point[]): Point[] {
-    if (this.tools.state.selectionSettings.mode !== "rectangle" || points.length < 2) return points;
+  private polygon(points: Point[], tools = this.gesture?.tools ?? this.tools.state): Point[] {
+    if (tools.selectionSettings.mode !== "rectangle" || points.length < 2) return points;
     const a = points[0]!, b = points[points.length - 1]!; return [a, { x: b.x, y: a.y }, b, { x: a.x, y: b.y }];
   }
-  private inkPoint(event: PointerEvent, point: Point): InkPoint { return { ...point, pressure: event.pressure || 0.5, tiltX: event.tiltX, tiltY: event.tiltY, time: event.timeStamp }; }
+  private inkPoint(event: PointerEvent, point: Point): InkPoint { return pointerToInkPoint(event, point.x, point.y); }
   private release(id: number): void { if (this.view.contentEl.hasPointerCapture?.(id)) this.view.contentEl.releasePointerCapture(id); }
   private cancel(): void { const g = this.gesture; this.gesture = null; if (g) this.release(g.id); this.schedule(); }
   private commit(strokes: PdfInk[]): void { void this.surface.save({ ...this.session.document, strokes }); this.selected.clear(); this.schedule(); }

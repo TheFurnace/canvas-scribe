@@ -25,8 +25,8 @@ export function createSelectionMenu(document: Document, options: {
   const label = document.createElement("label");
   const partial = document.createElement("input"); partial.type = "checkbox"; partial.checked = settings.partial;
   partial.addEventListener("change", () => { settings.partial = partial.checked; options.onChange({ ...settings }); });
-  label.append(partial, " Include partially selected strokes"); root.append(label);
-  const count = document.createElement("p"); count.textContent = options.count ? `${options.count} selected strokes` : "Draw around ink to select it.";
+  label.append(partial, " Include partially selected objects"); root.append(label);
+  const count = document.createElement("p"); count.textContent = options.count ? `${options.count} selected objects` : "Draw around objects to select them.";
   root.append(count);
   let percent = 100;
   const numeric = createNumericControl(document, {
@@ -34,7 +34,7 @@ export function createSelectionMenu(document: Document, options: {
     onChange: (value) => { percent = value; },
   });
   const scale = createAction(document, "Apply scale", () => { options.onScale(percent / 100); percent = 100; numeric.setValue(100); });
-  const recolor = createAction(document, "Recolor selected ink…", options.onRecolor);
+  const recolor = createAction(document, "Recolor selection…", options.onRecolor);
   scale.disabled = recolor.disabled = options.count === 0;
   root.append(numeric.root, scale, recolor);
   function sync() { choices.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.selectionMode === settings.mode))); }

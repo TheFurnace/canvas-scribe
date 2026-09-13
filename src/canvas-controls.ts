@@ -22,6 +22,8 @@ export interface CanvasControlsState {
   activeColor?: string;
   penType?: PenType;
   penColor?: string;
+  penDefault?: boolean;
+  highlighterDefault?: boolean;
   highlighterColor?: string;
   penSize?: number;
   penOpacity?: number;
@@ -103,9 +105,11 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
       ?? (state.activeTool === tool ? state.activeColor : undefined)
       ?? (tool === "pen" ? "var(--text-normal)" : "#fde047");
     button.style.setProperty("--canvas-scribe-tool-color", ink);
+    const isDefault = tool === "pen" ? state.penDefault : state.highlighterDefault;
     const label = toolDescription(tool, type, ink,
       tool === "pen" ? state.penSize : state.highlighterSize,
-      tool === "pen" ? state.penOpacity : state.highlighterOpacity);
+      tool === "pen" ? state.penOpacity : state.highlighterOpacity) + (isDefault ? " · Default" : "");
+    button.dataset.defaultInk = String(isDefault === true);
     button.setAttribute("aria-label", label);
     button.setAttribute("title", label);
     if (tool === "highlighter") {
@@ -139,7 +143,9 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
 
   const color = group.querySelector<HTMLElement>("[data-action=color]");
   const colorTool = state.activeTool === "pen" || state.activeTool === "highlighter" ? state.activeTool : null;
-  const colorLabel = colorTool ? `Choose ${colorTool} color` : "Choose a pen or highlighter first";
+  const defaultInk = colorTool === "pen" ? state.penDefault : colorTool === "highlighter" ? state.highlighterDefault : false;
+  color?.setAttribute("data-default-ink", String(defaultInk === true));
+  const colorLabel = colorTool ? `Choose ${colorTool} color${defaultInk ? " · Default (theme adaptive)" : ""}` : "Choose a pen or highlighter first";
   color?.classList.toggle("is-disabled", colorTool === null);
   color?.classList.toggle("is-active", colorTool !== null && state.paletteOpen === true);
   color?.setAttribute("aria-disabled", String(colorTool === null));

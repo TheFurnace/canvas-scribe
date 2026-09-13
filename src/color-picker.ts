@@ -4,6 +4,7 @@ import { bindDialogKeyboard, createAction } from "./ui-controls";
 export interface ColorPickerOptions {
   tool: ColorTool;
   current: string;
+  isDefault?: boolean;
   defaultColor: string;
   recent: readonly string[];
   view?: "Swatches" | "Spectrum";
@@ -22,7 +23,7 @@ export function createColorPicker(document: Document, options: ColorPickerOption
   dialog.setAttribute("aria-label", `${options.tool === "pen" ? "Pen" : "Highlighter"} color`);
   root.append(dialog);
   let pending = options.current;
-  let reset = false;
+  let reset = options.isDefault === true;
   let hsv = hexToHsv(pending);
   const button = (label: string, parent: HTMLElement, run: () => void) => {
     const node = createAction(document, label, run);
@@ -165,12 +166,15 @@ export function createColorPicker(document: Document, options: ColorPickerOption
   const defaultChip = button("Default", recent, () => {
     select(options.defaultColor);
     reset = true;
+    chips.forEach(chip => chip.setAttribute("aria-pressed", "false"));
     defaultChip.setAttribute("aria-pressed", "true");
     error.textContent = "Default selected. Choose Done to apply.";
   });
   defaultChip.className = "canvas-scribe-picker-chip canvas-scribe-picker-default";
   defaultChip.style.setProperty("--chip-color", options.defaultColor);
   defaultChip.setAttribute("aria-label", `Reset to default (${options.defaultColor})`);
+  defaultChip.setAttribute("aria-pressed", String(reset));
+  if (reset) chips.forEach(chip => chip.setAttribute("aria-pressed", "false"));
   defaultChip.title = `Reset ${options.tool} to default (${options.defaultColor})`;
   dialog.append(recentLabel, recent);
   const footer = document.createElement("div");
@@ -193,7 +197,7 @@ export function createColorPicker(document: Document, options: ColorPickerOption
     field.style.setProperty("--spectrum-value", String(hsv[2]));
     marker.style.left = `${hsv[0] / 360 * 100}%`;
     marker.style.top = `${hsv[1] * 100}%`;
-    chips.forEach((chip) => chip.setAttribute("aria-pressed", String(chip.getAttribute("aria-label") === `Use ${color}`)));
+    chips.forEach((chip) => chip.setAttribute("aria-pressed", String(!reset && chip.getAttribute("aria-label") === `Use ${color}`)));
     done.disabled = false;
     error.textContent = "";
   }
@@ -201,5 +205,11 @@ export function createColorPicker(document: Document, options: ColorPickerOption
   bindDialogKeyboard(root, dialog, options.onCancel);
   showView(options.view ?? "Swatches");
   select(pending);
+  if (options.isDefault) {
+    reset = true;
+    defaultChip.setAttribute("aria-pressed", "true");
+    chips.forEach(chip => chip.setAttribute("aria-pressed", "false"));
+    pendingPreview.setAttribute("aria-label", "Default ink (theme adaptive)");
+  }
   return root;
 }

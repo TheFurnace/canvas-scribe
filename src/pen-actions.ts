@@ -46,7 +46,7 @@ export function createPenActions(options: PenActionsOptions): RadialMenuAction[]
           ...swatches.map((color) => ({ id: `color-${color.slice(1)}`, label: `Use ${color}`, icon: "circle", color,
             active: color.toLowerCase() === current.toLowerCase(), run: () => confirm(colorTool, color) })),
           { id: "full-picker", label: "More colors…", icon: "palette", panel: (close: () => void) => createColorPicker(document, {
-            tool: colorTool, current, defaultColor: defaultColor(colorTool), recent: colors.recent(colorTool),
+            tool: colorTool, isDefault: colors.selection(colorTool) === null, current, defaultColor: defaultColor(colorTool), recent: colors.recent(colorTool),
             onConfirm: (color) => { confirm(colorTool, color); close(); }, onCancel: close,
           }) },
         ];

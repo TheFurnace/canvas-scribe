@@ -10,6 +10,8 @@ export function createHighlighterMenu(document: Document, options: {
   renderIcon: IconRenderer; onType: (type: HighlighterType) => void;
   onSize: (value: number) => void; onOpacity: (value: number) => void;
   onColors: () => void; onClose: () => void;
+  isDefault?: boolean;
+  onDefault?: () => void;
   onColor?: (color: string) => void;
 }): HTMLElement {
   let { type, size, opacity } = options;
@@ -41,7 +43,7 @@ export function createHighlighterMenu(document: Document, options: {
   preview.setAttribute("viewBox", "0 0 280 95"); preview.setAttribute("role", "img");
   preview.setAttribute("aria-label", "Overlapping highlights over sample text");
   root.append(preview);
-  if (options.onColor) root.append(createToolMenuColors(document, { tool: "highlighter", color,
+  if (options.onColor) root.append(createToolMenuColors(document, { tool: "highlighter", color, isDefault: options.isDefault, onDefault: options.onDefault,
     onColor: value => { color = value; options.onColor!(value); sync(); }, onColors: options.onColors }));
   else root.append(createAction(document, "Colors…", options.onColors));
   function sync() {
