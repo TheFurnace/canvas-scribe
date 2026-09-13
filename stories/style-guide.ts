@@ -88,16 +88,16 @@ function foundations(parent: HTMLElement) {
   }
   table(ink, ["Choice", "Meaning"], [["Pen Theme", "New Canvas/note ink follows theme text. PDF uses dark ink on its white page."], ["Highlighter Default", "The tool’s fixed yellow fallback; independent of theme text."], ["Explicit swatch", "A fixed ink value, even when it looks identical to Theme or Default."], ["Existing marks", "Stored colors retain their appearance when the interface theme changes."]]);
   source(ink, ["src/colors.ts", "src/pdf-tools.ts"], ["Color curation", "canvas-scribe-color-curation--proposed-sets"]);
-  const type = section(parent, "Typography and spacing", "Foundation → a readable hierarchy and a repeatable rhythm", "Proposed standard · Use host font roles and a 4 / 8 / 12 / 16 / 24 spacing rhythm. Spacing describes grouping; document zoom must never resize the interface.");
+  const type = section(parent, "Typography and spacing", "Foundation → a readable hierarchy and a repeatable rhythm", "Approved standard · Use host font roles and a 4 / 8 / 12 / 16 / 24 spacing rhythm. Spacing describes grouping; document zoom must never resize the interface.");
   const types = el("div", "", "scribe-guide-grid");
   for (const [label, token] of [["Menu heading", "--font-ui-medium"], ["Control label", "--font-ui-small"], ["Supporting caption", "--font-ui-smaller"]]) { const item = el("div", "", "scribe-guide-sample"); const sample = el("p", label); sample.style.fontSize = `var(${token})`; item.append(sample, el("code", token)); types.append(item); } type.append(types);
   for (const [size, use] of [[4,"Within a compact swatch collection"],[8,"Related elements"],[12,"Between control groups"],[16,"Dialog padding"],[24,"Between larger sections"]] as const) { const row = el("div", "", "scribe-guide-metric"), bar = el("span", "", "scribe-guide-space"); bar.style.width = `${size}px`; row.append(bar, el("span", `${size} px · ${use}`)); type.append(row); }
-  note(type, "Review proposal P1 · Consolidate scattered 6, 10 and 14 px values when they express the same spacing role. Preserve optical exceptions in radial geometry and tool artwork.");
-  const shape = section(parent, "Shape, edge and elevation", "Foundation → boundaries that explain purpose", "Proposed standard · Circles identify ink and round actions; rounded rectangles contain settings. Use a theme border for separation and one host shadow for floating surfaces.");
+  note(type, "Approved target P1 · Consolidate scattered 6, 10 and 14 px values when they express the same spacing role. Preserve optical exceptions in radial geometry and tool artwork.");
+  const shape = section(parent, "Shape, edge and elevation", "Foundation → boundaries that explain purpose", "Approved standard · Circles identify ink and round actions; rounded rectangles contain settings. Use a theme border for separation and one host shadow for floating surfaces.");
   const shapes = el("div", "", "scribe-guide-row");
   for (const [label, radius] of [["Control · 8 px", "8px"], ["Tool menu · 20 px", "20px"], ["Swatch · circle", "50%"]]) { const s = el("div", "", "scribe-guide-shape"); s.style.borderRadius = radius; shapes.append(figure(s, label)); } shape.append(shapes);
   table(shape, ["Role", "Target specification"], [["Control target", "36 px compact desktop; at least 44 px for touch and radial actions."], ["Visible ink chip", "24 px in tool settings, 28 px in drawer/radial; hit area stays larger."], ["Border / focus", "1 px theme border; 2 px focus outline outside the selected treatment."], ["Floating surface", "Host --shadow-s; no shadow on every nested control."]]);
-  note(shape, "Review proposal P2 · Keep the revised 20 px tool-menu shell; consider extending it to color drawers and dialogs. Their current radii differ. These samples are a target specification, not a global CSS change.");
+  note(shape, "Approved target P2 · Keep the revised 20 px tool-menu shell; extend the shared shell vocabulary to color drawers and dialogs, with documented compact exceptions. Their current radii differ. These samples are a target specification, not a global CSS change.");
   source(shape, ["styles.css"]);
 }
 
@@ -106,7 +106,7 @@ function elements(parent: HTMLElement) {
   const row = el("div", "", "scribe-guide-row");
   for (const tool of Object.keys(TOOL_ARTWORK) as ToolIcon[]) { const art = el("span", "", "scribe-guide-art"); art.setAttribute("aria-hidden", "true"); renderStoryIcon(art, toolIconId(tool)); row.append(figure(art, TOOL_ARTWORK[tool].label)); }
   icons.append(row); source(icons, ["src/tool-icons.ts", "src/tool-indicator.ts"], ["Full tool icon family", "canvas-scribe-tool-icons--family"]);
-  const labels = section(parent, "Labels, values and grouping", "Typography + space + divider → hierarchy", "Proposed standard · Name an action with a verb, a setting with a noun, and a value with its unit. Keep the hierarchy understandable without color or hover.");
+  const labels = section(parent, "Labels, values and grouping", "Typography + space + divider → hierarchy", "Approved standard · Name an action with a verb, a setting with a noun, and a value with its unit. Keep the hierarchy understandable without color or hover.");
   table(labels, ["Element", "Example", "Rule"], [["Heading", "Pen", "Names the group; host medium type."], ["Setting / value", "Thickness · 3.5 units", "Label and value stay visible while adjusting."], ["Action", "More colors…", "Signals a further choice, not an immediate ink change."], ["Semantic choice", "Theme / Default", "Label the meaning; do not infer it from a hex match."], ["Divider", "Palette / recents", "Separate different sources of choices, not every control."]]);
   const states = section(parent, "Selection, focus and availability", "Boundary + meaning + accessible state → feedback", "Current production · The two swatches below use the same builder as the drawer. One is selected. Tab through them to inspect keyboard focus; hovering must leave the ink chip unchanged.");
   // The shared swatch relies on its production container for chip positioning.
@@ -115,9 +115,9 @@ function elements(parent: HTMLElement) {
   const colors = toolSwatches("pen").slice(0, 2); const buttons: HTMLButtonElement[] = [];
   colors.forEach((color, i) => { const button = createSwatch(document, { color, label: `State sample ${color}`, selected: i === 0, onSelect: () => buttons.forEach(b => b.setAttribute("aria-pressed", String(b === button))) }); buttons.push(button); examples.append(figure(button, i === 0 ? "Initially selected" : "Initially unselected")); });
   const disabled = createAction(document, "Unavailable", () => {}); disabled.disabled = true; examples.append(figure(disabled, "Disabled action")); swatchShell.append(examples); states.append(swatchShell);
-  note(states, "Review proposal P3 · Selection should remain visible when focus moves. Use an inner selection boundary and a separate outer accent focus ring. The following target specimen lets both states coexist.");
+  note(states, "Approved target P3 · Selection should remain visible when focus moves. Use an inner selection boundary and a separate outer accent focus ring. The following target specimen lets both states coexist.");
   const proposed = createAction(document, "", () => proposed.setAttribute("aria-pressed", String(proposed.getAttribute("aria-pressed") !== "true")));
-  proposed.className = "scribe-guide-target-swatch"; proposed.setAttribute("aria-label", "Proposed swatch state treatment"); proposed.setAttribute("aria-pressed", "true"); proposed.append(el("span")); states.append(proposed);
+  proposed.className = "scribe-guide-target-swatch"; proposed.setAttribute("aria-label", "Approved swatch state treatment"); proposed.setAttribute("aria-pressed", "true"); proposed.append(el("span")); states.append(proposed);
   table(states, ["State", "Design rule"], [["Rest", "Stable surface and readable content."], ["Hover", "Theme hover layer over that surface; retain the ink color."], ["Selected", "Persistent mark plus pressed/checked semantics."], ["Focus", "Outer keyboard outline, visible alongside selection."], ["Expanded", "Indicate the open settings separately from the selected tool."], ["Disabled", "Recognizable but unavailable; native disabled behavior."]]);
   source(states, ["src/ui-controls.ts", "styles.css"]);
 }
@@ -176,7 +176,7 @@ function components(parent: HTMLElement, cleanups: Array<() => void>) {
   source(recipes, ["src/tool-suite.ts", "src/quick-colors.ts", "src/radial-colors.ts", "src/color-picker.ts", "src/favorite-manager.ts"]);
   const behavior = section(parent, "Dismissal is part of the component", "Interaction contract → predictable commitment", "Agreed behavior · A quick adjustment and a full editing dialog have different commitment points. Label and demonstrate that difference consistently.");
   table(behavior, ["Interaction", "Result"], [["Radial color tap", "Apply immediately; stay open; keep slot positions stable."], ["Radial Back", "Return to parent; do not record history yet."], ["Radial full dismissal", "Record only the final explicit selection."], ["Nested picker Cancel", "Restore entry selection; return to the radial."], ["Nested picker Done", "Apply; defer history until radial dismissal."], ["Drawer selection", "Apply, commit history, close."], ["Picker Cancel / Escape", "Discard pending edits."]]);
-  note(behavior, "Review proposal P4 · Explicit close and Escape should return focus to the opener consistently across adapters; pointer dismissal should preserve drawing intent. The examples restore focus locally, while host-wide adoption remains to review.");
+  note(behavior, "Approved target P4 · Explicit close and Escape should return focus to the opener consistently across adapters; pointer dismissal should preserve drawing intent. The examples restore focus locally, while host-wide adoption remains implementation work.");
 }
 
 function surfaces(parent: HTMLElement) {
@@ -205,7 +205,7 @@ export function createStyleGuide(chapter: Chapter, narrow = false): HTMLElement 
   inner.append(themeLinks);
   const nav = el("nav", "", "scribe-guide-nav"); nav.setAttribute("aria-label","Style guide chapters");
   chapters.forEach(([id,title],index)=>{const a=link(`${String(index+1).padStart(2,"0")} ${title}`,`canvas-scribe-style-guide--${id}`); if(id===chapter)a.setAttribute("aria-current","page");nav.append(a);});inner.append(nav);
-  note(inner,"Agreed direction: Obsidian theme, type and accent; Scribe shapes, spacing and artwork. Production examples use PR #24 at 3fc6dc7. Proposals P1–P4 describe consistency changes for review; they do not alter plugin behavior.");
+  note(inner,"Agreed direction: Obsidian theme, type and accent; Scribe shapes, spacing and artwork. Production examples use PR #24 at 3fc6dc7. Guide and targets P1–P4 approved on 2026-09-13. Production adoption remains separate work.");
   const cleanups: Array<()=>void> = [];
   if(chapter==="foundations")foundations(inner);
   if(chapter==="elements")elements(inner);

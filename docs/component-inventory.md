@@ -2,7 +2,7 @@
 
 FER-77 · baseline `3fc6dc7` from colors PR #24. Read alongside the [style guide](style-guide.md). This replaces the historical FER-46 inventory; Git history retains that audit.
 
-The visual guide progresses from foundations to surface layouts. Production examples retain their real styling; labelled target samples show proposed corrections separately.
+The visual guide progresses from foundations to surface layouts. Production examples retain their real styling; labelled target samples show approved targets separately.
 
 | Level | Ingredient/component | Production source | Guide location / further story |
 | --- | --- | --- | --- |
@@ -29,9 +29,9 @@ The visual guide progresses from foundations to surface layouts. Production exam
 | Surface | Handwritten note | `src/handwritten-note-editor.ts`; renderer and embeds | 05 Surface layouts / Handwritten Note |
 | Surface | PDF annotation | `src/pdf-tools.ts`; PDF adapter | 05 Surface layouts / PDF Tools; real native viewer review |
 
-## Proposed consistency work
+## Approved consistency targets
 
-P1 spacing roles, P2 floating-shell geometry/elevation, P3 independent selected/focus treatments, and P4 focus restoration are described in the guide's review register. They are not hidden CSS overrides on production samples. The guide does not claim those migrations are complete.
+P1 spacing roles, P2 floating-shell geometry/elevation, P3 independent selected/focus treatments, and P4 focus restoration are described in the guide's adoption register. They are not hidden CSS overrides on production samples. All four targets were approved on 2026-09-13; their production migrations remain separate work.
 
 ## Coverage boundaries
 

@@ -2,9 +2,9 @@
 
 FER-77 · 2026-09-13 · production baseline: [v2 colors PR #24](https://github.com/TheFurnace/canvas-scribe/pull/24), `3fc6dc7`.
 
-This is the intended design system, organized from basic ingredients to complete components. The user confirmed this structure and the division of responsibility: **Obsidian supplies theme colors, interface typography and accent; Scribe owns control shapes, spacing and tool artwork.** Detailed recommendations below remain review proposals until accepted. Production examples describe the named baseline, not proof of device acceptance.
+This is the intended design system, organized from basic ingredients to complete components. The user confirmed this structure and the division of responsibility: **Obsidian supplies theme colors, interface typography and accent; Scribe owns control shapes, spacing and tool artwork.** The complete guide and targets P1–P4 were approved by the user on 2026-09-13 ("it all looks good, approved"). Production examples describe the named baseline, not proof of device acceptance.
 
-The visual companion is **Canvas Scribe / Style Guide** in Storybook. Start with **01 Foundations**, then continue through **02 Basic elements**, **03 Controls**, **04 Components**, and **05 Surface layouts**. The original Foundations URLs now open the new foundations chapter. Use the Light/Dark links or Storybook toolbar; examples use extracted Obsidian CSS and production builders. Guide samples are labelled where they illustrate a proposed target.
+The visual companion is **Canvas Scribe / Style Guide** in Storybook. Start with **01 Foundations**, then continue through **02 Basic elements**, **03 Controls**, **04 Components**, and **05 Surface layouts**. The original Foundations URLs now open the new foundations chapter. Use the Light/Dark links or Storybook toolbar; examples use extracted Obsidian CSS and production builders. Guide samples are labelled where they illustrate an approved target.
 
 ## How to read and maintain the guide
 
@@ -12,7 +12,7 @@ Three labels separate decisions from evidence:
 
 - **Agreed direction / behavior:** the confirmed product contract, including the revised colors behavior.
 - **Current production:** what the cited implementation actually renders or does.
-- **Proposed standard:** a consistency target for review. This guide does not silently apply it to production.
+- **Approved standard:** an accepted consistency target; production adoption is tracked separately. This guide does not silently apply it to production.
 
 Build upward: **foundation → element → control → component → surface**. For example, ink color + circular shape + border become a chip; adding a target, name and selection mark creates a color control; grouping those controls with a header, recents and actions creates a drawer. A radial uses the same color meaning in a different arrangement and with a different commitment point.
 
@@ -58,9 +58,9 @@ Use `--font-ui-medium` and `--font-medium` for menu headings, `--font-ui-small` 
 
 ### Spacing, targets and shapes
 
-These are target recommendations anchored in the revised UI; existing exceptions are listed in the review register.
+These are approved targets anchored in the revised UI; existing exceptions are listed in the adoption register.
 
-| Ingredient | Proposed role/value | Composition rule |
+| Ingredient | Approved role/value | Composition rule |
 | --- | --- | --- |
 | Spacing rhythm | 4 / 8 / 12 / 16 / 24 px | Compact collection / related elements / groups / dialog padding / sections |
 | Compact target | At least 36 px | Desktop control target; icon can be smaller |
@@ -154,18 +154,18 @@ Keep global tool preferences and separate per-tool color histories shared. Docum
 
 The guide includes production Canvas controls and the existing shared note/PDF fixture. The PDF example is a tool adapter demonstration, not a replacement viewer or proof of native PDF behavior.
 
-## Review register
+## Approved targets and adoption register
 
-These are concrete targets for discussion, not approved production migrations.
+The user approved all four targets on 2026-09-13. Approval establishes the design standard; the production migrations remain separate implementation work.
 
-| ID | Observed inconsistency | Proposed correction | Visual review |
+| ID | Observed inconsistency | Approved correction | Visual review |
 | --- | --- | --- | --- |
 | P1 | Common gaps mix the main rhythm with 6/10/14 px literals | Use shared 4/8/12/16/24 roles; retain justified optical exceptions | Foundations: spacing |
 | P2 | Tool menu uses 20 px radius; drawer inherits host radius; favorites uses 14 px and a custom shadow | Use one floating-shell vocabulary based on the revised menu, with documented compact exceptions | Foundations: shape; Components: actual shells |
 | P3 | Generic pressed/focus swatch states use similar accent outlines | Inner persistent selection boundary and outer accent keyboard focus ring | Basic elements: production and target specimens |
 | P4 | Focus restoration is handled differently by adapters | Explicit close/Escape restores opener; pointer dismissal preserves intent | Components: dismissal; host adoption still required |
 
-Do not broaden the colors PR with these migrations implicitly. Review each proposal at actual size in both themes, then implement accepted corrections as tracked changes.
+Implement these approved corrections as tracked changes, with actual-size checks in both themes. Keep their implementation separate from the source colors PR.
 
 ## Acceptance and evidence
 
