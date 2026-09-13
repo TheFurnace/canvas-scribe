@@ -52,6 +52,8 @@ Run the Obsidian-hosted component workshop at `http://localhost:6006`:
 
 Start with **Canvas Scribe / Style Guide / 01 Foundations** to explore how theme, ink, typography and spacing build into elements, controls, components and surface layouts. The [style guide](docs/style-guide.md) explains the rules and approved targets; the [component inventory](docs/component-inventory.md) maps them to production sources.
 
+Scribe follows your theme's interface appearance. With the optional Style Settings plugin, enable **Canvas Scribe → Include theme ink colors** to offer the theme's extended colors alongside Scribe's curated ink palettes. See [theme and Style Settings support](docs/style-settings.md) for behavior, theme-author aliases and the interactive preview.
+
 ```sh
 pnpm storybook
 ```

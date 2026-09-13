@@ -40,7 +40,7 @@ export function createPenActions(options: PenActionsOptions): RadialMenuAction[]
       children: () => {
         if (!colorTool) return [];
         const current = colors.current(colorTool, defaultColor(colorTool));
-        const swatches = [...new Set([...colors.recent(colorTool), ...paletteColors(colorTool, current)])].slice(0, options.quickColorCount ?? 4);
+        const swatches = [...new Set([...colors.recent(colorTool), ...paletteColors(colorTool, current, document)])].slice(0, options.quickColorCount ?? 4);
         return [
           { id: "default-color", label: "Use tool default color", icon: "rotate-ccw", run: () => confirm(colorTool, null) },
           ...swatches.map((color) => ({ id: `color-${color.slice(1)}`, label: `Use ${color}`, icon: "circle", color,

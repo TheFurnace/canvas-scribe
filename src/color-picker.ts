@@ -58,7 +58,7 @@ export function createColorPicker(document: Document, options: ColorPickerOption
     chips.push(chip);
   };
   const history = recentColors(options.isDefault ? null : options.current, options.recent, 6);
-  toolSwatches(options.tool).forEach((color) => addChip(color, swatches));
+  toolSwatches(options.tool, document).forEach((color) => addChip(color, swatches));
   const field = document.createElement("div");
   field.className = "canvas-scribe-picker-field";
   field.tabIndex = 0;

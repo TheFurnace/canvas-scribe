@@ -41,7 +41,7 @@ The `--canvas-scribe-ui-*` aliases currently cover only part of this vocabulary.
 
 ### Ink colors and defaults
 
-`toolSwatches(tool)` in `src/colors.ts` is the canonical palette: 24 pen colors and 16 highlighter colors. All menus use these collections or documented subsets. The guide reads the same collections and previews ink on light and dark backgrounds. Highlighter samples use 38% default opacity; stored opacity remains independent of color.
+`toolSwatches(tool)` in `src/colors.ts` is the curated baseline: 24 pen colors and 16 highlighter colors. Production menus use `toolSwatches(tool, document)`, which optionally prepends the active theme's extended colors when **Style Settings → Canvas Scribe → Include theme ink colors** is enabled. Exact duplicates in that combined collection are removed; curated colors remain available. See [the theme integration contract](style-settings.md) and **Canvas Scribe / Style Settings** in Storybook. The foundations chapter shows the curated baseline on light and dark backgrounds. Highlighter samples use 38% default opacity; stored opacity remains independent of color.
 
 | Choice | Meaning |
 | --- | --- |

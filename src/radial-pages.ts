@@ -67,7 +67,7 @@ export function createRadialPages(options: PenActionsOptions & {
       { id: "colors", label: colorTool && options.colors.selection(colorTool) === null ? `Colors · ${defaultColorLabel(colorTool)}` : "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
         onEnter: () => {
           colorVisited = true;
-          colorModel ??= new RadialColors(colorTool!, options.colors.selection(colorTool!), options.colors.recent(colorTool!));
+          colorModel ??= new RadialColors(colorTool!, options.colors.selection(colorTool!), options.colors.recent(colorTool!), options.document);
         },
         content: (openPanel) => createRadialColors(options.document, colorModel!, {
           defaultColor: options.defaultColor(colorTool!), selection: () => options.colors.selection(colorTool!), onSelect: confirmColor,

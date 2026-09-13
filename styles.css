@@ -1,3 +1,18 @@
+/* @settings
+name: Canvas Scribe
+id: canvas-scribe
+settings:
+  - id: canvas-scribe-theme-palette
+    title: Include theme ink colors
+    description: Put the active theme's extended colors first in pen and highlighter palettes. Scribe colors remain available in More colors. Chosen colors are saved as fixed ink; tool opacity stays separate.
+    type: class-toggle
+    default: false
+  - id: canvas-scribe-theme-info
+    title: Theme appearance
+    description: Scribe follows your theme's interface colors, accent and font automatically. Change these in your theme's Style Settings section. Theme ink keeps its existing per-surface meaning, including dark ink on white PDF pages.
+    type: info-text
+*/
+
 .canvas-scribe-tool-icon {
   display: flex;
   align-items: center;

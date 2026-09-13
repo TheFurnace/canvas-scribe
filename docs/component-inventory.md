@@ -8,6 +8,7 @@ The visual guide progresses from foundations to surface layouts. Production exam
 | --- | --- | --- | --- |
 | Foundation | Theme roles, typography, dimensions | `styles.css`; host Obsidian CSS | 01 Foundations |
 | Foundation | Pen/highlighter ink palettes and semantic defaults | `src/colors.ts`; surface default resolvers | 01 Foundations / Color Curation |
+| Foundation | Optional theme ink palette and live CSS updates | `src/colors.ts`; `src/tool-theme.ts`; Style Settings metadata in `styles.css` | Style Settings / [theme contract](style-settings.md) (FER-78) |
 | Element | Original tool artwork | `src/tool-icons.ts` | 02 Basic elements / Tool Icons |
 | Element | Ink indicators | `src/tool-indicator.ts` | 02 Basic elements / Toolbar |
 | Element | Labels, values, boundaries and state marks | `src/ui-controls.ts`; `styles.css` | 02 Basic elements |
