@@ -39,3 +39,38 @@ it("mounts only embed surfaces and refreshes existing frames once per file event
   await Promise.resolve();
   expect(document.querySelectorAll('.canvas-scribe-note-embed strong')).toHaveLength(2);
 });
+
+it("keeps an inactive split's canonical preview and Open note target through renderer replacement and rename", async () => {
+  const a = Object.assign(new TFile(), { path: "folder-a/drawing.scribe", basename: "drawing" });
+  const b = Object.assign(new TFile(), { path: "folder-b/drawing.scribe", basename: "drawing" });
+  const files = new Map([[a.path, a], [b.path, b]]);
+  const handlers = new Map<string, (...args: any[]) => void>();
+  const openFile = vi.fn();
+  const active = vi.fn(() => ({ path: "folder-b/owner.md" }));
+  const owner = document.createElement("div"); document.body.append(owner);
+  owner.innerHTML = '<div class="internal-embed" src="drawing.scribe"></div>';
+  const read = vi.fn(async (file: TFile) => {
+    const note = createHandwrittenNote();
+    note.objects.push({ kind: "text", id: "text", x: 10, y: 10, width: 300, text: file === a ? "Original A" : "Wrong B", fontSize: 18, color: "#000000", align: "left" });
+    return serializeHandwrittenNote(note);
+  });
+  let postprocess!: (el: HTMLElement, context: any) => void;
+  const plugin = { app: {
+    vault: { getAbstractFileByPath: (path: string) => files.get(path), cachedRead: read, on: (name: string, fn: (...args: any[]) => void) => handlers.set(name, fn) },
+    metadataCache: { getFirstLinkpathDest: (_path: string, source: string) => source.startsWith("folder-a/") ? a : b },
+    workspace: { getActiveFile: active, getLeavesOfType: () => [], getLeaf: () => ({ openFile }) },
+  }, registerMarkdownPostProcessor: (fn: typeof postprocess) => { postprocess = fn; }, register: (fn: () => void) => disposers.push(fn), registerEvent: vi.fn() } as unknown as Plugin;
+  registerHandwrittenNoteEmbeds(plugin);
+  postprocess(owner, { sourcePath: "folder-a/owner.md" });
+  const check = async () => {
+    await vi.waitFor(() => expect(owner.querySelector(".canvas-scribe-note-text-readonly")?.textContent).toBe("Original A"));
+    owner.querySelector<HTMLButtonElement>("button")!.click(); expect(openFile).toHaveBeenLastCalledWith(a);
+  };
+  await check();
+  owner.querySelector(".internal-embed")!.replaceChildren(); await check();
+  // Replacement of the entire native host recovers its owning postprocessor context.
+  owner.innerHTML = '<div class="internal-embed" src="drawing.scribe"></div>'; await check();
+  files.delete(a.path); a.path = "folder-a/renamed.scribe"; files.set(a.path, a); handlers.get("rename")!(a, "folder-a/drawing.scribe");
+  owner.querySelector(".internal-embed")!.replaceChildren(); await check();
+  expect(active).not.toHaveBeenCalled(); expect(read.mock.calls.every(([file]) => file === a)).toBe(true);
+});

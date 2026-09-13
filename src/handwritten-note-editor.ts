@@ -6,7 +6,7 @@ import { selectRenderedStroke, pointInPolygon, pointInBounds } from "./selection
 import { PEN_PROFILES } from "./pen-types";
 import {
   NOTE_SPARE_HEIGHT, boundsForObjects, cloneHandwrittenObjects, createHandwrittenObjectId,
-  normalizeContentHeight, objectBounds, translateHandwrittenObject,
+  measureTextHeight, normalizeContentHeight, objectBounds, translateHandwrittenObject,
   type HandwrittenInkObject, type HandwrittenNoteDocument, type HandwrittenObject, type HandwrittenTextObject,
 } from "./handwritten-note";
 import { renderHandwrittenNotePage } from "./handwritten-note-renderer";
@@ -34,6 +34,8 @@ export class HandwrittenNoteEditor {
   private moveSnapshot = new Map<string, HandwrittenObject>();
   private onChange: (note: HandwrittenNoteDocument) => void;
   private readonly allowMouse: boolean;
+  private readonly resizeObserver: ResizeObserver;
+  private layoutFrame = 0;
 
   constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, renderIcon: IconRenderer, allowMouse = false) {
     this.note = note; this.onChange = onChange; this.allowMouse = allowMouse;
@@ -63,6 +65,8 @@ export class HandwrittenNoteEditor {
     this.viewport.addEventListener("lostpointercapture", (event) => this.pointerUp(event));
     this.viewport.addEventListener("scroll", () => { this.note.viewport.scrollTop = this.viewport.scrollTop / this.note.viewport.zoom; });
     this.root.addEventListener("keydown", (event) => this.keyDown(event));
+    this.resizeObserver = new ResizeObserver(() => this.syncTextLayout());
+    this.resizeObserver.observe(this.root);
     this.render();
     requestAnimationFrame(() => { this.viewport.scrollTop = this.note.viewport.scrollTop * this.note.viewport.zoom; });
   }
@@ -76,7 +80,7 @@ export class HandwrittenNoteEditor {
 
   getDocument(): HandwrittenNoteDocument { return this.note; }
   focus(): void { this.root.focus(); }
-  destroy(): void { this.root.remove(); }
+  destroy(): void { this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
 
   private render(): void {
     const page = renderHandwrittenNotePage(this.root.ownerDocument, { ...this.note, contentHeight: this.note.contentHeight + NOTE_SPARE_HEIGHT }, { interactive: true, selectedIds: this.selectedIds });
@@ -85,8 +89,27 @@ export class HandwrittenNoteEditor {
     page.style.zoom = String(this.note.viewport.zoom);
     for (const textarea of Array.from(page.querySelectorAll<HTMLTextAreaElement>("textarea.canvas-scribe-note-text"))) this.wireTextArea(textarea);
     this.paperHost.replaceChildren(page);
-    this.renderSelectionHandles(page);
+    this.syncTextLayout();
+    cancelAnimationFrame(this.layoutFrame);
+    this.layoutFrame = requestAnimationFrame(() => this.syncTextLayout());
     this.syncControls();
+  }
+
+  private syncTextLayout(): void {
+    const page = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page"); if (!page) return;
+    for (const textarea of Array.from(page.querySelectorAll<HTMLTextAreaElement>("textarea.canvas-scribe-note-text"))) {
+      const object = this.textObject(textarea.dataset.objectId); if (!object) continue;
+      textarea.style.height = "0px";
+      // scrollHeight includes padding but excludes borders, and is in logical CSS pixels.
+      const height = textarea.scrollHeight ? Math.max(48, textarea.scrollHeight + 2) : objectBounds(object).maxY - object.y;
+      textarea.style.height = `${height}px`;
+      measureTextHeight(object, height);
+    }
+    normalizeContentHeight(this.note);
+    const height = this.note.contentHeight + NOTE_SPARE_HEIGHT;
+    page.style.height = `${height}px`;
+    page.querySelectorAll("svg.canvas-scribe-note-ink").forEach(svg => svg.setAttribute("viewBox", `0 0 ${this.note.logicalWidth} ${height}`));
+    this.renderSelectionHandles(page);
   }
 
   private wireTextArea(textarea: HTMLTextAreaElement): void {
@@ -101,7 +124,7 @@ export class HandwrittenNoteEditor {
     });
     textarea.addEventListener("input", () => {
       const object = this.textObject(textarea.dataset.objectId);
-      if (object) { object.text = textarea.value; normalizeContentHeight(this.note); this.changed(false); }
+      if (object) { object.text = textarea.value; this.syncTextLayout(); this.changed(false); }
     });
     textarea.addEventListener("blur", () => { textarea.classList.remove("is-editing"); delete textarea.dataset.editing; this.changed(); });
     textarea.addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); textarea.blur(); this.root.focus(); } event.stopPropagation(); });
@@ -212,6 +235,7 @@ export class HandwrittenNoteEditor {
   }
 
   private renderSelectionHandles(page: HTMLElement): void {
+    page.querySelectorAll(".canvas-scribe-note-selection").forEach(box => box.remove());
     const selected = this.selectedObjects(); const bounds = boundsForObjects(selected); if (!bounds) return;
     const box = page.ownerDocument.createElement("div"); box.className = "canvas-scribe-note-selection";
     box.style.left = `${bounds.minX}px`; box.style.top = `${bounds.minY}px`; box.style.width = `${bounds.maxX - bounds.minX}px`; box.style.height = `${bounds.maxY - bounds.minY}px`;

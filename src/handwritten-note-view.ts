@@ -5,6 +5,7 @@ import { createHandwrittenNote, parseHandwrittenNote, serializeHandwrittenNote, 
 export const HANDWRITTEN_NOTE_VIEW_TYPE = "canvas-scribe-handwritten-note";
 
 export class HandwrittenNoteView extends TextFileView {
+  private editable = false;
   private editor: HandwrittenNoteEditor | null = null;
   private error: HTMLElement | null = null;
   private rawData = serializeHandwrittenNote(createHandwrittenNote());
@@ -16,19 +17,21 @@ export class HandwrittenNoteView extends TextFileView {
   getViewData(): string { return this.editor ? serializeHandwrittenNote(this.editor.getDocument()) : this.rawData; }
 
   setViewData(data: string, clear: boolean): void {
+    this.editable = false;
     this.rawData = data;
     try {
       const note = parseHandwrittenNote(data);
       this.error?.remove(); this.error = null;
       if (this.editor) this.editor.setDocument(note, clear);
       else {
-        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, (changed) => { this.rawData = serializeHandwrittenNote(changed); this.requestSave(); }, setIcon);
+        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, (changed) => { if (!this.editable) return; this.rawData = serializeHandwrittenNote(changed); this.requestSave(); }, setIcon);
         this.contentEl.replaceChildren(this.editor.root);
       }
+      this.editable = true;
     } catch (error) { this.showError(error); }
   }
 
-  clear(): void { this.editor?.destroy(); this.editor = null; this.error?.remove(); this.error = null; this.contentEl.replaceChildren(); }
+  clear(): void { this.editable = false; this.editor?.destroy(); this.editor = null; this.error?.remove(); this.error = null; this.contentEl.replaceChildren(); }
   onResize(): void { /* Logical coordinates remain stable; Fit is an explicit user action. */ }
 
   private showError(error: unknown): void {

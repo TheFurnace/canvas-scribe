@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { App, TFile } from "obsidian";
 import { PdfStore } from "../src/pdf-store";
 import { newPdfCompanion, parsePdfCompanion, PDF_COMPANION_ROOT, pdfFingerprint, type PdfInk, type PdfSource } from "../src/pdf-document";
@@ -90,4 +90,51 @@ describe("PDF companion save ownership and recovery", () => {
     await expect(f.store.relink(entry, f.source)).rejects.toThrow("changed during review");
     expect(parsePdfCompanion(f.raw.get(a.path)!).strokes).toEqual(latest); expect(a.reviewing).toBe(false);
   });
+});
+
+it("bounds binary verification and writes across bursts, undo/redo and later edits", async () => {
+  const f = await fixture(), a = await f.store.open(f.source);
+  const read = vi.spyOn(f.app.vault, "readBinary"), create = vi.spyOn(f.app.vault, "create"), process = vi.spyOn(f.app.vault, "process");
+  for (let i = 0; i < 100; i++) f.store.change(a, [{ ...stroke, id: String(i) }]);
+  f.store.undo(a); f.store.undo(a, true);
+  await a.queue;
+  expect(parsePdfCompanion(f.raw.get(a.path)!).strokes[0]!.id).toBe("99");
+  expect(read).toHaveBeenCalledTimes(1); expect(create).toHaveBeenCalledTimes(1);
+  f.store.change(a, [stroke]); await a.queue;
+  expect(read).toHaveBeenCalledTimes(1); expect(process).toHaveBeenCalledTimes(1);
+  expect(a.saving).toBe(false); expect(a.pendingSaves).toBe(0);
+});
+it("persists edits arriving during verification and during a companion write", async () => {
+  const f = await fixture(), a = await f.store.open(f.source);
+  let finishRead!: (bytes: ArrayBuffer) => void;
+  const read = vi.spyOn(f.app.vault, "readBinary").mockImplementationOnce(() => new Promise(resolve => { finishRead = resolve; }));
+  f.store.change(a, [stroke]); await vi.waitFor(() => expect(finishRead).toBeTypeOf("function"));
+  f.store.change(a, [{ ...stroke, id: "during-read" }]); finishRead(f.bytes); await a.queue;
+  expect(parsePdfCompanion(f.raw.get(a.path)!).strokes[0]!.id).toBe("during-read");
+  const original = f.app.vault.process.bind(f.app.vault);
+  let finishWrite!: () => void;
+  vi.spyOn(f.app.vault, "process").mockImplementationOnce(async (file, fn) => {
+    await new Promise<void>(resolve => { finishWrite = resolve; }); return original(file, fn);
+  });
+  f.store.change(a, [stroke]); await vi.waitFor(() => expect(finishWrite).toBeTypeOf("function"));
+  f.store.change(a, [{ ...stroke, id: "during-write" }]); finishWrite(); await a.queue;
+  expect(parsePdfCompanion(f.raw.get(a.path)!).strokes[0]!.id).toBe("during-write");
+  expect(read).toHaveBeenCalledTimes(1);
+});
+it("fails closed on invalidation during a source read", async () => {
+  const f = await fixture(), a = await f.store.open(f.source);
+  let finish!: (bytes: ArrayBuffer) => void;
+  vi.spyOn(f.app.vault, "readBinary").mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  f.store.change(a, [stroke]); await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+  f.store.invalidate(f.source.path); finish(f.bytes); await a.queue;
+  expect(a.error).toContain("changed"); expect(f.raw.has(a.path)).toBe(false);
+  expect([...f.raw.keys()].some(path => path.includes("recovery"))).toBe(true);
+});
+it("rechecks changed source metadata even before a vault notification", async () => {
+  const f = await fixture(), a = await f.store.open(f.source);
+  const file = f.files.get(f.source.path)!; file.stat = { ctime: 1, mtime: 1, size: 3 };
+  f.store.change(a, [stroke]); await a.queue; const saved = f.raw.get(a.path);
+  file.stat.mtime++; f.binary.set(file.path, new Uint8Array([9, 9, 9]).buffer);
+  f.store.change(a, [{ ...stroke, id: "replacement" }]); await a.queue;
+  expect(a.error).toContain("changed"); expect(f.raw.get(a.path)).toBe(saved);
 });

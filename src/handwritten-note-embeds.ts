@@ -19,15 +19,18 @@ export function registerHandwrittenNoteEmbeds(plugin: Plugin): void {
 class HandwrittenNoteEmbedManager {
   private readonly embeds = new Map<HTMLElement, string>();
   private scanning = false;
+  private readonly contexts = new WeakMap<HTMLElement, string>();
+  private readonly sources = new WeakMap<HTMLElement, { link: string; path: string }>();
   private readonly revisions = new WeakMap<HTMLElement, number>();
   constructor(private readonly app: App) {}
 
   processMarkdown(element: HTMLElement, context: MarkdownPostProcessorContext): void {
-    for (const embed of Array.from(element.querySelectorAll<HTMLElement>(".internal-embed"))) {
-      if (embed.querySelector(`.${EMBED_CLASS}`)) continue;
+    this.contexts.set(element, context.sourcePath);
+    for (const embed of [ ...(element.matches(".internal-embed") ? [element] : []), ...Array.from(element.querySelectorAll<HTMLElement>(".internal-embed")) ]) {
       const source = embed.getAttribute("src") ?? embed.dataset.src;
       if (!source?.toLowerCase().includes(`.${HANDWRITTEN_NOTE_EXTENSION}`)) continue;
       const file = this.app.metadataCache.getFirstLinkpathDest(source.split("#")[0]!, context.sourcePath);
+      this.sources.set(embed, { link: source, path: file?.path ?? source });
       void this.mount(embed, file?.path ?? source);
     }
   }
@@ -40,7 +43,23 @@ class HandwrittenNoteEmbedManager {
         if (candidate.closest(`.${EMBED_CLASS}`) || candidate.querySelector(`.${EMBED_CLASS}`)) continue;
         const path = candidate.getAttribute("src") ?? candidate.dataset.path; if (!path) continue;
         const target = candidate.matches(".canvas-node") ? (candidate.querySelector(".canvas-node-content") as HTMLElement | null) ?? candidate : candidate;
-        void this.mount(target, path);
+        const known = this.sources.get(candidate);
+        let canonical = known?.link === path ? known.path : undefined;
+        if (!canonical && !candidate.matches(".canvas-node")) {
+          let context: string | undefined;
+          for (let parent: HTMLElement | null = candidate; parent; parent = parent.parentElement) {
+            context = this.contexts.get(parent); if (context !== undefined) break;
+          }
+          // Live Preview can bypass postprocessing. Resolve against its own leaf.
+          if (context === undefined) for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+            const view = leaf.view as unknown as { containerEl?: HTMLElement; file?: TFile };
+            if (view.containerEl?.contains(candidate)) { context = view.file?.path; break; }
+          }
+          if (context !== undefined) canonical = this.app.metadataCache.getFirstLinkpathDest(path.split("#")[0]!, context)?.path;
+        }
+        canonical ??= path;
+        this.sources.set(candidate, { link: path, path: canonical });
+        void this.mount(target, canonical);
       }
       // Canvas file nodes do not expose their file path as a DOM attribute.
       // Keep this private-host seam bounded to existing Canvas leaves and nodes.
@@ -58,7 +77,10 @@ class HandwrittenNoteEmbedManager {
 
   refresh(file: { path: string }): void { for (const [element, path] of [...this.embeds]) if (path === file.path) void this.mount(element, path); }
   rename(file: { path: string }, oldPath: string): void {
-    for (const [element, path] of [...this.embeds]) if (path === oldPath) { this.embeds.set(element, file.path); void this.mount(element, file.path); }
+    for (const [element, path] of [...this.embeds]) if (path === oldPath) { this.embeds.set(element, file.path);
+      const host = element.parentElement, source = host && this.sources.get(host);
+      if (source) source.path = file.path;
+      void this.mount(element, file.path); }
   }
   remove(file: { path: string }): void {
     for (const [frame, path] of this.embeds) if (path === file.path) {
@@ -71,9 +93,7 @@ class HandwrittenNoteEmbedManager {
   private async mount(host: HTMLElement, path: string): Promise<void> {
     const cleanPath = decodeURIComponent(path.split("#")[0]!).replace(/^\/+/, "");
     if (!cleanPath.toLowerCase().endsWith(`.${HANDWRITTEN_NOTE_EXTENSION}`)) return;
-    const exact = this.app.vault.getAbstractFileByPath(cleanPath);
-    const activePath = this.app.workspace.getActiveFile()?.path ?? "";
-    const file = exact ?? this.app.metadataCache.getFirstLinkpathDest(cleanPath, activePath);
+    const file = this.app.vault.getAbstractFileByPath(cleanPath);
     const frame = host.classList.contains(EMBED_CLASS) ? host : host.ownerDocument.createElement("section");
     const revision = (this.revisions.get(frame) ?? 0) + 1;
     this.revisions.set(frame, revision);

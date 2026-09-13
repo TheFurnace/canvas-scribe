@@ -40,3 +40,11 @@ export const LongDocument: Story = { render: () => editorStory(true) };
 export const ReadOnlyEmbed: Story = { render: embedStory };
 export const Dark: Story = { globals: { obsidianTheme: "dark" } };
 export const Tablet: Story = { globals: { obsidianPlatform: "mobile" } };
+
+export const TextReflow: Story = { render: () => {
+  const host = document.createElement("div"); host.style.cssText = "position:absolute;inset:0";
+  const note = fixture(); note.objects = [{ kind: "text", id: "reflow", x: 100, y: 80, width: 300, fontSize: 22, color: "var(--text-normal)", align: "left",
+    text: "Resize this box narrower and wider. All lines must stay visible.\n" + "Long wrapped text with 漢字 and accented characters. ".repeat(12) + "\nEND - this final line must be visible." }];
+  const editor = new HandwrittenNoteEditor(document, note, () => undefined, renderStoryIcon, true);
+  host.append(editor.root); return host;
+} };

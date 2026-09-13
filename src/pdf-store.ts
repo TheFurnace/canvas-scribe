@@ -10,6 +10,8 @@ export class PdfSession {
   error = "";
   saving = false;
   pendingSaves = 0;
+  saveGeneration = 0;
+  verifiedSource: { file: TFile; mtime?: number; size?: number; fingerprint: string } | null = null;
   reviewing = false;
   raw: string | null;
   path: string;
@@ -113,19 +115,32 @@ export class PdfStore {
     if (next) { session.document.strokes = next; void this.save(session); session.notify(); }
   }
   async save(session: PdfSession): Promise<void> {
-    const snapshot = { ...session.document, source: structuredClone(session.document.source), strokes: session.document.strokes };
+    // Obsolete queue entries retain only a generation, not an entire companion snapshot.
+    const generation = ++session.saveGeneration;
     session.pendingSaves++;
     session.saving = true;
     session.queue = session.queue.then(async () => {
-      if (session.error) return;
+      if (session.error || generation !== session.saveGeneration) return;
+      const snapshot = { ...session.document, source: structuredClone(session.document.source), strokes: session.document.strokes };
       try {
         const sourceFile = this.app.vault.getAbstractFileByPath(session.document.source.path) as TFile | null;
-        if (!sourceFile || !('extension' in sourceFile) || await pdfFingerprint(await this.app.vault.readBinary(sourceFile)) !== snapshot.source.fingerprint)
-          throw new Error("Source PDF is missing or changed. Review / relink before editing.");
+        if (!sourceFile || !('extension' in sourceFile)) throw new Error("Source PDF is missing or changed. Review / relink before editing.");
+        // Vault invalidation fails closed; stat/identity changes also force a fresh hash.
+        // Open/relink and export retain their independent fingerprint checks.
+        const cached = session.verifiedSource;
+        const mtime = sourceFile.stat?.mtime, size = sourceFile.stat?.size;
+        if (!cached || cached.file !== sourceFile || cached.mtime !== mtime || cached.size !== size || cached.fingerprint !== snapshot.source.fingerprint) {
+          if (await pdfFingerprint(await this.app.vault.readBinary(sourceFile)) !== snapshot.source.fingerprint)
+            throw new Error("Source PDF is missing or changed. Review / relink before editing.");
+          if (session.error || sourceFile.stat?.mtime !== mtime || sourceFile.stat?.size !== size) throw new Error("Source PDF changed during verification. Review / relink before editing.");
+          session.verifiedSource = { file: sourceFile, mtime, size, fingerprint: snapshot.source.fingerprint };
+        }
+        if (generation !== session.saveGeneration) return;
         snapshot.source.path = sourceFile.path;
         snapshot.revision = session.document.revision + 1;
         const raw = serializePdfCompanion(snapshot);
         await this.ensureRoot();
+        if (session.error) throw new Error(session.error);
         const file = this.app.vault.getAbstractFileByPath(session.path) as TFile | null;
         if (session.raw === null) {
           if (file) throw new Error("Companion appeared during editing. Both versions must be reviewed.");
@@ -133,6 +148,7 @@ export class PdfStore {
         } else {
           if (!file) throw new Error("Companion moved or disappeared during editing.");
           await this.app.vault.process(file, current => {
+            if (session.error) throw new Error(session.error);
             if (current !== session.raw) throw new Error("Companion changed outside this editor. Both versions must be reviewed.");
             return raw;
           });
@@ -155,6 +171,7 @@ export class PdfStore {
     const session = this.sessions.get(oldPath);
     if (session) {
       this.sessions.delete(oldPath); this.sessions.set(file.path, session);
+      session.verifiedSource = null;
       session.document.source.path = file.path;
       if (session.raw !== null) void this.save(session);
     }
@@ -162,6 +179,7 @@ export class PdfStore {
   }
   invalidate(path: string): void {
     for (const session of this.sessions.values()) if (session.document.source.path === path) {
+      session.verifiedSource = null;
       session.error = "Source PDF changed or was removed. Use Review / relink; existing ink is preserved."; session.notify();
     }
   }
@@ -194,6 +212,7 @@ export class PdfStore {
       await this.app.vault.process(file, current => { if (current !== entry.raw) throw new Error("Companion changed during review. Reopen Review / relink."); return raw; });
       for (const session of locked) if (session !== active) session.error = "This companion was explicitly linked to another PDF. Local ink is preserved; review before editing.";
       if (active) {
+        active.verifiedSource = null;
         active.document = updated; active.path = entry.path; active.raw = raw; active.error = "";
         active.history.past = []; active.history.future = [];
       }
