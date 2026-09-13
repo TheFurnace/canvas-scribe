@@ -6,7 +6,7 @@ import { createHandwrittenNote } from "../src/handwritten-note";
 import { PdfTools } from "../src/pdf-tools";
 import { renderStoryIcon } from "./story-helpers";
 
-function preview(): HTMLElement {
+export function createSharedToolsPreview(): HTMLElement {
   const root = document.createElement("section"); root.style.cssText = "position:absolute;inset:0;overflow:auto;background:var(--background-primary);padding:20px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:16px";
   const hint = document.createElement("p"); hint.textContent = "Shared tools: change a pen or color in either view. Default follows each surface. Right-click the note or PDF preview for the same radial. Mouse drawing is enabled in the note preview.";
   hint.style.width = "100%"; root.append(hint);
@@ -31,7 +31,7 @@ function preview(): HTMLElement {
   cleanup.observe(document.body, { childList: true, subtree: true });
   return root;
 }
-const meta = { title: "Canvas Scribe/Shared Tools", parameters: { obsidian: { placement: "overlay" } }, render: preview } satisfies Meta;
+const meta = { title: "Canvas Scribe/Shared Tools", excludeStories: ["createSharedToolsPreview"], parameters: { obsidian: { placement: "overlay" } }, render: createSharedToolsPreview } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Desktop: Story = {};
