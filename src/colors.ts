@@ -62,20 +62,33 @@ export function resolveColor(document: Document, color: string): string {
 export class ToolColors {
   private selected: Partial<Record<ColorTool, string>> = {};
   private history: Record<ColorTool, string[]> = { pen: [], highlighter: [] };
+  constructor(value?: unknown, private readonly changed: () => void = () => undefined) { this.restore(value); }
+  restore(value: unknown): void {
+    if (!value || typeof value !== "object") return;
+    const x = value as { selected?: Partial<Record<ColorTool, unknown>>; history?: Partial<Record<ColorTool, unknown>> };
+    for (const tool of ["pen", "highlighter"] as const) {
+      const selected = x.selected?.[tool];
+      if (typeof selected === "string" && parseHex(selected)) this.selected[tool] = parseHex(selected)!;
+      const recent = x.history?.[tool];
+      if (Array.isArray(recent)) this.history[tool] = [...new Set(recent.flatMap(c => typeof c === "string" && parseHex(c) ? [parseHex(c)!] : []))].slice(0, 6);
+    }
+  }
+  serialize() { return { selected: { ...this.selected }, history: { pen: [...this.history.pen], highlighter: [...this.history.highlighter] } }; }
 
   selection(tool: ColorTool): string | null { return this.selected[tool] ?? null; }
   current(tool: ColorTool, defaultColor: string): string { return this.selected[tool] ?? defaultColor; }
   recent(tool: ColorTool): readonly string[] { return [...this.history[tool]]; }
   initializeHistory(tool: ColorTool, defaultColor: string): void {
     const normalized = parseHex(defaultColor);
-    if (normalized && this.history[tool].length === 0) this.history[tool] = [normalized];
+    if (normalized && this.history[tool].length === 0) { this.history[tool] = [normalized]; this.changed(); }
   }
   confirm(tool: ColorTool, color: string | null, remember = true): void {
-    if (color === null) { delete this.selected[tool]; return; }
+    if (color === null) { delete this.selected[tool]; this.changed(); return; }
     const normalized = parseHex(color);
     if (!normalized) return;
     this.selected[tool] = normalized;
     if (remember) this.history[tool] = [normalized, ...this.history[tool].filter((c) => c !== normalized)].slice(0, 6);
+    this.changed();
   }
 }
 

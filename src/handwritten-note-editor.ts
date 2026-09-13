@@ -1,21 +1,18 @@
+import { createToolColors, createToolMenu, createToolRadial, observeToolTheme } from "./tool-suite";
+import { scaleHandwrittenSelection, selectHandwrittenObject } from "./handwritten-selection";
 import { createCanvasControls, syncCanvasControls, type IconRenderer } from "./canvas-controls";
 import { DocumentHistory } from "./document-history";
-import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
+import { eraseInk, eraserOutline } from "./ink-operations";
 import { strokeIntersectsCircle } from "./geometry";
-import { createPenMenu } from "./pen-menu";
-import { createHighlighterMenu } from "./highlighter-menu";
-import { createEraserMenu } from "./eraser-menu";
-import { createSelectionMenu } from "./selection-menu";
 import { createColorPicker } from "./color-picker";
 import { resolveColor } from "./colors";
 import { positionPopup } from "./popover";
-import { FavoritePens, type PenPreset } from "./favorite-pens";
-import { createRadialPages } from "./radial-pages";
+import { FavoritePens } from "./favorite-pens";
 import { RadialSession } from "./radial-session";
 import { isStylusBarrelButton } from "./pointer-input";
 import type { DrawingTool, InkTool } from "./types";
 import { InkToolState } from "./ink-tool-state";
-import { selectRenderedStroke, pointInPolygon, pointInBounds } from "./selection";
+import { pointInBounds } from "./selection";
 import { PEN_PROFILES } from "./pen-types";
 import {
   NOTE_SPARE_HEIGHT, boundsForObjects, cloneHandwrittenObjects, createHandwrittenObjectId,
@@ -29,7 +26,10 @@ type EditorTool = "pen" | "highlighter" | "eraser" | "lasso" | "text";
 export class HandwrittenNoteEditor {
   readonly root: HTMLElement;
   private readonly history = new DocumentHistory<HandwrittenObject>(cloneHandwrittenObjects, 100);
-  private readonly tools = new InkToolState();
+  private gestureTools: InkToolState | null = null;
+  private unsubscribeTools: () => void = () => undefined;
+  private unsubscribeTheme: () => void;
+  private get tools(): InkToolState { return this.gestureTools ?? this.sharedTools; }
   private readonly selectedIds = new Set<string>();
   private controls: HTMLElement;
   private textStyleControls: HTMLElement;
@@ -55,7 +55,7 @@ export class HandwrittenNoteEditor {
   private barrelPointer: number | null = null;
   private contextSuppressedUntil = 0;
 
-  constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, private readonly renderIcon: IconRenderer, allowMouse = false, private readonly favorites = new FavoritePens(), private readonly overlayMount: HTMLElement = document.body) {
+  constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, private readonly renderIcon: IconRenderer, allowMouse = false, private readonly favorites = new FavoritePens(), private readonly overlayMount: HTMLElement = document.body, private readonly sharedTools = new InkToolState()) {
     this.note = note; this.onChange = onChange; this.allowMouse = allowMouse;
     this.root = document.createElement("section");
     this.root.className = "canvas-scribe-note-editor";
@@ -93,6 +93,13 @@ export class HandwrittenNoteEditor {
     this.root.addEventListener("keydown", (event) => this.keyDown(event));
     this.resizeObserver = new ResizeObserver(() => this.syncTextLayout());
     this.resizeObserver.observe(this.root);
+    this.tool = this.sharedTools.activeTool;
+    let lastTool = this.sharedTools.activeTool;
+    this.unsubscribeTools = this.sharedTools.subscribe(() => {
+      if (this.activePointer === null && this.sharedTools.activeTool !== lastTool) this.tool = this.sharedTools.activeTool;
+      lastTool = this.sharedTools.activeTool; this.syncControls();
+    });
+    this.unsubscribeTheme = observeToolTheme(document, () => { this.closeOverlays(); this.syncControls(); });
     this.render();
     requestAnimationFrame(() => { this.viewport.scrollTop = this.note.viewport.scrollTop * this.note.viewport.zoom; });
   }
@@ -107,12 +114,11 @@ export class HandwrittenNoteEditor {
 
   getDocument(): HandwrittenNoteDocument { return this.note; }
   focus(): void { this.root.focus(); }
-  destroy(): void { this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
+  destroy(): void { this.unsubscribeTheme(); this.unsubscribeTools(); this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
 
-  private setTool(tool: DrawingTool): void { this.closeOverlays(); this.tool = tool; this.tools.activeTool = tool; this.render(); }
-  private color(tool: InkTool): string { return this.tools.toolColors.current(tool, tool === "pen" ? "var(--text-normal)" : "#fde047"); }
+  setTool(tool: DrawingTool): void { this.closeOverlays(); this.sharedTools.activeTool = tool; if (this.activePointer === null) this.tool = tool; this.syncControls(); }
+  toggleEnabled(): void { this.closeOverlays(); this.enabled = !this.enabled; this.syncControls(); }
   private defaultColor(tool: InkTool): string { return tool === "highlighter" ? "#fde047" : resolveColor(this.root.ownerDocument, this.root.ownerDocument.defaultView!.getComputedStyle(this.root).color); }
-  private opacity(tool: InkTool): number { return tool === "pen" ? this.tools.penOpacity ?? PEN_PROFILES[this.tools.penType].opacity : this.tools.highlighterOpacity; }
   private closeOverlays(): void { this.closeMenu(); this.radial?.close(false); this.radial = null; }
   private closeMenu(focus = false): void {
     this.menuDispose?.(); this.menuDispose = null; this.menu?.remove(); this.menu = null;
@@ -124,7 +130,7 @@ export class HandwrittenNoteEditor {
     const anchor = this.controls.querySelector<HTMLElement>(`[data-action="${this.tool}"]`) ?? this.controls;
     this.overlayMount.append(menu); anchor.setAttribute("aria-expanded", "true"); anchor.setAttribute("aria-haspopup", "dialog");
     const position = () => {
-      if (!menu.classList.contains("canvas-scribe-tool-menu")) return; // Color picker supplies its own modal layout.
+      if (menu.classList.contains("canvas-scribe-picker-backdrop")) return;
       const point = positionPopup(anchor.getBoundingClientRect(), menu.getBoundingClientRect(), document.defaultView!.innerWidth, document.defaultView!.innerHeight);
       menu.style.left = `${point.left}px`; menu.style.top = `${point.top}px`;
       if (this.overlayMount !== document.body) {
@@ -142,84 +148,51 @@ export class HandwrittenNoteEditor {
     position(); menu.querySelector<HTMLElement>('button[aria-pressed="true"], button, input')?.focus();
   }
   private openColors(recolor = false): void {
-    const selected = this.selectedObjects().filter((object): object is HandwrittenInkObject => object.kind === "ink");
-    const tool = recolor ? selected[0]?.tool : this.tool;
+    if (!recolor) {
+      const tool = this.sharedTools.activeTool;
+      if (tool !== "pen" && tool !== "highlighter") return;
+      this.mountMenu(createToolColors(this.root.ownerDocument, this.sharedTools, tool, { defaultColor: this.defaultColor(tool),
+        mount: menu => this.mountMenu(menu), close: () => this.closeMenu(true), changed: () => this.syncControls() }));
+      return;
+    }
+    const selected = this.selectedObjects(), first = selected[0];
+    const tool = recolor ? first?.kind === "ink" ? first.tool : "pen" : this.sharedTools.activeTool;
     if (tool !== "pen" && tool !== "highlighter") return;
-    const document = this.root.ownerDocument;
-    this.mountMenu(createColorPicker(document, {
-      tool, current: resolveColor(document, (recolor ? selected[0]!.color : this.tools.toolColors.selection(tool))?.replace("var(--text-normal)", this.defaultColor(tool)) ?? this.defaultColor(tool)),
-      defaultColor: this.defaultColor(tool), recent: this.tools.toolColors.recent(tool),
-      onConfirm: (color) => {
-        if (recolor) {
+    const color = recolor ? first?.color ?? this.defaultColor(tool) : this.sharedTools.toolColors.selection(tool);
+    this.mountMenu(createColorPicker(this.root.ownerDocument, {
+      tool, current: resolveColor(this.root.ownerDocument, color === "var(--text-normal)" || !color ? this.defaultColor(tool) : color),
+      isDefault: recolor ? color === "var(--text-normal)" : color === null,
+      defaultColor: this.defaultColor(tool), recent: this.sharedTools.toolColors.recent(tool),
+      onConfirm: value => {
+        if (recolor && selected.length) {
           this.history.checkpoint(this.note.objects);
-          this.note.objects = this.note.objects.map(object => object.kind === "ink" && this.selectedIds.has(object.id)
-            ? { ...object, color: color ?? (object.tool === "pen" ? "var(--text-normal)" : "#fde047") } : object);
+          this.note.objects = this.note.objects.map(object => this.selectedIds.has(object.id)
+            ? { ...object, color: value ?? (object.kind === "ink" && object.tool === "highlighter" ? "#fde047" : "var(--text-normal)") } : object);
           this.changed(true);
-        } else this.tools.toolColors.confirm(tool, color);
+        } else this.sharedTools.toolColors.confirm(tool, value);
         this.closeMenu(true); this.syncControls();
       }, onCancel: () => this.closeMenu(true),
     }));
   }
   private toggleToolMenu(): void {
     if (this.menu) { this.closeMenu(true); return; }
-    const document = this.root.ownerDocument, state = this.tools;
-    const common = { renderIcon: this.renderIcon, onClose: () => this.closeMenu(true) }, sync = () => this.syncControls();
-    const menu = this.tool === "pen" ? createPenMenu(document, { ...common,
-      type: state.penType, size: state.penSize, color: this.color("pen"),
-      onType: type => { state.penType = type; state.penOpacity = null; sync(); }, onSize: size => { state.penSize = size; sync(); },
-      onColor: color => { state.toolColors.confirm("pen", color); sync(); }, onColors: () => this.openColors(),
-    }) : this.tool === "highlighter" ? createHighlighterMenu(document, { ...common,
-      type: state.highlighterType, size: state.highlighterSize, opacity: state.highlighterOpacity, color: this.color("highlighter"),
-      onType: type => { state.highlighterType = type; sync(); }, onSize: size => { state.highlighterSize = size; sync(); },
-      onOpacity: opacity => { state.highlighterOpacity = opacity; sync(); },
-      onColor: color => { state.toolColors.confirm("highlighter", color); sync(); }, onColors: () => this.openColors(),
-    }) : this.tool === "eraser" ? createEraserMenu(document, { ...common,
-      settings: state.eraserSettings, onChange: settings => { state.eraserSettings = settings; },
+    this.mountMenu(createToolMenu(this.root.ownerDocument, this.renderIcon, this.sharedTools, {
+      color: tool => this.sharedTools.toolColors.current(tool, this.defaultColor(tool)), colors: () => this.openColors(),
+      close: () => this.closeMenu(true), changed: () => this.syncControls(), count: this.selectedObjects().length,
       canClear: this.note.objects.some(object => object.kind === "ink"), clearLabel: "Erase all ink in this note…",
       clearMessage: "Erase all ink in this note? Text boxes will remain. You can undo this action.",
-      onClear: () => { this.history.checkpoint(this.note.objects); this.note.objects = this.note.objects.filter(object => object.kind === "text"); this.selectedIds.clear(); this.closeMenu(); this.changed(true); },
-    }) : this.tool === "lasso" ? createSelectionMenu(document, { ...common,
-      settings: state.selectionSettings, count: this.selectedObjects().filter(object => object.kind === "ink").length,
-      onChange: settings => { state.selectionSettings = settings; }, onRecolor: () => this.openColors(true),
-      onScale: scale => {
-        const bounds = boundsForObjects(this.selectedObjects().filter(object => object.kind === "ink")); if (!bounds || scale === 1) return;
-        this.history.checkpoint(this.note.objects); const cx = (bounds.minX + bounds.maxX) / 2, cy = (bounds.minY + bounds.maxY) / 2;
-        this.note.objects = this.note.objects.map(object => object.kind === "ink" && this.selectedIds.has(object.id)
-          ? { ...transformInk(object, (x, y) => [cx + (x - cx) * scale, cy + (y - cy) * scale], scale), kind: "ink" } : object);
-        this.changed(true);
+      clear: () => { this.history.checkpoint(this.note.objects); this.note.objects = this.note.objects.filter(object => object.kind === "text"); this.selectedIds.clear(); this.closeMenu(); this.changed(true); },
+      recolor: () => this.openColors(true), scale: factor => {
+        const next = scaleHandwrittenSelection(this.note.objects, this.selectedIds, factor); if (!next) return;
+        this.history.checkpoint(this.note.objects); this.note.objects = next; this.changed(true);
       },
-    }) : null;
-    if (menu) this.mountMenu(menu);
+    }));
   }
   private openRadial(x: number, y: number): void {
     this.closeOverlays();
-    const state = this.tools, tool = this.tool === "text" ? state.activeTool : this.tool;
-    const preset: PenPreset | null = tool === "pen" || tool === "highlighter" ? {
-      tool, penType: state.penType, highlighterType: state.highlighterType, color: state.toolColors.selection(tool),
-      size: tool === "pen" ? state.penSize : state.highlighterSize, opacity: this.opacity(tool),
-    } : null;
-    const actions = createRadialPages({
-      document: this.root.ownerDocument, tool, colors: state.toolColors, favorites: this.favorites, currentPreset: preset,
-      penType: state.penType, highlighterType: state.highlighterType, eraserMode: state.eraserSettings.mode,
-      selectTool: value => this.setTool(value),
-      selectPen: type => { state.penType = type; state.penOpacity = null; this.setTool("pen"); },
-      selectHighlighter: type => { state.highlighterType = type; this.setTool("highlighter"); },
-      selectEraser: mode => { state.eraserSettings.mode = mode; this.setTool("eraser"); },
-      getSize: () => tool === "pen" ? state.penSize : state.highlighterSize,
-      setSize: size => { if (tool === "pen") state.penSize = size; else state.highlighterSize = size; this.syncControls(); },
-      getOpacity: () => this.opacity(tool === "pen" ? "pen" : "highlighter"),
-      setOpacity: opacity => { if (tool === "pen") state.penOpacity = opacity; else state.highlighterOpacity = opacity; this.syncControls(); },
+    const actions = createToolRadial(this.root.ownerDocument, this.sharedTools, this.favorites, {
+      selectTool: tool => this.setTool(tool), changed: () => this.syncControls(), defaultColor: tool => this.defaultColor(tool),
       undo: () => this.undo(), redo: () => this.redo(), canUndo: () => this.history.past.length > 0, canRedo: () => this.history.future.length > 0,
-      defaultColor: ink => this.defaultColor(ink),
-      colorsChanged: () => this.syncControls(),
-      applyFavorite: favorite => {
-        state.toolColors.confirm(favorite.tool, favorite.color);
-        if (favorite.tool === "pen") { state.penType = favorite.penType; state.penSize = favorite.size; state.penOpacity = favorite.opacity; }
-        else { state.highlighterType = favorite.highlighterType ?? "round"; state.highlighterSize = favorite.size; state.highlighterOpacity = favorite.opacity; }
-        this.setTool(favorite.tool);
-      },
-      openCanvasMenu: () => this.toggleToolMenu(),
-      contextAction: null,
     });
     this.radial = new RadialSession(this.root.ownerDocument, actions, () => { this.radial = null; }, this.renderIcon, this.overlayMount);
     this.radial.open(x, y);
@@ -294,8 +267,8 @@ export class HandwrittenNoteEditor {
     if (!this.enabled || (event.pointerType !== "pen" && !(this.allowMouse && event.pointerType === "mouse" && event.button === 0)) || this.activePointer !== null || (event.target as Element).closest(".canvas-scribe-note-toolbar, textarea, button")) return;
     this.closeOverlays();
     const point = this.point(event); if (!point) return;
-    event.preventDefault(); event.stopPropagation(); this.pan = null; this.activePointer = event.pointerId; this.viewport.setPointerCapture?.(event.pointerId);
-    if (this.tool === "text") { this.addText(point.x, point.y); this.activePointer = null; this.releasePointer(event.pointerId); return; }
+    event.preventDefault(); event.stopPropagation(); this.pan = null; this.gestureTools = this.sharedTools.snapshot(); this.activePointer = event.pointerId; this.viewport.setPointerCapture?.(event.pointerId);
+    if (this.tool === "text") { this.addText(point.x, point.y); this.activePointer = null; this.gestureTools = null; this.releasePointer(event.pointerId); return; }
     if (this.tool === "eraser") { this.eraseAt(point.x, point.y); return; }
     if (this.tool === "lasso") {
       const bounds = boundsForObjects(this.selectedObjects());
@@ -368,12 +341,12 @@ export class HandwrittenNoteEditor {
     else if (this.activeInk) { this.activeInk = null; normalizeContentHeight(this.note); this.changed(); }
     else if (this.tool === "lasso" && this.moveOrigin) { this.moveOrigin = null; this.moveSnapshot.clear(); normalizeContentHeight(this.note); this.changed(); }
     else if (this.tool === "lasso" && this.gesturePoints.length > 2) { this.selectGesture(); this.render(); }
-    this.gesturePoints = []; this.activePointer = null; this.releasePointer(event.pointerId);
+    this.gesturePoints = []; this.activePointer = null; this.gestureTools = null; if (this.tool !== "text") this.tool = this.sharedTools.activeTool; this.releasePointer(event.pointerId); this.syncControls();
   }
 
   private selectGesture(): void {
     for (const object of this.note.objects) {
-      if (object.kind === "ink" ? selectRenderedStroke(object, this.gesturePoints, this.tools.selectionSettings.partial) : this.boxIntersectsPolygon(objectBounds(object), this.gesturePoints)) this.selectedIds.add(object.id);
+      if (selectHandwrittenObject(object, this.gesturePoints, this.tools.selectionSettings.partial)) this.selectedIds.add(object.id);
     }
   }
 
@@ -424,7 +397,7 @@ export class HandwrittenNoteEditor {
     event.preventDefault(); event.stopPropagation();
     if (this.activePointer !== null) return;
     this.history.checkpoint(this.note.objects);
-    this.pan = null; this.activePointer = event.pointerId; this.handleDrag = move;
+    this.pan = null; this.gestureTools = this.sharedTools.snapshot(); this.activePointer = event.pointerId; this.handleDrag = move;
     // Handles are rebuilt during rendering; capture on the persistent viewport.
     this.viewport.setPointerCapture?.(event.pointerId);
   }
@@ -459,8 +432,8 @@ export class HandwrittenNoteEditor {
     }
   }
 
-  private undo(): void { const objects = this.history.undo(this.note.objects); if (objects) { this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
-  private redo(): void { const objects = this.history.redo(this.note.objects); if (objects) { this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
+  undo(): void { const objects = this.history.undo(this.note.objects); if (objects) { this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
+  redo(): void { const objects = this.history.redo(this.note.objects); if (objects) { this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
   private deleteSelection(): void { if (!this.selectedIds.size) return; this.history.checkpoint(this.note.objects); this.note.objects = this.note.objects.filter(({ id }) => !this.selectedIds.has(id)); this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); }
 
   private zoomControls(document: Document): HTMLElement {
@@ -492,9 +465,9 @@ export class HandwrittenNoteEditor {
   }
 
   private syncControls(): void {
-    syncCanvasControls(this.controls, { activeTool: this.tool === "text" ? null : this.tool, penType: this.tools.penType, highlighterType: this.tools.highlighterType,
-      penColor: this.color("pen"), highlighterColor: this.color("highlighter"), penSize: this.tools.penSize, highlighterSize: this.tools.highlighterSize,
-      penOpacity: this.opacity("pen"), highlighterOpacity: this.opacity("highlighter"), enabled: this.enabled, canUndo: this.history.past.length > 0, canRedo: this.history.future.length > 0 });
+    syncCanvasControls(this.controls, { activeTool: this.tool === "text" ? null : this.sharedTools.activeTool, penDefault: this.sharedTools.toolColors.selection("pen") === null, highlighterDefault: this.sharedTools.toolColors.selection("highlighter") === null, penType: this.sharedTools.penType, highlighterType: this.sharedTools.highlighterType,
+      penColor: this.sharedTools.toolColors.current("pen", "var(--text-normal)"), highlighterColor: this.sharedTools.toolColors.current("highlighter", this.defaultColor("highlighter")), penSize: this.sharedTools.penSize, highlighterSize: this.sharedTools.highlighterSize,
+      penOpacity: this.sharedTools.opacity("pen"), highlighterOpacity: this.sharedTools.opacity("highlighter"), enabled: this.enabled, canUndo: this.history.past.length > 0, canRedo: this.history.future.length > 0 });
     this.root.querySelector(".canvas-scribe-note-text-tool")?.classList.toggle("is-active", this.tool === "text");
     const selected = this.selectedObjects()[0]; const text = this.selectedIds.size === 1 && selected?.kind === "text" ? selected : null;
     this.textStyleControls.hidden = text === null;
@@ -519,8 +492,4 @@ export class HandwrittenNoteEditor {
     const rect = page.getBoundingClientRect(); return { x: (event.clientX - rect.left) / this.note.viewport.zoom, y: (event.clientY - rect.top) / this.note.viewport.zoom };
   }
   private inkPoint(event: PointerEvent, point: { x: number; y: number }) { return { ...point, pressure: event.pressure || .5, tiltX: event.tiltX, tiltY: event.tiltY, time: event.timeStamp }; }
-  private boxIntersectsPolygon(bounds: ReturnType<typeof objectBounds>, polygon: readonly { x: number; y: number }[]): boolean {
-    const corners = [{ x: bounds.minX, y: bounds.minY }, { x: bounds.maxX, y: bounds.minY }, { x: bounds.maxX, y: bounds.maxY }, { x: bounds.minX, y: bounds.maxY }];
-    return corners.some((corner) => pointInPolygon(corner, polygon)) || polygon.some((point) => pointInBounds(point, bounds));
-  }
 }

@@ -1,3 +1,4 @@
+import { InkToolState } from "./ink-tool-state";
 import { Modal, Notice, type Plugin, type TFile } from "obsidian";
 import type { FavoritePens } from "./favorite-pens";
 import { createAction } from "./ui-controls";
@@ -12,7 +13,7 @@ export class PdfController {
   private readonly store: PdfStore;
   private readonly attachments = new Map<HTMLElement, Attachment>();
   private readonly unsupported = new Map<HTMLElement, HTMLElement>();
-  constructor(private readonly plugin: Plugin, private readonly favorites: FavoritePens) {
+  constructor(private readonly plugin: Plugin, private readonly favorites: FavoritePens, private readonly tools = new InkToolState()) {
     this.store = new PdfStore(plugin.app);
     plugin.registerEvent(plugin.app.workspace.on("layout-change", () => this.sync()));
     plugin.registerEvent(plugin.app.vault.on("rename", (file, oldPath) => { if ("extension" in file) this.store.rename(file as TFile, oldPath); for (const path of [file.path, oldPath]) if (path.startsWith(PDF_COMPANION_ROOT + "/")) this.store.companionChanged(path); this.sync(); }));
@@ -22,6 +23,7 @@ export class PdfController {
     plugin.registerInterval(window.setInterval(() => this.sync(), 1000));
     plugin.app.workspace.onLayoutReady(() => this.sync());
   }
+  commands(container: HTMLElement): PdfLayer | undefined { return this.attachments.get(container)?.layer; }
   destroy(): void { for (const attachment of this.attachments.values()) this.detach(attachment); this.attachments.clear(); for (const el of this.unsupported.values()) el.remove(); this.unsupported.clear(); }
   private detach(a: Attachment): void { a.abort.abort(); a.layer?.destroy(); a.bar.remove(); if (a.session) this.store.release(a.session); }
   private sync(): void {
@@ -52,7 +54,7 @@ export class PdfController {
       const source = await describePdf(await this.plugin.app.vault.readBinary(a.file), a.file.path);
       const session = await this.store.open(source); if (a.abort.signal.aborted) return;
       a.session = session; a.layer?.destroy();
-      a.layer = new PdfLayer(a.view, a.host, session, this.store, this.favorites, message => { a.status.textContent = message; });
+      a.layer = new PdfLayer(a.view, a.host, session, this.store, this.favorites, message => { a.status.textContent = message; }, this.tools);
     } catch (error) { if (!a.abort.signal.aborted) a.status.textContent = message(error); }
   }
   private download(a: Attachment): void {

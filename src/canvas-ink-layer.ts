@@ -1,15 +1,13 @@
+import { createToolColors, createToolMenu, createToolRadial, observeToolTheme } from "./tool-suite";
 import { Notice, setIcon, type App } from "obsidian";
 
 import { createCanvasControls, syncCanvasControls } from "./canvas-controls";
 import type { CanvasTarget } from "./canvas-target";
 import { resolveColor, type ColorTool } from "./colors";
-import { createQuickColors } from "./quick-colors";
 import { createColorPicker } from "./color-picker";
 import type { DebugLogger } from "./debug-logger";
 import { strokeToSvgPath } from "./geometry";
 import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
-import { createEraserMenu } from "./eraser-menu";
-import { createSelectionMenu } from "./selection-menu";
 import { InkToolState } from "./ink-tool-state";
 import { DocumentHistory } from "./document-history";
 import { CanvasInkSurface, type SurfaceTransform } from "./ink-surface";
@@ -20,8 +18,6 @@ import {
 } from "./handwriting-affordance";
 import { PenActivationGuard } from "./pen-activation";
 import { positionPopup } from "./popover";
-import { createPenMenu } from "./pen-menu";
-import { createHighlighterMenu } from "./highlighter-menu";
 import { PEN_PROFILES } from "./pen-types";
 import { boundsForStrokes, pointInBounds, selectRenderedStroke } from "./selection";
 import {
@@ -34,8 +30,7 @@ import {
   shouldAppendReleasePoint,
   stylusPointerDownAction,
 } from "./pointer-input";
-import { FavoritePens, type PenPreset } from "./favorite-pens";
-import { createRadialPages } from "./radial-pages";
+import { FavoritePens } from "./favorite-pens";
 import { RadialMenu } from "./radial-menu";
 import {
   cloneStrokes,
@@ -54,7 +49,8 @@ const SELECTION_SCREEN_PADDING = 8;
 const PALETTE_CLOSE_ANIMATION_MS = 180;
 
 export class CanvasInkLayer {
-  private readonly toolState = new InkToolState();
+  private gestureTools: InkToolState | null = null;
+  private get toolState(): InkToolState { return this.gestureTools ?? this.sharedTools; }
   private readonly history = new DocumentHistory<InkStroke>(cloneStrokes, 100);
   private readonly surface: CanvasInkSurface;
   private data: CanvasInkData = createEmptyInkData();
@@ -112,18 +108,18 @@ export class CanvasInkLayer {
     readonly target: CanvasTarget,
     private readonly logger: DebugLogger,
     private readonly favorites = new FavoritePens(),
+    private readonly sharedTools = new InkToolState(),
   ) { this.surface = new CanvasInkSurface(app, target); }
 
   async mount(): Promise<void> {
     this.data = await this.surface.load();
     this.loaded = true;
-    this.toolState.penType = this.data.penSettings?.type ?? "fountain";
-    this.toolState.penSize = this.data.penSettings?.size ?? 3.5;
-    this.toolState.highlighterType = this.data.highlighterSettings?.type ?? "round";
-    this.toolState.highlighterSize = this.data.highlighterSettings?.size ?? 17;
-    this.toolState.highlighterOpacity = this.data.highlighterSettings?.opacity ?? 0.38;
     this.logger.record("canvas", "layer_mounted", { strokeCount: this.data.strokes.length });
     if (this.disposed) return;
+    this.disposers.push(this.sharedTools.subscribe(() => this.syncControls()));
+    this.disposers.push(observeToolTheme(this.target.containerEl.ownerDocument, () => {
+      this.closeColorPalette(); this.closePenMenu(); this.closeRadialMenu(); this.syncControls();
+    }));
     this.ensureDom();
     this.observeDom();
   }
@@ -134,7 +130,7 @@ export class CanvasInkLayer {
 
   setTool(tool: DrawingTool): void {
     this.closePenMenu();
-    this.toolState.activeTool = tool;
+    this.sharedTools.activeTool = tool;
     if (tool !== "eraser") this.hideEraserCursor();
     if (tool !== "lasso") this.clearSelection();
     this.closeColorPalette();
@@ -319,6 +315,7 @@ export class CanvasInkLayer {
       pressure: Math.round(event.pressure * 1000) / 1000,
       temporaryTool: this.temporaryTool !== null,
     });
+    this.gestureTools = this.sharedTools.snapshot();
     this.gestureRedoStack = this.history.future;
     this.gestureHasUndoSnapshot = false;
     if (tool === "eraser") {
@@ -565,6 +562,7 @@ export class CanvasInkLayer {
     this.activeStroke = null;
     this.activePathEl = null;
     this.activePointerId = null;
+    this.gestureTools = null;
     this.gestureTransform = null;
     this.gestureOriginTarget = null;
     this.temporaryTool = null;
@@ -615,6 +613,7 @@ export class CanvasInkLayer {
     this.activeStroke = null;
     this.activePathEl = null;
     this.activePointerId = null;
+    this.gestureTools = null;
     this.gestureTransform = null;
     this.gestureOriginTarget = null;
     this.temporaryTool = null;
@@ -698,36 +697,11 @@ export class CanvasInkLayer {
     this.closeColorPalette();
     this.closePenMenu();
     const document = this.target.containerEl.ownerDocument;
-    const actions = createRadialPages({
-      document, tool: this.toolState.activeTool, colors: this.toolState.toolColors, favorites: this.favorites,
-      currentPreset: this.currentPenPreset(),
-      penType: this.toolState.penType,
-      highlighterType: this.toolState.highlighterType, eraserMode: this.toolState.eraserSettings.mode,
-      selectPen: (type) => { this.setTool("pen"); this.toolState.penType = type; this.toolState.penOpacity = null; this.data.penSettings = { type, size: this.toolState.penSize }; this.scheduleSave(); this.syncControls(); },
-      selectHighlighter: (type) => { this.setTool("highlighter"); this.toolState.highlighterType = type; this.data.highlighterSettings = { type, size: this.toolState.highlighterSize, opacity: this.toolState.highlighterOpacity }; this.scheduleSave(); this.syncControls(); },
-      selectEraser: (mode) => { this.setTool("eraser"); this.toolState.eraserSettings.mode = mode; },
-      getSize: () => this.toolState.activeTool === "pen" ? this.toolState.penSize : this.toolState.highlighterSize,
-      setSize: (size) => {
-        if (this.toolState.activeTool === "pen") { this.toolState.penSize = size; this.data.penSettings = { type: this.toolState.penType, size }; }
-        else { this.toolState.highlighterSize = size; this.data.highlighterSettings = { type: this.toolState.highlighterType, size, opacity: this.toolState.highlighterOpacity }; }
-        this.scheduleSave(); this.syncControls();
-      },
+    const actions = createToolRadial(document, this.sharedTools, this.favorites, {
+      selectTool: tool => this.setTool(tool), changed: () => this.syncControls(),
+      defaultColor: tool => resolveColor(document, this.getToolDefault(tool)),
       undo: () => this.undo(), redo: () => this.redo(), canUndo: () => this.history.past.length > 0, canRedo: () => this.history.future.length > 0,
-      getOpacity: () => this.toolState.activeTool === "pen" ? this.toolState.penOpacity ?? PEN_PROFILES[this.toolState.penType].opacity : this.toolState.highlighterOpacity,
-      setOpacity: (opacity) => {
-        if (this.toolState.activeTool === "pen") this.toolState.penOpacity = opacity;
-        else {
-          this.toolState.highlighterOpacity = opacity;
-          this.data.highlighterSettings = { type: this.toolState.highlighterType, size: this.toolState.highlighterSize, opacity };
-          this.scheduleSave();
-        }
-        this.syncControls();
-      },
-      defaultColor: (tool) => resolveColor(document, this.getToolDefault(tool)),
-      selectTool: (tool) => this.setTool(tool),
-      applyFavorite: (preset) => this.applyFavorite(preset),
-      colorsChanged: () => this.syncControls(),
-      openCanvasMenu: (anchor) => this.openCanvasContextMenu(contextTarget, anchor?.x ?? clientX, anchor?.y ?? clientY),
+      contextMenu: anchor => this.openCanvasContextMenu(contextTarget, anchor?.x ?? clientX, anchor?.y ?? clientY),
     });
     this.logger.record("canvas", "radial_menu_opened", { activeTool: this.toolState.activeTool });
     this.radialMenu = new RadialMenu(this.target.containerEl.ownerDocument, actions, () => {
@@ -754,31 +728,6 @@ export class CanvasInkLayer {
     }));
     this.allowNextContextMenu = false;
     this.logger.record("canvas", "native_context_menu_requested");
-  }
-
-  private currentPenPreset(): PenPreset | null {
-    const tool = this.toolState.activeTool;
-    if (tool !== "pen" && tool !== "highlighter") return null;
-    return { tool, penType: this.toolState.penType, color: this.toolState.toolColors.selection(tool),
-      ...(tool === "highlighter" ? { highlighterType: this.toolState.highlighterType } : {}),
-      size: tool === "pen" ? this.toolState.penSize : this.toolState.highlighterSize,
-      opacity: tool === "pen" ? (this.toolState.penOpacity ?? PEN_PROFILES[this.toolState.penType].opacity) : this.toolState.highlighterOpacity };
-  }
-
-  private applyFavorite(preset: PenPreset): void {
-    this.setTool(preset.tool);
-    this.toolState.toolColors.confirm(preset.tool, preset.color);
-    if (preset.tool === "pen") {
-      this.toolState.penType = preset.penType; this.toolState.penSize = preset.size; this.toolState.penOpacity = preset.opacity;
-      this.data.penSettings = { type: this.toolState.penType, size: this.toolState.penSize };
-      this.scheduleSave();
-    } else {
-      this.toolState.highlighterType = preset.highlighterType ?? "round";
-      this.toolState.highlighterSize = preset.size; this.toolState.highlighterOpacity = preset.opacity;
-      this.data.highlighterSettings = { type: this.toolState.highlighterType, size: this.toolState.highlighterSize, opacity: this.toolState.highlighterOpacity };
-      this.scheduleSave();
-    }
-    this.syncControls();
   }
 
   private closeRadialMenu(): void {
@@ -938,7 +887,7 @@ export class CanvasInkLayer {
     this.controlsEl?.remove();
     const group = createCanvasControls(this.target.containerEl.ownerDocument, setIcon, {
       setTool: (tool) => {
-        if (this.toolState.activeTool === tool) this.togglePenMenu();
+        if (this.sharedTools.activeTool === tool) this.togglePenMenu();
         else this.setTool(tool);
       },
       toggleColorPalette: () => this.toggleColorPalette(),
@@ -954,18 +903,20 @@ export class CanvasInkLayer {
   private syncControls(): void {
     if (!this.controlsEl) return;
     const colorTool: ColorTool | null =
-      this.toolState.activeTool === "pen" || this.toolState.activeTool === "highlighter" ? this.toolState.activeTool : null;
+      this.sharedTools.activeTool === "pen" || this.sharedTools.activeTool === "highlighter" ? this.sharedTools.activeTool : null;
     syncCanvasControls(this.controlsEl, {
-      activeTool: this.toolState.activeTool,
-      activeColor: colorTool ? this.getToolColor(colorTool) : undefined,
-      penType: this.toolState.penType,
-      penColor: this.toolState.toolColors.current("pen", "var(--text-normal)"),
-      highlighterColor: this.getToolColor("highlighter"),
-      penSize: this.toolState.penSize,
-      penOpacity: this.toolState.penOpacity ?? PEN_PROFILES[this.toolState.penType].opacity,
-      highlighterSize: this.toolState.highlighterSize,
-      highlighterType: this.toolState.highlighterType,
-      highlighterOpacity: this.toolState.highlighterOpacity,
+      penDefault: this.sharedTools.toolColors.selection("pen") === null,
+      highlighterDefault: this.sharedTools.toolColors.selection("highlighter") === null,
+      activeTool: this.sharedTools.activeTool,
+      activeColor: colorTool ? this.sharedTools.toolColors.current(colorTool, this.getToolDefault(colorTool)) : undefined,
+      penType: this.sharedTools.penType,
+      penColor: this.sharedTools.toolColors.current("pen", "var(--text-normal)"),
+      highlighterColor: this.sharedTools.toolColors.current("highlighter", this.getToolDefault("highlighter")),
+      penSize: this.sharedTools.penSize,
+      penOpacity: this.sharedTools.penOpacity ?? PEN_PROFILES[this.sharedTools.penType].opacity,
+      highlighterSize: this.sharedTools.highlighterSize,
+      highlighterType: this.sharedTools.highlighterType,
+      highlighterOpacity: this.sharedTools.highlighterOpacity,
       paletteOpen: this.colorPaletteEl !== null || this.colorPickerEl !== null,
       enabled: this.enabled,
       canUndo: this.history.past.length > 0,
@@ -1093,36 +1044,17 @@ export class CanvasInkLayer {
       this.syncControls();
       return;
     }
-    if (!this.controlsEl || (this.toolState.activeTool !== "pen" && this.toolState.activeTool !== "highlighter")) return;
+    if (!this.controlsEl || (this.sharedTools.activeTool !== "pen" && this.sharedTools.activeTool !== "highlighter")) return;
     const colorButton = this.controlsEl.querySelector<HTMLElement>("[data-action=color]");
     if (!colorButton) return;
-    const tool = this.toolState.activeTool;
+    const tool = this.sharedTools.activeTool;
     const document = this.target.containerEl.ownerDocument;
-    const palette = createQuickColors(document, {
-      tool, current: this.getToolColor(tool), defaultColor: this.getToolDefault(tool),
-      isDefault: this.toolState.toolColors.selection(tool) === null, recent: this.toolState.toolColors.recent(tool),
-      onSelect: (color) => {
-        this.toolState.toolColors.confirm(tool, color); this.closeColorPalette(); this.syncControls(); colorButton.focus();
-      },
-      onClose: () => { this.closeColorPalette(); this.syncControls(); colorButton.focus(); },
-      onMore: () => {
-      this.closeColorPalette();
-      this.colorPickerEl = createColorPicker(document, {
-        tool,
-        current: resolveColor(document, this.getToolColor(tool)),
-        defaultColor: resolveColor(document, this.getToolDefault(tool)),
-        recent: this.toolState.toolColors.recent(tool),
-        onConfirm: (color) => {
-          this.toolState.toolColors.confirm(tool, color);
-          this.closeColorPalette();
-          this.syncControls();
-          colorButton.focus();
-        },
-        onCancel: () => { this.closeColorPalette(); this.syncControls(); colorButton.focus(); },
-      });
-      document.body.append(this.colorPickerEl);
-      this.colorPickerEl.querySelector<HTMLElement>("button")?.focus();
-      this.syncControls();
+    const palette = createToolColors(document, this.sharedTools, tool, {
+      defaultColor: this.getToolDefault(tool), changed: () => this.syncControls(),
+      close: () => { this.closeColorPalette(); this.syncControls(); colorButton.focus(); },
+      mount: picker => {
+        this.closeColorPalette(); this.colorPickerEl = picker; document.body.append(picker);
+        picker.querySelector<HTMLElement>("button")?.focus(); this.syncControls();
       },
     });
     document.body.appendChild(palette);
@@ -1145,43 +1077,15 @@ export class CanvasInkLayer {
     if (!anchor) return;
     this.closeColorPalette();
     const document = anchor.ownerDocument;
-    const remember = () => {
-      this.data.penSettings = { type: this.toolState.penType, size: this.toolState.penSize };
-      this.syncControls();
-      this.scheduleSave();
-    };
-    const rememberHighlighter = () => {
-      this.data.highlighterSettings = { type: this.toolState.highlighterType, size: this.toolState.highlighterSize, opacity: this.toolState.highlighterOpacity };
-      this.syncControls(); this.scheduleSave();
-    };
-    const menu = this.toolState.activeTool === "lasso" ? createSelectionMenu(document, { renderIcon: setIcon,
-      settings: this.toolState.selectionSettings, count: this.selectedStrokes().length,
-      onChange: (settings) => { this.toolState.selectionSettings = settings; }, onRecolor: () => this.recolorSelection(),
-      onScale: (scale) => {
+    const menu = createToolMenu(document, setIcon, this.sharedTools, {
+      color: tool => this.getToolColor(tool), colors: () => this.toggleColorPalette(), close: () => this.closePenMenu(true),
+      changed: () => { this.hideEraserCursor(); this.syncControls(); }, count: this.selectedStrokes().length,
+      recolor: () => this.recolorSelection(), scale: scale => {
         const bounds = boundsForStrokes(this.selectedStrokes()); if (!bounds || scale === 1) return;
         const cx = (bounds.minX + bounds.maxX) / 2, cy = (bounds.minY + bounds.maxY) / 2;
-        this.changeSelectedInk((stroke) => transformInk(stroke, (x, y) => [cx + (x - cx) * scale, cy + (y - cy) * scale], scale));
-      }, onClose: () => this.closePenMenu(true),
-    }) : this.toolState.activeTool === "eraser" ? createEraserMenu(document, { renderIcon: setIcon,
-      settings: this.toolState.eraserSettings, onChange: (settings) => { this.toolState.eraserSettings = settings; this.hideEraserCursor(); },
-      canClear: this.data.strokes.length > 0,
-      onClear: () => { this.pushUndoSnapshot(); this.data.strokes = []; this.clearSelection(); this.renderAll(); this.scheduleSave(); this.syncControls(); },
-      onClose: () => this.closePenMenu(true),
-    }) : this.toolState.activeTool === "highlighter" ? createHighlighterMenu(document, {
-      onColor: color => { this.toolState.toolColors.confirm("highlighter", color); rememberHighlighter(); },
-      renderIcon: setIcon, type: this.toolState.highlighterType, size: this.toolState.highlighterSize,
-      opacity: this.toolState.highlighterOpacity, color: this.getToolColor("highlighter"),
-      onType: (value) => { this.toolState.highlighterType = value; rememberHighlighter(); },
-      onSize: (value) => { this.toolState.highlighterSize = value; rememberHighlighter(); },
-      onOpacity: (value) => { this.toolState.highlighterOpacity = value; rememberHighlighter(); },
-      onColors: () => this.toggleColorPalette(), onClose: () => this.closePenMenu(true),
-    }) : createPenMenu(document, {
-      onColor: color => { this.toolState.toolColors.confirm("pen", color); remember(); }, onColors: () => this.toggleColorPalette(),
-      renderIcon: setIcon,
-      type: this.toolState.penType, size: this.toolState.penSize, color: this.getToolColor("pen"),
-      onType: (type) => { this.toolState.penType = type; this.toolState.penOpacity = null; remember(); },
-      onSize: (size) => { this.toolState.penSize = size; remember(); },
-      onClose: () => this.closePenMenu(true),
+        this.changeSelectedInk(stroke => transformInk(stroke, (x, y) => [cx + (x - cx) * scale, cy + (y - cy) * scale], scale));
+      }, canClear: this.data.strokes.length > 0,
+      clear: () => { this.pushUndoSnapshot(); this.data.strokes = []; this.clearSelection(); this.renderAll(); this.scheduleSave(); this.syncControls(); },
     });
     document.body.append(menu);
     this.penMenuEl = menu;

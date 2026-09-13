@@ -1,3 +1,4 @@
+import { InkToolState } from "./ink-tool-state";
 import { addIcon, Notice, Plugin } from "obsidian";
 import { PdfController } from "./pdf-controller";
 import { registerToolIcons } from "./tool-icons";
@@ -15,6 +16,7 @@ import { createNewHandwrittenNoteFile, HANDWRITTEN_NOTE_VIEW_TYPE, HandwrittenNo
 
 export default class CanvasScribePlugin extends Plugin {
   private favorites = new FavoritePens();
+  private tools = new InkToolState();
   private saveQueue: Promise<void> = Promise.resolve();
   private readonly layers = new Map<HTMLElement, CanvasInkLayer>();
   private readonly logger = new DebugLogger();
@@ -26,18 +28,21 @@ export default class CanvasScribePlugin extends Plugin {
     registerToolIcons(addIcon);
     const stored = await this.loadData();
     const settings = stored && typeof stored === "object" ? stored : {};
-    this.favorites = new FavoritePens(settings.favoritePens, (favoritePens) => {
-      const snapshot = { ...settings, favoritePens };
+    this.tools = new InkToolState(settings.inkTools);
+    const persist = () => {
+      const snapshot = { ...settings, favoritePens: this.favorites.list(), inkTools: this.tools.serialize() };
       this.saveQueue = this.saveQueue.then(() => this.saveData(snapshot)).catch((error) => {
-        this.logger.recordError("favorite_pens_save_failed", error);
-        new Notice("Could not save favorite pens. Please try again.");
+        this.logger.recordError("tool_preferences_save_failed", error);
+        new Notice("Could not save tool preferences. Please try again.");
       });
-    });
+    };
+    this.favorites = new FavoritePens(settings.favoritePens, persist);
+    this.register(this.tools.subscribe(persist));
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
-    this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf, this.favorites));
+    this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf, this.favorites, this.tools));
     this.registerExtensions([HANDWRITTEN_NOTE_EXTENSION], HANDWRITTEN_NOTE_VIEW_TYPE);
     registerHandwrittenNoteEmbeds(this);
-    this.pdfController = new PdfController(this, this.favorites);
+    this.pdfController = new PdfController(this, this.favorites, this.tools);
     this.diagnostics = new InputDiagnostics(document, this.logger);
     this.addCommand({
       id: "create-handwritten-note",
@@ -46,7 +51,7 @@ export default class CanvasScribePlugin extends Plugin {
     });
     this.addCommand({
       id: "toggle-stylus-input",
-      name: "Toggle stylus input on active canvas",
+      name: "Toggle stylus input on active view",
       callback: () => this.withActiveLayer((layer) => layer.toggleEnabled()),
     });
     this.addCommand({
@@ -66,12 +71,12 @@ export default class CanvasScribePlugin extends Plugin {
     for (const tool of ["pen", "highlighter", "eraser", "lasso"] as const) this.addToolCommand(tool);
     this.addCommand({
       id: "undo-ink",
-      name: "Undo canvas ink",
+      name: "Undo Scribe edit",
       callback: () => this.withActiveLayer((layer) => layer.undo()),
     });
     this.addCommand({
       id: "redo-ink",
-      name: "Redo canvas ink",
+      name: "Redo Scribe edit",
       callback: () => this.withActiveLayer((layer) => layer.redo()),
     });
     this.addCommand({
@@ -101,7 +106,7 @@ export default class CanvasScribePlugin extends Plugin {
   private addToolCommand(tool: DrawingTool): void {
     this.addCommand({
       id: `use-${tool}`,
-      name: `Use ${tool} on canvas`,
+      name: `Use ${tool}`,
       callback: () => this.withActiveLayer((layer) => layer.setTool(tool)),
     });
   }
@@ -123,7 +128,7 @@ export default class CanvasScribePlugin extends Plugin {
       const existing = this.layers.get(target.containerEl);
       if (existing?.isFor(target)) continue;
       existing?.dispose();
-      const layer = new CanvasInkLayer(this.app, target, this.logger, this.favorites);
+      const layer = new CanvasInkLayer(this.app, target, this.logger, this.favorites, this.tools);
       this.layers.set(target.containerEl, layer);
       try {
         await layer.mount();
@@ -142,10 +147,10 @@ export default class CanvasScribePlugin extends Plugin {
     }
   }
 
-  private withActiveLayer(callback: (layer: CanvasInkLayer) => void): void {
+  private withActiveLayer(callback: (layer: { setTool(tool: DrawingTool): void; undo(): void; redo(): void; toggleEnabled(): void }) => void): void {
     const leaf = this.app.workspace.getMostRecentLeaf();
     if (!leaf) return;
-    const layer = this.layers.get(leaf.view.containerEl);
+    const layer = this.layers.get(leaf.view.containerEl) ?? (leaf.view instanceof HandwrittenNoteView ? leaf.view.commands() : this.pdfController?.commands(leaf.view.containerEl));
     if (layer) callback(layer);
   }
 

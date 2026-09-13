@@ -40,6 +40,8 @@ export interface PenMenuOptions {
   onType: (type: PenType) => void;
   onSize: (size: number) => void;
   onClose: () => void;
+  isDefault?: boolean;
+  onDefault?: () => void;
   onColor?: (color: string) => void;
   onColors?: () => void;
 }
@@ -77,7 +79,7 @@ export function createPenMenu(document: Document, options: PenMenuOptions): HTML
   root.append(description);
   const preview = document.createElement("div"); preview.className = "canvas-scribe-menu-preview";
   root.insertBefore(preview, numeric.root);
-  if (options.onColor) root.append(createToolMenuColors(document, { tool: "pen", color,
+  if (options.onColor) root.append(createToolMenuColors(document, { tool: "pen", color, isDefault: options.isDefault, onDefault: options.onDefault,
     onColor: value => { color = value; options.onColor!(value); sync(); }, onColors: options.onColors }));
   function sync() {
     choices.forEach((node, index) => {
