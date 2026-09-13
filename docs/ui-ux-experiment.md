@@ -104,3 +104,7 @@ The main radial width/opacity button now places its highlighter sample over a ci
 ### Width preview and center hover correction
 
 Width-only pill samples are fully opaque; the combined width/opacity opener retains its opacity preview. Center tool buttons explicitly use the secondary background and layer the theme hover modifier over that base, avoiding a translucent replacement that darkened the hovered state. All 152 tests and Storybook build pass.
+
+### Initial default color history
+
+Opening the radial for an ink tool now seeds an empty history with its resolved default color without changing the default selection. The initial swatch remains available after the first committed color change. Existing histories retain their order and in-menu changes remain transactional. Validation: 153 tests and Storybook build pass.

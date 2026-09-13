@@ -22,6 +22,7 @@ export function createRadialPages(options: PenActionsOptions & {
     color: options.tool === "pen" || options.tool === "highlighter" ? options.colors.current(options.tool, options.defaultColor(options.tool)) : undefined,
   });
   const colorTool = options.tool === "pen" || options.tool === "highlighter" ? options.tool : null;
+  if (colorTool) options.colors.initializeHistory(colorTool, options.defaultColor(colorTool));
   let originalColor = "", originalSelection: string | null = null, swatches: string[] = [];
   const confirmColor = (color: string | null) => {
     if (colorTool) { options.colors.confirm(colorTool, color, false); options.colorsChanged(); }

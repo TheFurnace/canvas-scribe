@@ -66,6 +66,10 @@ export class ToolColors {
   selection(tool: ColorTool): string | null { return this.selected[tool] ?? null; }
   current(tool: ColorTool, defaultColor: string): string { return this.selected[tool] ?? defaultColor; }
   recent(tool: ColorTool): readonly string[] { return [...this.history[tool]]; }
+  initializeHistory(tool: ColorTool, defaultColor: string): void {
+    const normalized = parseHex(defaultColor);
+    if (normalized && this.history[tool].length === 0) this.history[tool] = [normalized];
+  }
   confirm(tool: ColorTool, color: string | null, remember = true): void {
     if (color === null) { delete this.selected[tool]; return; }
     const normalized = parseHex(color);
