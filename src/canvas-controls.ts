@@ -145,9 +145,6 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
   const colorTool = state.activeTool === "pen" || state.activeTool === "highlighter" ? state.activeTool : null;
   const defaultInk = colorTool === "pen" ? state.penDefault : colorTool === "highlighter" ? state.highlighterDefault : false;
   color?.setAttribute("data-default-ink", String(defaultInk === true));
-  let badge = color?.querySelector<HTMLElement>(".canvas-scribe-default-badge");
-  if (color && !badge) { badge = group.ownerDocument.createElement("span"); badge.className = "canvas-scribe-default-badge"; badge.textContent = "D"; badge.setAttribute("aria-hidden", "true"); color.append(badge); }
-  if (badge) badge.hidden = !defaultInk;
   const colorLabel = colorTool ? `Choose ${colorTool} color${defaultInk ? " · Default (theme adaptive)" : ""}` : "Choose a pen or highlighter first";
   color?.classList.toggle("is-disabled", colorTool === null);
   color?.classList.toggle("is-active", colorTool !== null && state.paletteOpen === true);
