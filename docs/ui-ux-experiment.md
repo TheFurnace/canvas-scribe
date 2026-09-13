@@ -100,3 +100,7 @@ Validation: 152 tests pass; Storybook builds; visually checked in the real Obsid
 ### Theme-aware highlighter transparency previews
 
 The main radial width/opacity button now places its highlighter sample over a circular checkerboard. All radial checkerboards share Obsidian background-primary and background-modifier-border colors, adapting to the active theme. Verified the main radial in the Obsidian sandbox; all 152 tests and Storybook build pass.
+
+### Width preview and center hover correction
+
+Width-only pill samples are fully opaque; the combined width/opacity opener retains its opacity preview. Center tool buttons explicitly use the secondary background and layer the theme hover modifier over that base, avoiding a translucent replacement that darkened the hovered state. All 152 tests and Storybook build pass.

@@ -40,7 +40,7 @@ export function createRadialPages(options: PenActionsOptions & {
       const dot = options.document.createElement("span"); dot.className = "canvas-scribe-size-dot";
       const size = opacity ? 18 : 4 + 18 * value / (options.tool === "pen" ? 20 : 60);
       dot.style.width = dot.style.height = `${size}px`; dot.style.backgroundColor = hero().color!;
-      dot.style.opacity = String(opacity ? value / 100 : options.getOpacity()); return dot;
+      dot.style.opacity = String(opacity ? value / 100 : 1); return dot;
     },
 
   });

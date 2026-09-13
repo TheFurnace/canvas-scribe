@@ -663,8 +663,8 @@
 .canvas-scribe-radial-action.has-preview .canvas-scribe-radial-favorite svg:first-child { width: 36px; height: 12px; }
 .canvas-scribe-radial-action.has-preview .canvas-scribe-radial-favorite svg:last-child { width: 36px; height: 36px; }
 .canvas-scribe-tool-menu button, .canvas-scribe-radial-palette button { font-family: inherit; }
-button.canvas-scribe-radial-hero { pointer-events: auto; border: 0; padding: 0; box-shadow: none; z-index: 2; }
-button.canvas-scribe-radial-hero:hover { background: var(--background-modifier-hover); }
+button.canvas-scribe-radial-hero { pointer-events: auto; border: 0; padding: 0; box-shadow: none; z-index: 2; background: var(--background-secondary); }
+button.canvas-scribe-radial-hero:hover { background: linear-gradient(var(--background-modifier-hover), var(--background-modifier-hover)), var(--background-secondary); }
 button.canvas-scribe-radial-hero:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: 3px; }
 .canvas-scribe-radial-tabs .svg-icon { width: 20px; height: 20px; }
 .canvas-scribe-radial-control { position: absolute !important; top: 50%; left: 50%; transform: translate(-50%, -50%); }
