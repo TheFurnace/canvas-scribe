@@ -42,3 +42,39 @@ describe("handwritten-note format", () => {
     expect(serializeHandwrittenNote(note)).not.toContain("spareHeight");
   });
 });
+
+it.each([
+  { objects: {} }, { objects: null }, { objects: undefined },
+  { logicalWidth: "960" }, { logicalWidth: 0 }, { contentHeight: -1 },
+  { viewport: null }, { viewport: { zoom: 1 } }, { viewport: { scrollTop: 0, zoom: 0 } },
+  { objects: [{ ...objects[1], x: "bad" }] }, { objects: [{ ...objects[1], width: -1 }] },
+  { objects: [{ ...objects[1], text: null }] }, { objects: [{ ...objects[1], align: "justify" }] },
+  { objects: [{ ...objects[0], points: [{ x: 1, y: null, pressure: .5, time: 1 }] }] },
+  { objects: [{ ...objects[0], points: [{ x: 1, y: 2, pressure: 2, time: 1 }] }] },
+  { objects: [{ ...objects[0], hasPressure: "true" }] },
+  { objects: [{ ...objects[0], penType: "unknown" }] },
+])("rejects malformed required schema: %j", patch => {
+  expect(() => parseHandwrittenNote(JSON.stringify({ ...createHandwrittenNote(), ...patch }))).toThrow();
+});
+it("preserves real timestamps and optional legacy ink styles without clamping", () => {
+  const note = createHandwrittenNote();
+  const ink = { ...objects[0]!, createdAt: 1789261200000 };
+  if (ink.kind !== "ink") throw Error("fixture");
+  delete ink.penType;
+  ink.points = [{ x: -12, y: 20, pressure: .5, time: 987654321, tiltX: -45, tiltY: 90 }];
+  note.objects = [ink];
+  expect(parseHandwrittenNote(serializeHandwrittenNote(note))).toEqual(note);
+});
+
+it("requires every root, text and ink field in the v1 schema", () => {
+  const required = [
+    ["root", createHandwrittenNote(), ["logicalWidth", "contentHeight", "viewport", "objects"]],
+    ["text", objects[1]!, ["id", "x", "y", "width", "text", "fontSize", "color", "align"]],
+    ["ink", objects[0]!, ["id", "tool", "color", "size", "opacity", "points", "hasPressure", "createdAt"]],
+  ] as const;
+  for (const [kind, valid, keys] of required) for (const key of keys) {
+    const malformed = { ...valid } as Record<string, unknown>; delete malformed[key];
+    const note = kind === "root" ? malformed : { ...createHandwrittenNote(), objects: [malformed] };
+    expect(() => parseHandwrittenNote(JSON.stringify(note)), `${kind}.${key}`).toThrow();
+  }
+});

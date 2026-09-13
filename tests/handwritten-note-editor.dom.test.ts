@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { HandwrittenNoteEditor } from "../src/handwritten-note-editor";
-import { createHandwrittenNote } from "../src/handwritten-note";
+import { createHandwrittenNote, objectBounds, serializeHandwrittenNote } from "../src/handwritten-note";
 
 afterEach(() => document.body.replaceChildren());
 function setup() {
@@ -72,4 +72,42 @@ it("continues text resize across renders and undoes the whole drag", () => {
   document.querySelector<HTMLElement>('[data-action="undo"]')!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
   expect(note.objects[0]?.kind === "text" && note.objects[0].width).toBe(300);
   expect(viewport.scrollTop).toBe(0);
+});
+
+it("sizes multiline input and width/font/zoom reflow without replacing the focused textarea", () => {
+  // happy-dom has no text layout; expose browser-like measurements to verify synchronization.
+  const metrics = vi.spyOn(HTMLTextAreaElement.prototype, "scrollHeight", "get").mockImplementation(function(this: HTMLTextAreaElement) {
+    const columns = Math.max(1, Math.floor((parseFloat(this.style.width) - 14) / (parseFloat(this.style.fontSize) * .55)));
+    const rows = this.value.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / columns)), 0);
+    return Math.ceil(rows * parseFloat(this.style.fontSize) * 1.35 + 12);
+  });
+  try {
+    const { note, pointer } = setup();
+    document.querySelector<HTMLButtonElement>(".canvas-scribe-note-text-tool")!.click(); pointer("pointerdown", "pen", 1, 100, 1100);
+    const textarea = document.querySelector<HTMLTextAreaElement>("textarea")!; textarea.focus();
+    textarea.value = ("A long wrapped line with words and IME 漢字 text. ").repeat(10) + "\nLast visible line";
+    textarea.dispatchEvent(new InputEvent("input", { bubbles: true, isComposing: true }));
+    expect(document.activeElement).toBe(textarea); expect(textarea.isConnected).toBe(true);
+    const object = note.objects[0]!; if (object.kind !== "text") throw Error("fixture");
+    const originalHeight = parseFloat(textarea.style.height);
+    const checkBounds = () => {
+      const current = document.querySelector<HTMLTextAreaElement>("textarea")!;
+      expect(parseFloat(current.style.height)).toBe(current.scrollHeight + 2);
+      expect(objectBounds(object).maxY - object.y).toBe(parseFloat(current.style.height));
+      expect(parseFloat(document.querySelector<HTMLElement>(".canvas-scribe-note-selection")!.style.height)).toBe(parseFloat(current.style.height));
+      expect(note.contentHeight).toBeGreaterThan(objectBounds(object).maxY);
+      return parseFloat(current.style.height);
+    };
+    checkBounds();
+    const resize = (delta: number) => {
+      document.querySelector(".canvas-scribe-note-resize")!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "pen", pointerId: 2, clientX: 400 }));
+      pointer("pointermove", "pen", 2, 400 + delta, 0); pointer("pointerup", "pen", 2, 400 + delta, 0);
+    };
+    resize(-150); expect(checkBounds()).toBeGreaterThan(originalHeight); expect(object.fontSize).toBe(18);
+    resize(150); expect(checkBounds()).toBe(originalHeight);
+    document.querySelector<HTMLButtonElement>('[aria-label="Zoom in"]')!.click(); expect(checkBounds()).toBe(originalHeight);
+    const size = document.querySelector<HTMLInputElement>('[aria-label="Text size"]')!; size.value = "30"; size.dispatchEvent(new Event("change"));
+    expect(checkBounds()).toBeGreaterThan(originalHeight);
+    expect(JSON.parse(serializeHandwrittenNote(note)).objects[0]).not.toHaveProperty("height");
+  } finally { metrics.mockRestore(); }
 });

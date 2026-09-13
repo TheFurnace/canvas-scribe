@@ -54,10 +54,11 @@ export function parseHandwrittenNote(raw: string): HandwrittenNoteDocument {
   try { value = JSON.parse(raw); } catch { throw new Error("This file is not a valid Canvas Scribe handwritten note."); }
   if (!record(value) || value.kind !== HANDWRITTEN_NOTE_KIND) throw new Error("This file is not a Canvas Scribe handwritten note.");
   if (value.version !== HANDWRITTEN_NOTE_VERSION) throw new UnsupportedHandwrittenNoteError(`Canvas Scribe handwritten-note version ${String(value.version)} is not supported.`);
-  const logicalWidth = finite(value.logicalWidth, DEFAULT_NOTE_WIDTH, 320, 4096);
-  const contentHeight = finite(value.contentHeight, DEFAULT_NOTE_HEIGHT, 320, 1000000);
-  const viewport = record(value.viewport) ? value.viewport : {};
-  const objects = Array.isArray(value.objects) ? value.objects.map(parseObject) : [];
+  const logicalWidth = finite(value.logicalWidth, 320, 4096);
+  const contentHeight = finite(value.contentHeight, 320);
+  if (!record(value.viewport) || !Array.isArray(value.objects)) throw new Error("The handwritten-note viewport or objects field is invalid.");
+  const viewport = value.viewport;
+  const objects = value.objects.map(parseObject);
   ensureUniqueIds(objects);
   return {
     kind: HANDWRITTEN_NOTE_KIND,
@@ -65,8 +66,8 @@ export function parseHandwrittenNote(raw: string): HandwrittenNoteDocument {
     logicalWidth,
     contentHeight: Math.max(contentHeight, contentBottom(objects)),
     viewport: {
-      scrollTop: finite(viewport.scrollTop, 0, 0, 1000000),
-      zoom: finite(viewport.zoom, 1, 0.25, 4),
+      scrollTop: finite(viewport.scrollTop, 0),
+      zoom: finite(viewport.zoom, 0.25, 4),
     },
     objects,
   };
@@ -96,10 +97,20 @@ export function normalizeContentHeight(note: HandwrittenNoteDocument): void {
   note.contentHeight = Math.max(DEFAULT_NOTE_HEIGHT, Math.ceil(contentBottom(note.objects) + 160));
 }
 
+// Rendered text metrics are transient; the v1 document schema stores no height.
+const textMetrics = new WeakMap<HandwrittenTextObject, { key: string; height: number }>();
+function textMetricKey(object: HandwrittenTextObject): string { return JSON.stringify([object.text, object.width, object.fontSize]); }
+export function measureTextHeight(object: HandwrittenTextObject, height: number): void {
+  textMetrics.set(object, { key: textMetricKey(object), height });
+}
+
 export function objectBounds(object: HandwrittenObject): SelectionBounds {
   if (object.kind === "text") {
-    const lines = Math.max(1, object.text.split("\n").length, Math.ceil(object.text.length / Math.max(8, object.width / (object.fontSize * .55))));
-    return { minX: object.x, minY: object.y, maxX: object.x + object.width, maxY: object.y + lines * object.fontSize * 1.35 + 16 };
+    const columns = Math.max(1, (object.width - 14) / (object.fontSize * .55));
+    const lines = object.text.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / columns)), 0);
+    const measured = textMetrics.get(object);
+    const height = measured?.key === textMetricKey(object) ? measured.height : Math.max(48, lines * object.fontSize * 1.35 + 14);
+    return { minX: object.x, minY: object.y, maxX: object.x + object.width, maxY: object.y + height };
   }
   const coordinates = strokeOutline(object).flatMap((polygon) => polygon.flatMap((ring) => ring));
   if (!coordinates.length) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
@@ -127,23 +138,25 @@ export function translateHandwrittenObject(object: HandwrittenObject, dx: number
 }
 
 function parseObject(value: unknown): HandwrittenObject {
-  if (!record(value) || typeof value.id !== "string") throw new Error("A handwritten-note object is invalid.");
+  if (!record(value) || (typeof value.id !== "string" || !value.id.length)) throw new Error("A handwritten-note object is invalid.");
   if (value.kind === "text") {
-    const align = value.align === "center" || value.align === "right" ? value.align : "left";
-    return { kind: "text", id: value.id, x: finite(value.x, 0), y: finite(value.y, 0), width: finite(value.width, 280, 80, 4000), text: typeof value.text === "string" ? value.text : "", fontSize: finite(value.fontSize, 18, 10, 96), color: typeof value.color === "string" ? value.color : "#1f2937", align };
+    if (value.align !== "left" && value.align !== "center" && value.align !== "right") throw new Error("A handwritten-note text alignment is invalid.");
+    const align = value.align;
+    return { kind: "text", id: value.id, x: finite(value.x), y: finite(value.y), width: finite(value.width, 80), text: string(value.text), fontSize: finite(value.fontSize, 10, 96), color: string(value.color), align };
   }
   if (value.kind !== "ink" || (value.tool !== "pen" && value.tool !== "highlighter") || !Array.isArray(value.points)) throw new Error("A handwritten-note ink object is invalid.");
+  if (typeof value.hasPressure !== "boolean" || (value.penType !== undefined && !isPenType(value.penType)) || (value.highlighterType !== undefined && !isHighlighterType(value.highlighterType))) throw new Error("A handwritten-note ink style is invalid.");
   const outline = value.outline === undefined ? undefined : parseOutline(value.outline);
   return {
     kind: "ink",
     id: value.id,
     tool: value.tool,
-    color: typeof value.color === "string" ? value.color : "#1f2937",
-    size: finite(value.size, 3.5, .1, 512),
-    opacity: finite(value.opacity, 1, 0, 1),
+    color: string(value.color),
+    size: finite(value.size, .1, 512),
+    opacity: finite(value.opacity, 0, 1),
     points: value.points.map((point) => {
       if (!record(point)) throw new Error("A handwritten-note ink point is invalid.");
-      return { x: finite(point.x, 0), y: finite(point.y, 0), pressure: finite(point.pressure, .5, 0, 1), time: finite(point.time, 0), ...(typeof point.tiltX === "number" ? { tiltX: point.tiltX } : {}), ...(typeof point.tiltY === "number" ? { tiltY: point.tiltY } : {}) };
+      return { x: finite(point.x), y: finite(point.y), pressure: finite(point.pressure, 0, 1), time: finite(point.time, 0), ...(point.tiltX !== undefined ? { tiltX: finite(point.tiltX, -90, 90) } : {}), ...(point.tiltY !== undefined ? { tiltY: finite(point.tiltY, -90, 90) } : {}) };
     }),
     hasPressure: value.hasPressure === true,
     createdAt: finite(value.createdAt, 0),
@@ -171,8 +184,14 @@ function ensureUniqueIds(objects: readonly HandwrittenObject[]): void {
   if (new Set(objects.map(({ id }) => id)).size !== objects.length) throw new Error("Handwritten-note object IDs must be unique.");
 }
 
-function finite(value: unknown, fallback: number, min = -1000000, max = 1000000): number {
-  return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+function finite(value: unknown, min = -Infinity, max = Infinity): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) throw new Error("A handwritten-note numeric field is invalid.");
+  return value;
 }
 
-function record(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null; }
+function string(value: unknown): string {
+  if (typeof value !== "string") throw new Error("A handwritten-note text field is invalid.");
+  return value;
+}
+
+function record(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
