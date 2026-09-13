@@ -578,7 +578,7 @@
 /* FER-64 experimental tool shelves and integrated radial. All surfaces inherit the host theme. */
 .canvas-scribe-tool-menu {
   box-sizing: border-box; width: 360px; max-width: calc(100vw - 24px);
-  padding: 18px; gap: 16px; border-radius: 20px; box-shadow: var(--shadow-s);
+  padding: 12px; gap: 12px; border-radius: 20px; box-shadow: var(--shadow-s);
   font-family: var(--font-interface); font-size: var(--font-ui-small);
 }
 .canvas-scribe-tool-menu header { display: flex; align-items: center; margin: 0; font-size: var(--font-ui-medium); }
@@ -613,11 +613,15 @@
 .canvas-scribe-tool-menu .canvas-scribe-numeric label { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .canvas-scribe-tool-menu .canvas-scribe-numeric input { grid-column: 1 / -1; margin: 8px 0; }
 .canvas-scribe-tool-menu .canvas-scribe-numeric output { color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.canvas-scribe-menu-colors { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding-top: 12px; border-top: 1px solid var(--background-modifier-border); }
+.canvas-scribe-menu-colors { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; padding-top: 8px; border-top: 1px solid var(--background-modifier-border); }
 .canvas-scribe-control-item[data-action="color"] { position: relative; }
 .canvas-scribe-menu-colors [data-default-choice="true"][aria-pressed="true"] { outline: 2px solid var(--interactive-accent); outline-offset: -2px; }
-.canvas-scribe-menu-colors .canvas-scribe-color-swatch { position: relative; padding: 6px; border-radius: 50%; background: transparent; }
-.canvas-scribe-menu-colors .canvas-scribe-color-swatch-preview { position: static; display: block; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--background-modifier-border); }
+.canvas-scribe-menu-colors .canvas-scribe-color-swatch {
+  position: relative; display: grid; place-items: center; box-sizing: border-box;
+  flex: 0 0 var(--canvas-scribe-ui-target); width: var(--canvas-scribe-ui-target); height: var(--canvas-scribe-ui-target);
+  padding: 0; border-radius: 50%; background: transparent;
+}
+.canvas-scribe-menu-colors .canvas-scribe-color-swatch-preview { position: static; display: block; box-sizing: border-box; flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--background-modifier-border); }
 .canvas-scribe-highlighter-menu .canvas-scribe-numeric:nth-of-type(3) input { background: repeating-conic-gradient(var(--background-modifier-border) 0% 25%, transparent 0% 50%) 0 / 8px 8px; }
 .canvas-scribe-mode-menu .canvas-scribe-tip-choices { flex-direction: column; gap: 4px; }
 .canvas-scribe-mode-menu .canvas-scribe-tip-choices button { justify-content: flex-start; background: transparent; min-height: 48px; padding: 10px; }
