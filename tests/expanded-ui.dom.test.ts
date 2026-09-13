@@ -83,8 +83,8 @@ it("offers tool-specific quick colors, recent custom colors, and an explicit def
   const root = createQuickColors(document, { tool: "highlighter", current: "#754c98", defaultColor: "#fde047", isDefault: false,
     recent: ["#754c98", "#754c98", "#fde047"], onSelect: select, onMore: more, onClose: vi.fn() });
   document.body.append(root);
-  expect(root.querySelector('[aria-label="Recent colors"]')!.querySelectorAll("button")).toHaveLength(1);
-  root.querySelector<HTMLButtonElement>('[aria-label="Use default color"]')!.click(); expect(select).toHaveBeenCalledWith(null);
+  expect(root.querySelector('[aria-label="Recent colors"]')!.querySelectorAll("button")).toHaveLength(3);
+  root.querySelector<HTMLButtonElement>('[aria-label="Follow the highlighter default"]')!.click(); expect(select).toHaveBeenCalledWith(null);
   root.querySelector<HTMLButtonElement>('[aria-label="Use #fb7185 for highlighter"]')!.click(); expect(select).toHaveBeenCalledWith("#fb7185");
   Array.from(root.querySelectorAll("button")).find((node) => node.textContent === "More colors…")!.click(); expect(more).toHaveBeenCalledOnce();
 });

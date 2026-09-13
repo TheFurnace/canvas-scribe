@@ -160,7 +160,7 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
   root.addEventListener("contextmenu", consume);
   root.addEventListener("keydown", (event) => {
     if (event.key === "Tab") {
-      const nodes = Array.from(root.querySelectorAll<HTMLElement>('button:not(:disabled), input, select, [role=slider]')).filter((item) => !item.closest("[hidden]"));
+      const nodes = Array.from(root.querySelectorAll<HTMLElement>('button:not(:disabled), input, select, [role=slider], [tabindex="0"]')).filter((item) => !item.closest("[hidden]") && item.tabIndex !== -1);
       const index = nodes.indexOf(document.activeElement as HTMLElement);
       const next = nodes[(index + (event.shiftKey ? -1 : 1) + nodes.length) % nodes.length];
       if (next) { consume(event); next.focus(); } return;

@@ -45,11 +45,11 @@ describe("color picker transactions", () => {
   });
   it("requires confirmation for reset and clears reset intent after another selection", () => {
     const f = fixture();
-    f.click("Default");
+    f.click("Theme");
     const defaultChip = f.root.querySelector<HTMLButtonElement>(".canvas-scribe-picker-default")!;
     expect(defaultChip.parentElement?.lastElementChild).toBe(defaultChip);
     expect(defaultChip.style.getPropertyValue("--chip-color")).toBe("#eeeeee");
-    expect(defaultChip.getAttribute("aria-label")).toBe("Reset to default (#eeeeee)");
+    expect(defaultChip.getAttribute("aria-label")).toBe("Follow the theme ink color (#eeeeee)");
     expect(defaultChip.getAttribute("aria-pressed")).toBe("true");
     expect(f.inputs[0].value).toBe("#eeeeee");
     expect(f.onConfirm).not.toHaveBeenCalled();

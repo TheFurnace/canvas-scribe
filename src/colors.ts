@@ -2,13 +2,11 @@ import type { InkTool } from "./types";
 
 export type ColorTool = InkTool;
 
-export const PINNED_TOOL_COLORS: Readonly<Record<ColorTool, readonly string[]>> = {
-  pen: ["#1f2937", "#2563eb", "#dc2626", "#16a34a", "#9333ea"],
-  highlighter: ["#fde047", "#fb7185", "#22d3ee", "#4ade80", "#fb923c"],
-};
+export const defaultColorLabel = (tool: ColorTool): string => tool === "pen" ? "Theme" : "Default";
+export const defaultColorDescription = (tool: ColorTool): string => tool === "pen" ? "Follow the theme ink color" : "Follow the highlighter default";
 
 export function paletteColors(tool: ColorTool, currentColor: string): string[] {
-  const pinned = PINNED_TOOL_COLORS[tool];
+  const pinned = toolSwatches(tool).slice(0, 5);
   return pinned.some((color) => color.toLowerCase() === currentColor.toLowerCase())
     ? [...pinned]
     : [currentColor, ...pinned];
@@ -78,10 +76,6 @@ export class ToolColors {
   selection(tool: ColorTool): string | null { return this.selected[tool] ?? null; }
   current(tool: ColorTool, defaultColor: string): string { return this.selected[tool] ?? defaultColor; }
   recent(tool: ColorTool): readonly string[] { return [...this.history[tool]]; }
-  initializeHistory(tool: ColorTool, defaultColor: string): void {
-    const normalized = parseHex(defaultColor);
-    if (normalized && this.history[tool].length === 0) { this.history[tool] = [normalized]; this.changed(); }
-  }
   confirm(tool: ColorTool, color: string | null, remember = true): void {
     if (color === null) { delete this.selected[tool]; this.changed(); return; }
     const normalized = parseHex(color);
@@ -92,7 +86,33 @@ export class ToolColors {
   }
 }
 
-export const CURATED_SWATCHES = [
-  ...[1, 0.86, 0.72].flatMap((value) => [0, 30, 60, 120, 180, 220, 270, 320].map((hue) => hsvToHex(hue, 0.7, value))),
-  ...[255, 219, 183, 146, 110, 73, 37, 0].map((c) => rgbToHex([c, c, c])!),
-];
+/** Approved per-tool collections; menus may present subsets of this shared source. */
+export const TOOL_SWATCHES: Readonly<Record<ColorTool, readonly string[]>> = {
+  pen: [
+    "#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#0d9488", "#2563eb", "#9333ea", "#db2777",
+    "#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#c084fc", "#f472b6",
+    "#000000", "#374151", "#6b7280", "#d1d5db", "#ffffff", "#78350f", "#a16207", "#a8a29e",
+  ],
+  highlighter: [
+    "#fde047", "#fb923c", "#fb7185", "#e879f9", "#a78bfa", "#38bdf8", "#22d3ee", "#4ade80",
+    "#fef08a", "#fed7aa", "#fecdd3", "#f5d0fe", "#ddd6fe", "#bae6fd", "#a5f3fc", "#bbf7d0",
+  ],
+};
+
+export function toolSwatches(tool: ColorTool): readonly string[] { return TOOL_SWATCHES[tool]; }
+
+export function recentColors(selected: string | null, history: readonly string[], limit = 3): string[] {
+  return [...new Set([...(selected ? [selected] : []), ...history].flatMap(color => parseHex(color) ?? []))].slice(0, limit);
+}
+
+/** Color distance is only for navigation; it never changes selection or merges colors. */
+export function nearestSwatch(colors: readonly string[], selected: string | null): number {
+  if (!selected || !colors.length) return 0;
+  const rgb = hexToRgb(selected);
+  let best = 0, distance = Infinity;
+  colors.forEach((color, index) => {
+    const next = hexToRgb(color).reduce((sum, value, channel) => sum + (value - rgb[channel]!) ** 2, 0);
+    if (next < distance) { best = index; distance = next; }
+  });
+  return best;
+}

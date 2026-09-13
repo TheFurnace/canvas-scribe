@@ -47,7 +47,7 @@ describe("toolbar configuration indicators", () => {
     syncCanvasControls(group, { ...state, enabled: false, penColor: "var(--text-normal)" });
     const pen = group.querySelector<HTMLElement>("[data-action=pen]")!;
     expect(pen.getAttribute("aria-pressed")).toBe("false");
-    expect(pen.title).toContain("Default color");
+    expect(pen.title).toContain("Theme color");
     expect(pen.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("var(--text-normal)");
   });
   it("uses the tool color for the palette and clears it for tools without ink", () => {

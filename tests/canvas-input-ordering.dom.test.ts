@@ -450,7 +450,7 @@ describe("Canvas full color picker integration", () => {
     click("Done");
     expect(colorControl()).toBe("#abcdef");
     open();
-    click("Default");
+    click("Theme");
     click("Cancel");
     expect(colorControl()).toBe("#abcdef");
     activate("highlighter");
@@ -460,7 +460,7 @@ describe("Canvas full color picker integration", () => {
     activate("pen");
     open();
     expect(document.querySelectorAll(".canvas-scribe-picker-recent button:not(.canvas-scribe-picker-default)")).toHaveLength(1);
-    click("Default");
+    click("Theme");
     click("Done");
     expect(colorControl()).toBe(initial);
     open();

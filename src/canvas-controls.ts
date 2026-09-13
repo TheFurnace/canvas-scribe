@@ -108,7 +108,7 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
     const isDefault = tool === "pen" ? state.penDefault : state.highlighterDefault;
     const label = toolDescription(tool, type, ink,
       tool === "pen" ? state.penSize : state.highlighterSize,
-      tool === "pen" ? state.penOpacity : state.highlighterOpacity) + (isDefault ? " · Default" : "");
+      tool === "pen" ? state.penOpacity : state.highlighterOpacity, isDefault);
     button.dataset.defaultInk = String(isDefault === true);
     button.setAttribute("aria-label", label);
     button.setAttribute("title", label);
