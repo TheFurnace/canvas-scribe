@@ -34,7 +34,7 @@ export function createQuickColors(document: Document, options: {
   defaultLabel.setAttribute("aria-hidden", "true"); defaultButton.append(defaultLabel);
   row.append(defaultButton);
   const recent = recentColors(options.isDefault ? null : options.current, options.recent);
-  const pinned = toolSwatches(options.tool).filter(color => !recent.includes(color)).slice(0, 5);
+  const pinned = toolSwatches(options.tool).slice(0, 5);
   const add = (parent: HTMLElement, color: string) => parent.append(createSwatch(document, {
     color, label: `Use ${color} for ${options.tool}`,
     selected: !options.isDefault && color.toLowerCase() === options.current.toLowerCase(),

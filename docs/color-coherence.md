@@ -1,6 +1,6 @@
 # FER-76 color coherence
 
-Implementation on `codex/FER-76/color-coherence`, based on `e789d5e` (merged global tools suite). No version bump or release.
+Implementation on `codex/FER-76/color-coherence`, based on `e789d5e` (merged global tools suite). Initial beta: 2.0.0-beta.9; subsequent review fixes are on the PR branch.
 
 ## Agreed behavior
 
@@ -8,9 +8,9 @@ Pen **Theme** and highlighter **Default** are semantic selections (`null`), neve
 
 The existing plugin-wide `InkToolState` owns selections and separate pen/highlighter histories for Canvas, handwritten notes and PDFs. The radial applies selections immediately but records only its final explicit selection when the whole radial closes, including Escape/outside dismissal. Returning to Settings or opening/canceling the nested picker does not commit history. The drawer closes on selection; its confirmation records history. Picker edits remain local until Done.
 
-The color ring has ten 44-pixel targets around a 92-pixel radius. Default occupies a fixed slot, followed by up to three recent explicit choices (the opening explicit selection comes first). Swatches occupy the remaining five to eight slots, with More colors in the last fixed slot. Recents use an inset arc track and the default has a dashed surround, without visible section labels. The swatch segment clips overflow and supports wheel, pointer drag and arrow/Home/End keys. Dragging suppresses its resulting pointer click; keyboard selection remains available. Positions and scroll offset persist throughout the radial lifetime.
+The color ring has ten 44-pixel targets around a 92-pixel radius. Default occupies a fixed slot, followed by up to three recent explicit choices (the opening explicit selection comes first). Swatches occupy the remaining five to eight slots, with More colors in the last fixed slot. Scrollable swatches use a darker arc background and the default has a dashed surround, without visible section labels. The swatch segment clips overflow and supports wheel, pointer drag and arrow/Home/End keys. Dragging suppresses its resulting pointer click; keyboard selection remains available. Positions and scroll offset persist throughout the radial lifetime.
 
-The first view centers on the nearest remaining swatch to the selected color, or starts at the beginning for Theme/Default. Deduplication is exact normalized hex equality, never visual similarity. Color distance is used only for navigation. Old stored histories are retained: historical default seeding has no provenance, so removing matching hex values would erase legitimate explicit selections. New histories no longer seed a resolved default.
+The first view centers on the nearest remaining swatch to the selected color, or starts at the beginning for Theme/Default. Only the radial deduplicates between history and the swatch collection, using exact normalized hex equality, never visual similarity. The drawer and full picker retain colors in both sections. Color distance is used only for navigation. Old stored histories are retained: historical default seeding has no provenance, so removing matching hex values would erase legitimate explicit selections. New histories no longer seed a resolved default.
 
 ## Approved shared collections
 

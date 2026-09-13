@@ -810,16 +810,14 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 
 /* Shared semantic defaults and the clipped, scrollable color ring. */
 .canvas-scribe-radial-colors { position: absolute; width: 250px; height: 250px; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-.canvas-scribe-radial-colors .canvas-scribe-arc-color { position: absolute; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 7px; border: 0; border-radius: 50%; transform: translate(-50%, -50%); background: transparent; box-shadow: none; pointer-events: auto; touch-action: none; }
-.canvas-scribe-arc-color > span { display: block; width: 28px; height: 28px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(128 128 128 / 40%); }
+.canvas-scribe-radial-colors .canvas-scribe-arc-color { position: absolute; display: grid; place-items: center; box-sizing: border-box; width: 44px; height: 44px; min-width: 44px; min-height: 44px; max-width: 44px; max-height: 44px; padding: 0; border: 0; border-radius: 50%; transform: translate(-50%, -50%); background: transparent; box-shadow: none; pointer-events: auto; touch-action: none; }
+.canvas-scribe-arc-color > span { display: block; box-sizing: border-box; flex: none; width: 28px; min-width: 28px; height: 28px; min-height: 28px; border-radius: 50%; pointer-events: none; box-shadow: inset 0 0 0 1px rgb(128 128 128 / 40%); }
 .canvas-scribe-radial-colors .canvas-scribe-arc-color[aria-pressed="true"]::after { content: ""; position: absolute; inset: 15px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px #333; pointer-events: none; }
 .canvas-scribe-radial-colors .canvas-scribe-arc-color[data-color-group="default"] > span { outline: 1px dashed var(--text-muted); outline-offset: 3px; }
 .canvas-scribe-radial-colors .canvas-scribe-arc-color:hover { background: var(--background-modifier-hover); }
 .canvas-scribe-radial-colors .canvas-scribe-arc-color:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: -2px; }
 .canvas-scribe-radial-colors .canvas-scribe-arc-color[hidden] { display: none !important; }
-.canvas-scribe-arc-history { position: absolute; inset: 0; width: 250px; height: 250px; pointer-events: none; }
-.canvas-scribe-arc-history path { fill: none; stroke: var(--background-secondary); stroke-width: 46px; stroke-linecap: round; }
-.canvas-scribe-swatch-arc { position: absolute; inset: 0; overflow: hidden; pointer-events: auto; touch-action: none; }
+.canvas-scribe-swatch-arc { position: absolute; inset: 0; overflow: hidden; background: var(--background-secondary); pointer-events: auto; touch-action: none; user-select: none; }
 .canvas-scribe-swatch-arc:focus-visible { background: var(--background-modifier-hover); }
 .canvas-scribe-radial-colors .canvas-scribe-arc-more { font-size: 24px; color: var(--text-muted); }
 .canvas-scribe-radial-menu.is-open .canvas-scribe-radial-palette.has-color-arc { width: 250px; height: 250px; min-height: 250px; padding: 0; display: block; border-radius: 50%; overflow: visible; }

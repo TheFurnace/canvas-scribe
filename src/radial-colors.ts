@@ -42,15 +42,6 @@ export function createRadialColors(document: Document, model: RadialColors, opti
     parent.append(button); return button;
   };
   chip(null, root, 144, "default");
-  // The inset track distinguishes recents without a visible section label.
-  if (model.recent.length) {
-    const track = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    track.classList.add("canvas-scribe-arc-history"); track.setAttribute("viewBox", "0 0 250 250"); track.setAttribute("aria-hidden", "true");
-    const path = document.createElementNS(track.namespaceURI, "path");
-    const end = (180 + 36 * (model.recent.length - 1) + .01) * Math.PI / 180;
-    path.setAttribute("d", `M 33 125 A 92 92 0 0 1 ${125 + 92 * Math.cos(end)} ${125 + 92 * Math.sin(end)}`);
-    track.append(path); root.prepend(track);
-  }
   model.recent.forEach((color, index) => chip(color, root, 180 + index * 36, "recent"));
   const arc = document.createElement("div"); arc.className = "canvas-scribe-swatch-arc";
   arc.tabIndex = 0; arc.setAttribute("role", "group");
@@ -83,25 +74,34 @@ export function createRadialColors(document: Document, model: RadialColors, opti
     scroll(next < model.offset ? next : next >= model.offset + model.slots ? next - model.slots + 1 : model.offset);
     swatches[next]?.focus({ preventScroll: true });
   });
-  let drag: { id: number; angle: number; offset: number; moved: boolean; x: number; y: number } | null = null;
+  let drag: { id: number; angle: number; offset: number; moved: boolean; x: number; y: number; button: HTMLButtonElement | null } | null = null;
   let suppressClick = false;
   const angle = (event: PointerEvent) => {
-    const bounds = root.getBoundingClientRect(); return Math.atan2(event.clientY - bounds.top - 125, event.clientX - bounds.left - 125) * 180 / Math.PI;
+    const bounds = root.getBoundingClientRect(); return Math.atan2(event.clientY - bounds.top - bounds.height / 2, event.clientX - bounds.left - bounds.width / 2) * 180 / Math.PI;
   };
   arc.addEventListener("pointerdown", event => {
     if (drag || event.button !== 0) return;
-    suppressClick = false; drag = { id: event.pointerId, angle: angle(event), offset: model.offset, moved: false, x: event.clientX, y: event.clientY };
+    suppressClick = false; drag = { id: event.pointerId, angle: angle(event), offset: model.offset, moved: false, x: event.clientX, y: event.clientY, button: (event.target as Element).closest<HTMLButtonElement>(".canvas-scribe-arc-color") };
+    arc.setPointerCapture(event.pointerId);
+    event.stopPropagation();
   });
   arc.addEventListener("pointermove", event => {
     if (!drag || drag.id !== event.pointerId) return;
     if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) return;
-    if (!drag.moved) { arc.setPointerCapture(event.pointerId); drag.moved = true; }
+    drag.moved = true;
     event.preventDefault();
     const delta = (angle(event) - drag.angle + 540) % 360 - 180;
     scroll(drag.offset - delta / 36);
     drag.angle = angle(event); drag.offset = model.offset;
   });
-  const finish = () => { if (drag?.moved) { suppressClick = true; scroll(Math.round(model.offset)); } drag = null; };
+  const finish = (event: PointerEvent) => {
+    if (!drag || drag.id !== event.pointerId) return;
+    const completed = drag; drag = null;
+    if (completed.moved) scroll(Math.round(model.offset));
+    else if (event.type === "pointerup") completed.button?.click();
+    suppressClick = true;
+    if (arc.hasPointerCapture(event.pointerId)) arc.releasePointerCapture(event.pointerId);
+  };
   arc.addEventListener("pointerup", finish); arc.addEventListener("pointercancel", finish); arc.addEventListener("lostpointercapture", finish);
   arc.addEventListener("click", event => {
     if (suppressClick && event.detail !== 0) { event.preventDefault(); event.stopImmediatePropagation(); }

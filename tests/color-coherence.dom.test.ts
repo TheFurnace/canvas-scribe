@@ -6,8 +6,20 @@ import { createToolColors, createToolRadial } from "../src/tool-suite";
 import { RadialSession } from "../src/radial-session";
 import { createRadialColors, RadialColors } from "../src/radial-colors";
 import { toolSwatches } from "../src/colors";
+import { createQuickColors } from "../src/quick-colors";
+import { createColorPicker } from "../src/color-picker";
 
 afterEach(() => document.body.replaceChildren());
+it("retains collection colors that also appear in history outside the radial", () => {
+  const color = toolSwatches("pen")[0]!;
+  const drawer = createQuickColors(document, { tool: "pen", current: color, defaultColor: "#111111", isDefault: false, recent: [color], onSelect: vi.fn(), onMore: vi.fn(), onClose: vi.fn() });
+  expect(drawer.querySelector('[aria-label="Quick colors"]')!.querySelector(`[aria-label="Use ${color} for pen"]`)).not.toBeNull();
+  expect(drawer.querySelector('[aria-label="Recent colors"]')!.querySelector(`[aria-label="Use ${color} for pen"]`)).not.toBeNull();
+  const picker = createColorPicker(document, { tool: "pen", current: color, defaultColor: "#111111", recent: [color], onConfirm: vi.fn(), onCancel: vi.fn() });
+  expect(picker.querySelectorAll('.canvas-scribe-picker-swatches button')).toHaveLength(toolSwatches("pen").length);
+  expect(picker.querySelector('.canvas-scribe-picker-recent')!.querySelector(`[aria-label="Use ${color}"]`)).not.toBeNull();
+  expect(new RadialColors("pen", color, [color]).swatches).not.toContain(color);
+});
 const click = (selector: string) => document.querySelector<HTMLButtonElement>(selector)!.click();
 function radial(selected: string | null = "#2563eb") {
   const state = new InkToolState(); state.toolColors.confirm("pen", "#112233"); state.toolColors.confirm("pen", selected);
@@ -76,6 +88,7 @@ it("scrolls by dragging without selecting and preserves the scroll position when
   const root = createRadialColors(document, model, { defaultColor: "#111111", selection: () => null, onSelect: select, onMore: vi.fn() }); document.body.append(root);
   const arc = root.querySelector<HTMLElement>('.canvas-scribe-swatch-arc')!;
   arc.setPointerCapture = vi.fn();
+  root.getBoundingClientRect = () => ({ left: 0, top: 0, width: 250, height: 250 } as DOMRect);
   const event = (name: string, x: number, y: number) => arc.dispatchEvent(new PointerEvent(name, { pointerId: 1, button: 0, clientX: x, clientY: y, bubbles: true }));
   event("pointerdown", 33, 125); event("pointermove", 50, 180); event("pointerup", 50, 180);
   root.querySelector<HTMLButtonElement>('[data-color-group="swatch"]:not([hidden])')!.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
