@@ -98,7 +98,7 @@ it("uses the same preset and pen-type opacity transitions in PDF and notes", asy
   document.querySelector<HTMLElement>(`[data-action="${favorites.list()[0]!.id}"]`)!.click(); await flush();
   expect(f.state.penOpacity).toBe(.25); expect(f.state.toolColors.selection("pen")).toBeNull();
   f.pdf.settings(); document.querySelector<HTMLElement>('[data-pen-type="ballpoint"]')!.click(); await flush();
-  expect(f.state.penOpacity).toBeNull(); expect(f.editor.root.querySelector('[data-action="pen"]')?.getAttribute("aria-label")).toContain("Default");
+  expect(f.state.penOpacity).toBeNull(); expect(f.editor.root.querySelector('[data-action="pen"]')?.getAttribute("aria-label")).toContain("Theme");
 });
 
 it("distinguishes Default from an identical fixed swatch and preserves it on Done", () => {

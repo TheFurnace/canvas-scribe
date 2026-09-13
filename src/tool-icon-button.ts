@@ -11,7 +11,7 @@ export function createToolIconButton(document: Document, renderIcon: IconRendere
   button.type = "button";
   button.className = "canvas-scribe-icon-button";
   button.dataset.artwork = options.style ?? "silhouette";
-  const inkLabel = options.color?.startsWith("var(") ? "Default color" : options.color;
+  const inkLabel = options.color?.startsWith("var(") ? "Theme color" : options.color;
   button.setAttribute("aria-label", `${TOOL_ARTWORK[options.tool].label}${inkLabel && TOOL_ARTWORK[options.tool].color ? ` · ${inkLabel}` : ""}`);
   button.setAttribute("aria-pressed", String(options.selected ?? false));
   button.disabled = options.disabled ?? false;

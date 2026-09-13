@@ -4,7 +4,8 @@ import { HIGHLIGHTER_TYPES, type HighlighterType } from "./highlighter-types";
 import { toolIconId } from "./tool-icons";
 import type { RadialMenuAction } from "./radial-session";
 import { createCircularSize } from "./circular-size";
-import { PINNED_TOOL_COLORS } from "./colors";
+import { defaultColorLabel } from "./colors";
+import { createRadialColors, RadialColors } from "./radial-colors";
 import { createColorPicker } from "./color-picker";
 
 export function createRadialPages(options: PenActionsOptions & {
@@ -23,8 +24,8 @@ export function createRadialPages(options: PenActionsOptions & {
     color: options.tool === "pen" || options.tool === "highlighter" ? options.colors.current(options.tool, options.defaultColor(options.tool)) : undefined,
   });
   const colorTool = options.tool === "pen" || options.tool === "highlighter" ? options.tool : null;
-  if (colorTool) options.colors.initializeHistory(colorTool, options.defaultColor(colorTool));
-  let originalColor = "", originalSelection: string | null = null, swatches: string[] = [];
+  let colorModel: RadialColors | null = null;
+  let colorVisited = false;
   const confirmColor = (color: string | null) => {
     if (colorTool) { options.colors.confirm(colorTool, color, false); options.colorsChanged(); }
   };
@@ -58,27 +59,23 @@ export function createRadialPages(options: PenActionsOptions & {
         active: options.tool === "eraser" && options.eraserMode === mode, run: () => options.selectEraser(mode) })),
       { id: "lasso", label: "Select ink", icon: toolIconId("lasso"), active: options.tool === "lasso", run: () => options.selectTool("lasso") },
     ] },
-    { id: "settings-page", pageId: "settings", label: "Settings", icon: "sliders-horizontal", hero, children: () => [
-      { id: "colors", label: options.colors.selection(colorTool!) === null ? "Colors · Default" : "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
+    { id: "settings-page", pageId: "settings", label: "Settings", icon: "sliders-horizontal", hero,
+      onDismiss: () => {
+        if (colorVisited && colorTool) options.colors.confirm(colorTool, options.colors.selection(colorTool));
+        colorVisited = false; colorModel = null;
+      }, children: () => [
+      { id: "colors", label: colorTool && options.colors.selection(colorTool) === null ? `Colors · ${defaultColorLabel(colorTool)}` : "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
         onEnter: () => {
-          originalColor = hero().color!; originalSelection = options.colors.selection(colorTool!);
-          swatches = [originalColor.toLowerCase(), ...options.colors.recent(colorTool!).filter((color) => color.toLowerCase() !== originalColor.toLowerCase()).slice(0, 3)];
+          colorVisited = true;
+          colorModel ??= new RadialColors(colorTool!, options.colors.selection(colorTool!), options.colors.recent(colorTool!));
         },
-        onLeave: () => {
-          const selected = options.colors.selection(colorTool!);
-          if (selected !== originalSelection) options.colors.confirm(colorTool!, selected);
-        },
-        children: () => [
-          ...PINNED_TOOL_COLORS[colorTool!].map((color, index) => ({ id: `color-${color.slice(1)}`, label: `Use ${color}`, icon: "circle", color,
-            radialAngle: -180 + index * 36, active: options.colors.selection(colorTool!) !== null && color === hero().color?.toLowerCase(), keepOpen: true, run: () => confirmColor(color) })),
-          ...swatches.map((color, index) => ({ id: `recent-color-${index}`, radialAngle: 144 - index * 36, recentColor: true, label: index === 0 ? originalSelection === null ? "Default (theme adaptive)" : `Original color ${color}` : `Recent color ${color}`,
-            icon: "circle", color, active: index === 0 && originalSelection === null ? options.colors.selection(colorTool!) === null : options.colors.selection(colorTool!) !== null && color === hero().color?.toLowerCase(), keepOpen: true,
-            run: () => confirmColor(index === 0 ? originalSelection : color) })),
-          { id: "full-picker", radialAngle: 0, label: "More colors...", icon: "palette", panel: (close, back) => createColorPicker(options.document, {
+        content: (openPanel) => createRadialColors(options.document, colorModel!, {
+          defaultColor: options.defaultColor(colorTool!), selection: () => options.colors.selection(colorTool!), onSelect: confirmColor,
+          onMore: () => openPanel({ id: "full-picker", label: "More colors…", icon: "palette", panel: (close, back) => createColorPicker(options.document, {
             tool: colorTool!, isDefault: options.colors.selection(colorTool!) === null, current: hero().color!, defaultColor: options.defaultColor(colorTool!), recent: options.colors.recent(colorTool!),
-            onConfirm: (color) => { confirmColor(color); (back ?? close)(); }, onCancel: close,
-          }) },
-        ],
+            onConfirm: (color) => { confirmColor(color); (back ?? close)(); }, onCancel: back ?? close,
+          }) }),
+        }),
       },
       { id: "size", label: options.tool === "highlighter" ? "Width and opacity" : "Thickness", icon: "sliders-horizontal", disabled: !options.currentPreset,
         preview: options.currentPreset ? (document) => {

@@ -1,4 +1,4 @@
-import { paletteColors } from "./colors";
+import { defaultColorLabel, defaultColorDescription, parseHex, toolSwatches } from "./colors";
 import type { InkTool } from "./types";
 import { createAction, createSwatch } from "./ui-controls";
 
@@ -8,7 +8,7 @@ export function createToolMenuColors(document: Document, options: {
 }): HTMLElement {
   const root = document.createElement("div"); root.className = "canvas-scribe-menu-colors";
   root.setAttribute("role", "group"); root.setAttribute("aria-label", "Quick ink colors");
-  const colors = [...new Set([options.color, ...paletteColors(options.tool, options.color)])].slice(0, options.onColors ? options.onDefault ? 4 : 5 : 6);
+  const colors = [...new Set([...(options.isDefault || !parseHex(options.color) ? [] : [parseHex(options.color)!]), ...toolSwatches(options.tool)])].slice(0, options.onColors ? options.onDefault ? 4 : 5 : 6);
   const buttons = colors.map(color => createSwatch(document, { color, label: color.startsWith("var(") ? "Use theme ink color" : `Use ${color}`,
     selected: !options.isDefault && color === options.color, onSelect: () => {
       root.querySelector('[data-default-choice]')?.setAttribute("aria-pressed", "false");
@@ -17,9 +17,9 @@ export function createToolMenuColors(document: Document, options: {
     },
   }));
   if (options.onDefault) {
-    const choice = createAction(document, "Default", options.onDefault);
+    const choice = createAction(document, defaultColorLabel(options.tool), options.onDefault);
     choice.dataset.defaultChoice = "true";
-    choice.setAttribute("aria-pressed", String(options.isDefault === true)); choice.title = "Use theme-adaptive default ink";
+    choice.setAttribute("aria-pressed", String(options.isDefault === true)); choice.title = defaultColorDescription(options.tool);
     root.append(choice);
   }
   root.append(...buttons);

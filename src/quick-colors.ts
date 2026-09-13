@@ -1,4 +1,4 @@
-import { PINNED_TOOL_COLORS, type ColorTool } from "./colors";
+import { defaultColorLabel, defaultColorDescription, recentColors, toolSwatches, type ColorTool } from "./colors";
 import { createAction, createSwatch } from "./ui-controls";
 
 export function createQuickColors(document: Document, options: {
@@ -21,27 +21,26 @@ export function createQuickColors(document: Document, options: {
   mark.className = "canvas-scribe-color-swatch-preview";
   mark.style.backgroundColor = options.current;
   const label = document.createElement("span");
-  label.textContent = options.isDefault ? "Current: Default" : `Current: ${options.current}`;
+  label.textContent = options.isDefault ? `Current: ${defaultColorLabel(options.tool)}` : `Current: ${options.current}`;
   current.append(mark, label); root.append(current);
   const row = document.createElement("div");
   row.className = "canvas-scribe-quick-swatches";
   row.setAttribute("role", "group"); row.setAttribute("aria-label", "Quick colors");
   const defaultButton = createSwatch(document, {
-    color: options.defaultColor, label: "Use default color", selected: options.isDefault,
+    color: options.defaultColor, label: defaultColorDescription(options.tool), selected: options.isDefault,
     onSelect: () => options.onSelect(null),
   });
-  const defaultLabel = document.createElement("span"); defaultLabel.textContent = "D";
+  const defaultLabel = document.createElement("span"); defaultLabel.textContent = defaultColorLabel(options.tool);
   defaultLabel.setAttribute("aria-hidden", "true"); defaultButton.append(defaultLabel);
   row.append(defaultButton);
-  const pinned = PINNED_TOOL_COLORS[options.tool];
+  const recent = recentColors(options.isDefault ? null : options.current, options.recent);
+  const pinned = toolSwatches(options.tool).filter(color => !recent.includes(color)).slice(0, 5);
   const add = (parent: HTMLElement, color: string) => parent.append(createSwatch(document, {
     color, label: `Use ${color} for ${options.tool}`,
     selected: !options.isDefault && color.toLowerCase() === options.current.toLowerCase(),
     onSelect: () => options.onSelect(color),
   }));
   pinned.forEach((color) => add(row, color)); root.append(row);
-  const recent = [...new Set(options.recent.map((color) => color.toLowerCase()))]
-    .filter((color) => !pinned.includes(color)).slice(0, 3);
   if (recent.length) {
     const group = document.createElement("div");
     group.className = "canvas-scribe-quick-swatches";

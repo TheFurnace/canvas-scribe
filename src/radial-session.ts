@@ -8,7 +8,8 @@ export interface RadialMenuAction extends RadialMenuItem {
   children?: () => readonly RadialMenuAction[];
   onEnter?: () => void;
   onLeave?: () => void;
-  content?: () => HTMLElement;
+  onDismiss?: () => void;
+  content?: (openPanel: (action: RadialMenuAction) => void) => HTMLElement;
   panel?: (close: () => void, back?: () => void) => HTMLElement;
 }
 
@@ -44,6 +45,7 @@ export class RadialSession {
   close(restoreFocus = true): void {
     if (!this.rootEl) return;
     this.parent?.onLeave?.(); this.parent = null;
+    this.actions.forEach(action => action.onDismiss?.());
     this.document.removeEventListener("pointerdown", this.dismissOutside, true);
     this.rootEl.remove(); this.rootEl = null;
     if (restoreFocus && this.restoreFocus?.isConnected) this.restoreFocus.focus({ preventScroll: true });
@@ -58,15 +60,18 @@ export class RadialSession {
     const pages = Math.max(1, Math.ceil(items.length / capacity));
     this.page = Math.min(this.page, pages - 1);
     const visible = items.slice(this.page * capacity, this.page * capacity + capacity);
+    const openPanel = (item: RadialMenuAction) => {
+      if (!item.panel) return;
+      const panel = item.panel(() => this.close(), () => this.render(item.id));
+      view.palette.hidden = true; view.root.append(panel);
+      panel.querySelector<HTMLElement>("button, input")?.focus();
+    };
     const view = createRadialMenuView(this.document, visible, this.renderIcon, (id) => {
       const item = visible.find((candidate) => candidate.id === id);
       if (!item || item.disabled) return;
       if (item.children || item.content) { item.onEnter?.(); this.parent = item; this.page = 0; this.render(); }
       else if (item.panel) {
-        const panel = item.panel(() => this.close(), () => { this.render(item.id); });
-        view.palette.hidden = true;
-        view.root.append(panel);
-        panel.querySelector<HTMLElement>("button, input")?.focus();
+        openPanel(item);
       } else if (item.keepOpen) { item.run?.(); this.render(id); }
       else {
         const button = view.palette.querySelector<HTMLElement>(`[data-action="${id}"]`);
@@ -92,7 +97,8 @@ export class RadialSession {
     if (this.parent?.content) {
       view.palette.classList.add("has-control");
       view.palette.setAttribute("role", "dialog");
-      view.palette.append(this.parent.content());
+      view.palette.append(this.parent.content(openPanel));
+      if (this.parent.id === "colors") view.palette.classList.add("has-color-arc");
     }
     view.palette.style.left = `${this.position.x}px`;
     view.palette.style.top = `${this.position.y}px`;

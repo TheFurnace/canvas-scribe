@@ -1,12 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 import { createQuickColors } from "../src/quick-colors";
 import { createColorPicker } from "../src/color-picker";
-import { ToolColors, type ColorTool } from "../src/colors";
+import { defaultColorLabel, resolveColor, ToolColors, type ColorTool } from "../src/colors";
 
 function preview(tool: ColorTool = "pen") {
   const root = document.createElement("div");
   const colors = new ToolColors();
-  const defaultColor = tool === "pen" ? "#1f2937" : "#fde047";
   const status = document.createElement("p");
   const opener = document.createElement("button");
   opener.textContent = "Quick colors";
@@ -15,16 +14,17 @@ function preview(tool: ColorTool = "pen") {
   const close = () => { menu?.remove(); menu = null; opener.focus(); };
   function open() {
     close();
+    const defaultColor = tool === "pen" ? resolveColor(document, getComputedStyle(root).getPropertyValue("--text-normal").trim() || "#1f2937") : "#fde047";
     menu = createQuickColors(document, {
       tool, current: colors.current(tool, defaultColor), defaultColor,
       isDefault: colors.selection(tool) === null, recent: colors.recent(tool),
-      onSelect: (color) => { colors.confirm(tool, color); status.textContent = `Selected: ${color ?? "Default"}`; close(); },
+      onSelect: (color) => { colors.confirm(tool, color); status.textContent = `Selected: ${color ?? defaultColorLabel(tool)}`; close(); },
       onMore: () => {
         close();
         menu = createColorPicker(document, {
-          tool, current: colors.current(tool, defaultColor), defaultColor, recent: colors.recent(tool),
-          onConfirm: (color) => { colors.confirm(tool, color); close(); open(); },
-          onCancel: open,
+          tool, current: colors.current(tool, defaultColor), defaultColor, isDefault: colors.selection(tool) === null, recent: colors.recent(tool),
+          onConfirm: (color) => { colors.confirm(tool, color); status.textContent = `Selected: ${color ?? defaultColorLabel(tool)}`; close(); },
+          onCancel: close,
         });
         root.append(menu);
       }, onClose: close,
@@ -33,7 +33,7 @@ function preview(tool: ColorTool = "pen") {
     root.append(menu);
   }
   opener.addEventListener("click", open);
-  root.append(opener, status); open();
+  root.append(opener, status); requestAnimationFrame(() => { if (root.isConnected) open(); });
   return root;
 }
 const meta = {
