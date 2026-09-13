@@ -8,7 +8,7 @@ import { PINNED_TOOL_COLORS } from "./colors";
 import { createColorPicker } from "./color-picker";
 
 export function createRadialPages(options: PenActionsOptions & {
-  contextAction?: RadialMenuAction;
+  contextAction?: RadialMenuAction | null;
   highlighterType: HighlighterType; eraserMode: "stroke" | "area";
   selectPen: (type: PenType) => void; selectHighlighter: (type: HighlighterType) => void;
   selectEraser: (mode: "stroke" | "area") => void;
@@ -98,7 +98,7 @@ export function createRadialPages(options: PenActionsOptions & {
       },
       { id: "undo", label: "Undo ink", icon: "undo-2", disabled: !options.canUndo(), keepOpen: true, run: options.undo },
       { id: "redo", label: "Redo ink", icon: "redo-2", disabled: !options.canRedo(), keepOpen: true, run: options.redo },
-      options.contextAction ?? { id: "canvas-menu", label: "Open Canvas menu", icon: "menu", run: options.openCanvasMenu },
+      ...(options.contextAction === null ? [] : [options.contextAction ?? { id: "canvas-menu", label: "Open Canvas menu", icon: "menu", run: options.openCanvasMenu }]),
     ] },
     { ...existing.find((item) => item.id === "favorites")!, pageId: "favorites", hero },
   ];

@@ -219,7 +219,7 @@ export class HandwrittenNoteEditor {
         this.setTool(favorite.tool);
       },
       openCanvasMenu: () => this.toggleToolMenu(),
-      contextAction: { id: "tool-settings", label: "Tool settings", icon: "settings-2", run: () => this.toggleToolMenu() },
+      contextAction: null,
     });
     this.radial = new RadialSession(this.root.ownerDocument, actions, () => { this.radial = null; }, this.renderIcon, this.overlayMount);
     this.radial.open(x, y);

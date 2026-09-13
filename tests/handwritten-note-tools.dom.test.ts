@@ -91,7 +91,8 @@ it("applies the color picker transaction and radial history actions to the note"
   stroke(); expect(note.objects[0]).toMatchObject({ color: "#ff4d4d" });
   radial(); click('.canvas-scribe-radial-tabs [data-tab="1"]');
   expect(document.querySelector('[data-action="canvas-menu"]')).toBeNull();
+  expect(document.querySelector('[data-action="tool-settings"]')).toBeNull();
   click('.canvas-scribe-radial-menu [data-action="undo"]'); expect(note.objects).toHaveLength(0);
   click('.canvas-scribe-radial-menu [data-action="redo"]'); expect(note.objects).toHaveLength(1);
-  click('[data-action="tool-settings"]'); expect(document.querySelector('[aria-label="Pen settings"]')).not.toBeNull();
+  tool("pen"); expect(document.querySelector('[aria-label="Pen settings"]')).not.toBeNull();
 });
