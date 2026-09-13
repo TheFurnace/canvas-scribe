@@ -56,6 +56,9 @@ export class HandwrittenNoteEditor {
     this.textStyleControls = this.createTextStyleControls(document);
     toolbar.append(this.controls, textButton, this.textStyleControls, this.zoomControls(document));
     this.viewport = document.createElement("div"); this.viewport.className = "canvas-scribe-note-viewport"; this.viewport.tabIndex = 0;
+    // Obsidian recognizes sidebar swipes through TouchEvents independently of
+    // our PointerEvents. Use the same opt-out as native Canvas; fingers pan here.
+    this.viewport.dataset.ignoreSwipe = "true";
     this.paperHost = document.createElement("div"); this.paperHost.className = "canvas-scribe-note-paper-host";
     this.viewport.append(this.paperHost); this.root.append(toolbar, this.viewport);
     this.viewport.addEventListener("pointerdown", (event) => this.pointerDown(event));
