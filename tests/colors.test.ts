@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ToolColors, paletteColors, PINNED_TOOL_COLORS, parseHex, hexToRgb, rgbToHex, hexToHsv, hsvToHex } from "../src/colors";
+import { ToolColors, paletteColors, TOOL_SWATCHES, parseHex, hexToRgb, rgbToHex, hexToHsv, hsvToHex } from "../src/colors";
 
 it("keeps semantic default separate from explicit history and defers preview history", () => {
   const colors = new ToolColors();
@@ -32,13 +32,13 @@ describe("color conversions", () => {
 
 describe("quick color palettes", () => {
   it("offers distinct pinned colors for pen and highlighter", () => {
-    expect(PINNED_TOOL_COLORS.pen).toHaveLength(5);
-    expect(PINNED_TOOL_COLORS.highlighter).toHaveLength(5);
-    expect(PINNED_TOOL_COLORS.pen).not.toEqual(PINNED_TOOL_COLORS.highlighter);
+    expect(TOOL_SWATCHES.pen).toHaveLength(24);
+    expect(TOOL_SWATCHES.highlighter).toHaveLength(16);
+    expect(TOOL_SWATCHES.pen).not.toEqual(TOOL_SWATCHES.highlighter);
   });
 
   it("puts an unpinned current color first without duplicating pinned colors", () => {
     expect(paletteColors("pen", "#abcdef")[0]).toBe("#abcdef");
-    expect(paletteColors("pen", "#1F2937")).toEqual(PINNED_TOOL_COLORS.pen);
+    expect(paletteColors("pen", "#DC2626")).toEqual(TOOL_SWATCHES.pen.slice(0, 5));
   });
 });

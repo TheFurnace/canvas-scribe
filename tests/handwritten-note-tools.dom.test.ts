@@ -88,9 +88,9 @@ it("applies the color picker transaction and radial history actions to the note"
   const { note, tool, stroke, radial } = setup();
   tool("color");
   Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "More colors…")!.click();
-  click('[aria-label="Use #ff4d4d"]');
+  click('[aria-label="Use #f87171"]');
   Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent === "Done")!.click();
-  stroke(); expect(note.objects[0]).toMatchObject({ color: "#ff4d4d" });
+  stroke(); expect(note.objects[0]).toMatchObject({ color: "#f87171" });
   radial(); click('.canvas-scribe-radial-tabs [data-tab="1"]');
   expect(document.querySelector('[data-action="canvas-menu"]')).toBeNull();
   expect(document.querySelector('[data-action="tool-settings"]')).toBeNull();

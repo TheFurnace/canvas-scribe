@@ -12,11 +12,11 @@ The color ring has ten 44-pixel targets around a 92-pixel radius. Default occupi
 
 The first view centers on the nearest remaining swatch to the selected color, or starts at the beginning for Theme/Default. Deduplication is exact normalized hex equality, never visual similarity. Color distance is used only for navigation. Old stored histories are retained: historical default seeding has no provenance, so removing matching hex values would erase legitimate explicit selections. New histories no longer seed a resolved default.
 
-## Shared collections and pending curation
+## Approved shared collections
 
-`TOOL_SWATCHES` / `toolSwatches(tool)` provide one collection for each tool, consumed by radial, drawer, picker and tool-menu quick choices. Collections are keyed by tool and separate from selection/history, ready for a future configuration provider. Existing colors are retained pending the user's curation review; the legacy small quick sets are combined with the old picker collection temporarily.
+`TOOL_SWATCHES` / `toolSwatches(tool)` provide one collection for each tool, consumed by radial, drawer, picker and tool-menu quick choices. Collections are keyed by tool and separate from selection/history, ready for a future configuration provider. The user approved the proposed 24 pen and 16 highlighter colors. These exact collections replace the temporary legacy palettes.
 
-The review-only **Canvas Scribe / Color Curation / Proposed Sets** story proposes 24 pen colors and 16 highlighter colors. It previews selected colors on light/dark backgrounds, with highlighter at 38% opacity. These proposals are not applied to production collections.
+The **Canvas Scribe / Color Curation / Proposed Sets** story now reads the approved production collections directly (the existing URL is retained). It previews selected colors on light/dark backgrounds, with highlighter at 38% opacity. All color menus consume these same approved collections or subsets.
 
 ## Visual references
 
@@ -36,4 +36,4 @@ Paths resolve in the prescribed `dist/worktrees/color-coherence` checkout. Origi
 - Browser review: radial selection stays open; wheel and drag scroll without reordering fixed choices; picker Cancel returns to the radial with the prior selection and offset; Theme updates the tool; drawer selection closes. Light layout and dark 320 × 640 radial reviewed with the installed Obsidian 1.13.7 stylesheet.
 - Interactive curation sample verified for pen and highlighter.
 
-Pending: user review of palette contents and order, then final shared-set integration. Real Obsidian runtime and physical Galaxy/S Pen acceptance have not been established by this pass.
+Palette contents and order approved and integrated. Real Obsidian runtime and physical Galaxy/S Pen acceptance have not been established by this pass.

@@ -5,11 +5,6 @@ export type ColorTool = InkTool;
 export const defaultColorLabel = (tool: ColorTool): string => tool === "pen" ? "Theme" : "Default";
 export const defaultColorDescription = (tool: ColorTool): string => tool === "pen" ? "Follow the theme ink color" : "Follow the highlighter default";
 
-export const PINNED_TOOL_COLORS: Readonly<Record<ColorTool, readonly string[]>> = {
-  pen: ["#1f2937", "#2563eb", "#dc2626", "#16a34a", "#9333ea"],
-  highlighter: ["#fde047", "#fb7185", "#22d3ee", "#4ade80", "#fb923c"],
-};
-
 export function paletteColors(tool: ColorTool, currentColor: string): string[] {
   const pinned = toolSwatches(tool).slice(0, 5);
   return pinned.some((color) => color.toLowerCase() === currentColor.toLowerCase())
@@ -91,15 +86,17 @@ export class ToolColors {
   }
 }
 
-export const CURATED_SWATCHES = [
-  ...[1, 0.86, 0.72].flatMap((value) => [0, 30, 60, 120, 180, 220, 270, 320].map((hue) => hsvToHex(hue, 0.7, value))),
-  ...[255, 219, 183, 146, 110, 73, 37, 0].map((c) => rgbToHex([c, c, c])!),
-];
-
-/** One source per tool. Existing colors retained until the palette curation review. */
+/** Approved per-tool collections; menus may present subsets of this shared source. */
 export const TOOL_SWATCHES: Readonly<Record<ColorTool, readonly string[]>> = {
-  pen: [...new Set([...PINNED_TOOL_COLORS.pen, ...CURATED_SWATCHES])],
-  highlighter: [...new Set([...PINNED_TOOL_COLORS.highlighter, ...CURATED_SWATCHES])],
+  pen: [
+    "#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#0d9488", "#2563eb", "#9333ea", "#db2777",
+    "#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#c084fc", "#f472b6",
+    "#000000", "#374151", "#6b7280", "#d1d5db", "#ffffff", "#78350f", "#a16207", "#a8a29e",
+  ],
+  highlighter: [
+    "#fde047", "#fb923c", "#fb7185", "#e879f9", "#a78bfa", "#38bdf8", "#22d3ee", "#4ade80",
+    "#fef08a", "#fed7aa", "#fecdd3", "#f5d0fe", "#ddd6fe", "#bae6fd", "#a5f3fc", "#bbf7d0",
+  ],
 };
 
 export function toolSwatches(tool: ColorTool): readonly string[] { return TOOL_SWATCHES[tool]; }

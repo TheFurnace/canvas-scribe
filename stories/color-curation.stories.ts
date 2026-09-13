@@ -1,19 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/web-components-vite";
 
-// Review proposals only. Production collections await the user's curation.
-const pen = [
-  "#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#0d9488", "#2563eb", "#9333ea", "#db2777",
-  "#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#c084fc", "#f472b6",
-  "#000000", "#374151", "#6b7280", "#d1d5db", "#ffffff", "#78350f", "#a16207", "#a8a29e",
-];
-const highlighter = [
-  "#fde047", "#fb923c", "#fb7185", "#e879f9", "#a78bfa", "#38bdf8", "#22d3ee", "#4ade80",
-  "#fef08a", "#fed7aa", "#fecdd3", "#f5d0fe", "#ddd6fe", "#bae6fd", "#a5f3fc", "#bbf7d0",
-];
+import { toolSwatches } from "../src/colors";
+
+const pen = [...toolSwatches("pen")];
+const highlighter = [...toolSwatches("highlighter")];
 function preview() {
   const root = document.createElement("article"); root.style.cssText = "max-width:760px;padding:24px;line-height:1.5;background:var(--background-primary);color:var(--text-normal);font-family:system-ui,sans-serif;border-radius:12px;border:1px solid var(--background-modifier-border)";
-  const heading = document.createElement("h2"); heading.textContent = "Color sets — curation review"; root.append(heading);
-  const intro = document.createElement("p"); intro.textContent = "Proposed sets, not yet applied. Theme and Default remain separate choices. Select a swatch to compare ink on light and dark backgrounds."; root.append(intro);
+  const heading = document.createElement("h2"); heading.textContent = "Color sets — approved swatches"; root.append(heading);
+  const intro = document.createElement("p"); intro.textContent = "Approved sets, shared across all color menus. Theme and Default remain separate choices. Select a swatch to compare ink on light and dark backgrounds."; root.append(intro);
   const group = (title: string, colors: string[], opacity: number, note: string) => {
     const section = document.createElement("section"), h = document.createElement("h3"), text = document.createElement("p");
     h.textContent = title; text.textContent = note; section.append(h, text);
@@ -40,7 +34,7 @@ function preview() {
   };
   group("Pen · 24 colors", pen, 1, "Eight core hues, eight lighter companions, then five neutrals and three earth tones. Ordered by hue within each row.");
   group("Highlighter · 16 colors", highlighter, .38, "Eight vivid colors and eight pastel companions. Previewed at the current 38% default opacity; pastel highlights can be subtle.");
-  const references = document.createElement("p"); references.textContent = "Reference basis: your Samsung Notes pen/highlighter screenshots from September 12 and Swatches picker screenshot from September 6. These suggest hue ordering, tone families, separate recents and a selected-color mark; the proposed hex values are our own curation."; root.append(references);
+  const references = document.createElement("p"); references.textContent = "Reference basis: your Samsung Notes pen/highlighter screenshots from September 12 and Swatches picker screenshot from September 6. These suggest hue ordering, tone families, separate recents and a selected-color mark; the approved hex values are our own curation."; root.append(references);
   return root;
 }
 const meta = { title: "Canvas Scribe/Color Curation", render: preview, parameters: { obsidian: { placement: "content" } } } satisfies Meta;
