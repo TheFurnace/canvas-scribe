@@ -1,6 +1,19 @@
 import { createCanvasControls, syncCanvasControls, type IconRenderer } from "./canvas-controls";
 import { DocumentHistory } from "./document-history";
+import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
 import { strokeIntersectsCircle } from "./geometry";
+import { createPenMenu } from "./pen-menu";
+import { createHighlighterMenu } from "./highlighter-menu";
+import { createEraserMenu } from "./eraser-menu";
+import { createSelectionMenu } from "./selection-menu";
+import { createColorPicker } from "./color-picker";
+import { resolveColor } from "./colors";
+import { positionPopup } from "./popover";
+import { FavoritePens, type PenPreset } from "./favorite-pens";
+import { createRadialPages } from "./radial-pages";
+import { RadialSession } from "./radial-session";
+import { isStylusBarrelButton } from "./pointer-input";
+import type { DrawingTool, InkTool } from "./types";
 import { InkToolState } from "./ink-tool-state";
 import { selectRenderedStroke, pointInPolygon, pointInBounds } from "./selection";
 import { PEN_PROFILES } from "./pen-types";
@@ -36,23 +49,28 @@ export class HandwrittenNoteEditor {
   private readonly allowMouse: boolean;
   private readonly resizeObserver: ResizeObserver;
   private layoutFrame = 0;
+  private menu: HTMLElement | null = null;
+  private menuDispose: (() => void) | null = null;
+  private radial: RadialSession | null = null;
+  private barrelPointer: number | null = null;
+  private contextSuppressedUntil = 0;
 
-  constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, renderIcon: IconRenderer, allowMouse = false) {
+  constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, private readonly renderIcon: IconRenderer, allowMouse = false, private readonly favorites = new FavoritePens(), private readonly overlayMount: HTMLElement = document.body) {
     this.note = note; this.onChange = onChange; this.allowMouse = allowMouse;
     this.root = document.createElement("section");
     this.root.className = "canvas-scribe-note-editor";
     this.root.tabIndex = 0;
     const toolbar = document.createElement("div"); toolbar.className = "canvas-scribe-note-toolbar";
     this.controls = createCanvasControls(document, renderIcon, {
-      setTool: (tool) => { this.tool = tool; this.tools.activeTool = tool; this.render(); },
-      toggleColorPalette: () => undefined,
+      setTool: (tool) => { if (this.tool === tool) this.toggleToolMenu(); else this.setTool(tool); },
+      toggleColorPalette: () => this.openColors(),
       undo: () => this.undo(), redo: () => this.redo(),
-      toggleEnabled: () => { this.enabled = !this.enabled; this.syncControls(); },
+      toggleEnabled: () => { this.closeOverlays(); this.enabled = !this.enabled; this.syncControls(); },
     });
     const textButton = document.createElement("button");
     textButton.type = "button"; textButton.className = "canvas-scribe-ui-button canvas-scribe-note-text-tool";
     textButton.textContent = "T"; textButton.title = "Add text box"; textButton.setAttribute("aria-label", "Add text box");
-    textButton.addEventListener("click", () => { this.tool = "text"; this.render(); });
+    textButton.addEventListener("click", () => { this.closeOverlays(); this.tool = "text"; this.render(); });
     this.textStyleControls = this.createTextStyleControls(document);
     toolbar.append(this.controls, textButton, this.textStyleControls, this.zoomControls(document));
     this.viewport = document.createElement("div"); this.viewport.className = "canvas-scribe-note-viewport"; this.viewport.tabIndex = 0;
@@ -66,6 +84,11 @@ export class HandwrittenNoteEditor {
     this.viewport.addEventListener("pointerup", (event) => this.pointerUp(event));
     this.viewport.addEventListener("pointercancel", (event) => this.pointerUp(event));
     this.viewport.addEventListener("lostpointercapture", (event) => this.pointerUp(event));
+    this.viewport.addEventListener("contextmenu", (event) => {
+      if ((event.target as Element).closest("textarea, button") || this.activePointer !== null) return;
+      event.preventDefault(); event.stopPropagation();
+      if (Date.now() > this.contextSuppressedUntil) this.openRadial(event.clientX, event.clientY);
+    });
     this.viewport.addEventListener("scroll", () => { this.note.viewport.scrollTop = this.viewport.scrollTop / this.note.viewport.zoom; });
     this.root.addEventListener("keydown", (event) => this.keyDown(event));
     this.resizeObserver = new ResizeObserver(() => this.syncTextLayout());
@@ -75,6 +98,7 @@ export class HandwrittenNoteEditor {
   }
 
   setDocument(note: HandwrittenNoteDocument, clearHistory = true): void {
+    this.closeOverlays();
     this.note = note; this.selectedIds.clear();
     if (clearHistory) { this.history.past = []; this.history.future = []; }
     this.render();
@@ -83,7 +107,123 @@ export class HandwrittenNoteEditor {
 
   getDocument(): HandwrittenNoteDocument { return this.note; }
   focus(): void { this.root.focus(); }
-  destroy(): void { this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
+  destroy(): void { this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
+
+  private setTool(tool: DrawingTool): void { this.closeOverlays(); this.tool = tool; this.tools.activeTool = tool; this.render(); }
+  private color(tool: InkTool): string { return this.tools.toolColors.current(tool, tool === "pen" ? "var(--text-normal)" : "#fde047"); }
+  private defaultColor(tool: InkTool): string { return tool === "highlighter" ? "#fde047" : resolveColor(this.root.ownerDocument, this.root.ownerDocument.defaultView!.getComputedStyle(this.root).color); }
+  private opacity(tool: InkTool): number { return tool === "pen" ? this.tools.penOpacity ?? PEN_PROFILES[this.tools.penType].opacity : this.tools.highlighterOpacity; }
+  private closeOverlays(): void { this.closeMenu(); this.radial?.close(false); this.radial = null; }
+  private closeMenu(focus = false): void {
+    this.menuDispose?.(); this.menuDispose = null; this.menu?.remove(); this.menu = null;
+    if (focus) this.controls.querySelector<HTMLElement>(`[data-action="${this.tool}"]`)?.focus();
+  }
+  private mountMenu(menu: HTMLElement): void {
+    this.closeOverlays(); this.menu = menu;
+    const document = this.root.ownerDocument;
+    const anchor = this.controls.querySelector<HTMLElement>(`[data-action="${this.tool}"]`) ?? this.controls;
+    this.overlayMount.append(menu); anchor.setAttribute("aria-expanded", "true"); anchor.setAttribute("aria-haspopup", "dialog");
+    const position = () => {
+      if (!menu.classList.contains("canvas-scribe-tool-menu")) return; // Color picker supplies its own modal layout.
+      const point = positionPopup(anchor.getBoundingClientRect(), menu.getBoundingClientRect(), document.defaultView!.innerWidth, document.defaultView!.innerHeight);
+      menu.style.left = `${point.left}px`; menu.style.top = `${point.top}px`;
+      if (this.overlayMount !== document.body) {
+        const actual = menu.getBoundingClientRect();
+        menu.style.left = `${point.left - (actual.left - point.left)}px`;
+        menu.style.top = `${point.top - (actual.top - point.top)}px`;
+      }
+    };
+    const dismiss = (event: Event) => { if (!menu.contains(event.target as Node) && !anchor.contains(event.target as Node)) this.closeMenu(); };
+    document.addEventListener("pointerdown", dismiss, true); document.defaultView?.addEventListener("resize", position);
+    this.menuDispose = () => {
+      document.removeEventListener("pointerdown", dismiss, true); document.defaultView?.removeEventListener("resize", position);
+      anchor.setAttribute("aria-expanded", "false");
+    };
+    position(); menu.querySelector<HTMLElement>('button[aria-pressed="true"], button, input')?.focus();
+  }
+  private openColors(recolor = false): void {
+    const selected = this.selectedObjects().filter((object): object is HandwrittenInkObject => object.kind === "ink");
+    const tool = recolor ? selected[0]?.tool : this.tool;
+    if (tool !== "pen" && tool !== "highlighter") return;
+    const document = this.root.ownerDocument;
+    this.mountMenu(createColorPicker(document, {
+      tool, current: resolveColor(document, (recolor ? selected[0]!.color : this.tools.toolColors.selection(tool))?.replace("var(--text-normal)", this.defaultColor(tool)) ?? this.defaultColor(tool)),
+      defaultColor: this.defaultColor(tool), recent: this.tools.toolColors.recent(tool),
+      onConfirm: (color) => {
+        if (recolor) {
+          this.history.checkpoint(this.note.objects);
+          this.note.objects = this.note.objects.map(object => object.kind === "ink" && this.selectedIds.has(object.id)
+            ? { ...object, color: color ?? (object.tool === "pen" ? "var(--text-normal)" : "#fde047") } : object);
+          this.changed(true);
+        } else this.tools.toolColors.confirm(tool, color);
+        this.closeMenu(true); this.syncControls();
+      }, onCancel: () => this.closeMenu(true),
+    }));
+  }
+  private toggleToolMenu(): void {
+    if (this.menu) { this.closeMenu(true); return; }
+    const document = this.root.ownerDocument, state = this.tools;
+    const common = { renderIcon: this.renderIcon, onClose: () => this.closeMenu(true) }, sync = () => this.syncControls();
+    const menu = this.tool === "pen" ? createPenMenu(document, { ...common,
+      type: state.penType, size: state.penSize, color: this.color("pen"),
+      onType: type => { state.penType = type; state.penOpacity = null; sync(); }, onSize: size => { state.penSize = size; sync(); },
+      onColor: color => { state.toolColors.confirm("pen", color); sync(); }, onColors: () => this.openColors(),
+    }) : this.tool === "highlighter" ? createHighlighterMenu(document, { ...common,
+      type: state.highlighterType, size: state.highlighterSize, opacity: state.highlighterOpacity, color: this.color("highlighter"),
+      onType: type => { state.highlighterType = type; sync(); }, onSize: size => { state.highlighterSize = size; sync(); },
+      onOpacity: opacity => { state.highlighterOpacity = opacity; sync(); },
+      onColor: color => { state.toolColors.confirm("highlighter", color); sync(); }, onColors: () => this.openColors(),
+    }) : this.tool === "eraser" ? createEraserMenu(document, { ...common,
+      settings: state.eraserSettings, onChange: settings => { state.eraserSettings = settings; },
+      canClear: this.note.objects.some(object => object.kind === "ink"), clearLabel: "Erase all ink in this note…",
+      clearMessage: "Erase all ink in this note? Text boxes will remain. You can undo this action.",
+      onClear: () => { this.history.checkpoint(this.note.objects); this.note.objects = this.note.objects.filter(object => object.kind === "text"); this.selectedIds.clear(); this.closeMenu(); this.changed(true); },
+    }) : this.tool === "lasso" ? createSelectionMenu(document, { ...common,
+      settings: state.selectionSettings, count: this.selectedObjects().filter(object => object.kind === "ink").length,
+      onChange: settings => { state.selectionSettings = settings; }, onRecolor: () => this.openColors(true),
+      onScale: scale => {
+        const bounds = boundsForObjects(this.selectedObjects().filter(object => object.kind === "ink")); if (!bounds || scale === 1) return;
+        this.history.checkpoint(this.note.objects); const cx = (bounds.minX + bounds.maxX) / 2, cy = (bounds.minY + bounds.maxY) / 2;
+        this.note.objects = this.note.objects.map(object => object.kind === "ink" && this.selectedIds.has(object.id)
+          ? { ...transformInk(object, (x, y) => [cx + (x - cx) * scale, cy + (y - cy) * scale], scale), kind: "ink" } : object);
+        this.changed(true);
+      },
+    }) : null;
+    if (menu) this.mountMenu(menu);
+  }
+  private openRadial(x: number, y: number): void {
+    this.closeOverlays();
+    const state = this.tools, tool = this.tool === "text" ? state.activeTool : this.tool;
+    const preset: PenPreset | null = tool === "pen" || tool === "highlighter" ? {
+      tool, penType: state.penType, highlighterType: state.highlighterType, color: state.toolColors.selection(tool),
+      size: tool === "pen" ? state.penSize : state.highlighterSize, opacity: this.opacity(tool),
+    } : null;
+    const actions = createRadialPages({
+      document: this.root.ownerDocument, tool, colors: state.toolColors, favorites: this.favorites, currentPreset: preset,
+      penType: state.penType, highlighterType: state.highlighterType, eraserMode: state.eraserSettings.mode,
+      selectTool: value => this.setTool(value),
+      selectPen: type => { state.penType = type; state.penOpacity = null; this.setTool("pen"); },
+      selectHighlighter: type => { state.highlighterType = type; this.setTool("highlighter"); },
+      selectEraser: mode => { state.eraserSettings.mode = mode; this.setTool("eraser"); },
+      getSize: () => tool === "pen" ? state.penSize : state.highlighterSize,
+      setSize: size => { if (tool === "pen") state.penSize = size; else state.highlighterSize = size; this.syncControls(); },
+      getOpacity: () => this.opacity(tool === "pen" ? "pen" : "highlighter"),
+      setOpacity: opacity => { if (tool === "pen") state.penOpacity = opacity; else state.highlighterOpacity = opacity; this.syncControls(); },
+      undo: () => this.undo(), redo: () => this.redo(), canUndo: () => this.history.past.length > 0, canRedo: () => this.history.future.length > 0,
+      defaultColor: ink => this.defaultColor(ink),
+      colorsChanged: () => this.syncControls(),
+      applyFavorite: favorite => {
+        state.toolColors.confirm(favorite.tool, favorite.color);
+        if (favorite.tool === "pen") { state.penType = favorite.penType; state.penSize = favorite.size; state.penOpacity = favorite.opacity; }
+        else { state.highlighterType = favorite.highlighterType ?? "round"; state.highlighterSize = favorite.size; state.highlighterOpacity = favorite.opacity; }
+        this.setTool(favorite.tool);
+      },
+      openCanvasMenu: () => this.toggleToolMenu(),
+      contextAction: { id: "tool-settings", label: "Tool settings", icon: "settings-2", run: () => this.toggleToolMenu() },
+    });
+    this.radial = new RadialSession(this.root.ownerDocument, actions, () => { this.radial = null; }, this.renderIcon, this.overlayMount);
+    this.radial.open(x, y);
+  }
 
   private render(): void {
     const page = renderHandwrittenNotePage(this.root.ownerDocument, { ...this.note, contentHeight: this.note.contentHeight + NOTE_SPARE_HEIGHT }, { interactive: true, selectedIds: this.selectedIds });
@@ -134,6 +274,12 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerDown(event: PointerEvent): void {
+    if (event.pointerType === "pen" && isStylusBarrelButton(event) && this.activePointer === null && !(event.target as Element).closest("textarea, button")) {
+      event.preventDefault(); event.stopPropagation(); this.barrelPointer = event.pointerId;
+      this.viewport.setPointerCapture?.(event.pointerId);
+      this.contextSuppressedUntil = Date.now() + 800;
+      this.openRadial(event.clientX, event.clientY); return;
+    }
     // Disable browser direct manipulation before contact; route fingers separately
     // so pen contact cannot both scroll the viewport and produce ink.
     if (event.pointerType === "touch") {
@@ -145,7 +291,8 @@ export class HandwrittenNoteEditor {
       }
       return;
     }
-    if (!this.enabled || (event.pointerType !== "pen" && !(this.allowMouse && event.pointerType === "mouse")) || this.activePointer !== null || (event.target as Element).closest(".canvas-scribe-note-toolbar, textarea, button")) return;
+    if (!this.enabled || (event.pointerType !== "pen" && !(this.allowMouse && event.pointerType === "mouse" && event.button === 0)) || this.activePointer !== null || (event.target as Element).closest(".canvas-scribe-note-toolbar, textarea, button")) return;
+    this.closeOverlays();
     const point = this.point(event); if (!point) return;
     event.preventDefault(); event.stopPropagation(); this.pan = null; this.activePointer = event.pointerId; this.viewport.setPointerCapture?.(event.pointerId);
     if (this.tool === "text") { this.addText(point.x, point.y); this.activePointer = null; this.releasePointer(event.pointerId); return; }
@@ -171,6 +318,7 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerMove(event: PointerEvent): void {
+    if (event.pointerId === this.barrelPointer) { event.preventDefault(); event.stopPropagation(); return; }
     if (event.pointerId === this.pan?.id) {
       event.preventDefault(); event.stopPropagation();
       this.viewport.scrollLeft += this.pan.x - event.clientX;
@@ -195,7 +343,13 @@ export class HandwrittenNoteEditor {
         const original = this.moveSnapshot.get(object.id); return original ? translateHandwrittenObject(original, dx, dy) : object;
       }); this.render(); return;
     }
-    if (this.tool === "lasso") { this.gesturePoints.push(point); this.renderLasso(); }
+    if (this.tool === "lasso") {
+      if (this.tools.selectionSettings.mode === "rectangle") {
+        const start = this.gesturePoints[0]!;
+        this.gesturePoints = [start, { x: point.x, y: start.y }, point, { x: start.x, y: point.y }];
+      } else this.gesturePoints.push(point);
+      this.renderLasso();
+    }
   }
 
   private releasePointer(id: number): void {
@@ -203,6 +357,7 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerUp(event: PointerEvent): void {
+    if (event.pointerId === this.barrelPointer) { event.preventDefault(); event.stopPropagation(); this.barrelPointer = null; this.releasePointer(event.pointerId); this.contextSuppressedUntil = Date.now() + 800; return; }
     if (event.pointerId === this.pan?.id) {
       event.preventDefault(); event.stopPropagation(); this.pan = null;
       this.releasePointer(event.pointerId); return;
@@ -218,14 +373,26 @@ export class HandwrittenNoteEditor {
 
   private selectGesture(): void {
     for (const object of this.note.objects) {
-      if (object.kind === "ink" ? selectRenderedStroke(object, this.gesturePoints, true) : this.boxIntersectsPolygon(objectBounds(object), this.gesturePoints)) this.selectedIds.add(object.id);
+      if (object.kind === "ink" ? selectRenderedStroke(object, this.gesturePoints, this.tools.selectionSettings.partial) : this.boxIntersectsPolygon(objectBounds(object), this.gesturePoints)) this.selectedIds.add(object.id);
     }
   }
 
   private eraseAt(x: number, y: number): void {
     const before = this.note.objects;
-    const next = before.filter((object) => object.kind === "text" || !strokeIntersectsCircle(object, x, y, this.tools.eraserSettings.radius));
-    if (next.length === before.length) return;
+    const region = eraserOutline(x, y, this.tools.eraserSettings.radius / this.note.viewport.zoom);
+    let changed = false;
+    const next = before.flatMap((object): HandwrittenObject[] => {
+      if (object.kind === "text") return [object];
+      if (this.tools.eraserSettings.highlighterOnly && object.tool !== "highlighter") return [object];
+      if (this.tools.eraserSettings.mode === "stroke") {
+        const hit = strokeIntersectsCircle(object, x, y, this.tools.eraserSettings.radius / this.note.viewport.zoom);
+        changed ||= hit; return hit ? [] : [object];
+      }
+      const result = eraseInk([object], region, this.tools.eraserSettings);
+      changed ||= result.changed;
+      return result.strokes.map((stroke) => ({ ...stroke, kind: "ink" }));
+    });
+    if (!changed) return;
     if (this.gesturePoints.length === 0) this.history.checkpoint(before);
     this.gesturePoints.push({ x, y }); this.note.objects = next; this.render(); this.changed(false);
   }
@@ -325,8 +492,9 @@ export class HandwrittenNoteEditor {
   }
 
   private syncControls(): void {
-    syncCanvasControls(this.controls, { activeTool: this.tool === "text" ? null : this.tool, penType: this.tools.penType, highlighterType: this.tools.highlighterType, enabled: this.enabled, canUndo: this.history.past.length > 0, canRedo: this.history.future.length > 0 });
-    this.controls.querySelector<HTMLElement>("[data-action=color]")?.setAttribute("aria-disabled", "true");
+    syncCanvasControls(this.controls, { activeTool: this.tool === "text" ? null : this.tool, penType: this.tools.penType, highlighterType: this.tools.highlighterType,
+      penColor: this.color("pen"), highlighterColor: this.color("highlighter"), penSize: this.tools.penSize, highlighterSize: this.tools.highlighterSize,
+      penOpacity: this.opacity("pen"), highlighterOpacity: this.opacity("highlighter"), enabled: this.enabled, canUndo: this.history.past.length > 0, canRedo: this.history.future.length > 0 });
     this.root.querySelector(".canvas-scribe-note-text-tool")?.classList.toggle("is-active", this.tool === "text");
     const selected = this.selectedObjects()[0]; const text = this.selectedIds.size === 1 && selected?.kind === "text" ? selected : null;
     this.textStyleControls.hidden = text === null;
