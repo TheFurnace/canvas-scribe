@@ -27,13 +27,6 @@
 .canvas-scribe-pen-types button:focus-visible {
   outline: 2px solid var(--interactive-accent); outline-offset: 3px;
 }
-.canvas-scribe-icon-button[aria-pressed="true"]::after,
-.canvas-scribe-controls [data-action]:not([data-action="color"]).is-active::before,
-.canvas-scribe-radial-action.is-active::after {
-  content: ""; position: absolute; right: 3px; top: 3px; width: 5px; height: 3px;
-  border-left: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg); pointer-events: none;
-}
 .canvas-scribe-controls [data-action] { position: relative; }
 .canvas-scribe-controls .canvas-scribe-tool-icon .svg-icon { width: 24px; height: 24px; }
 .canvas-scribe-pen-types .canvas-scribe-pen-artwork {
