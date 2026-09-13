@@ -804,3 +804,15 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
   background: repeating-conic-gradient(var(--background-primary) 0% 25%, var(--background-modifier-border) 0% 50%) 0 0 / 8px 8px;
 }
 .canvas-scribe-radial-size-value.has-transparency { width: 32px; height: 32px; border-radius: 50%; justify-content: center; overflow: hidden; }
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-radial-value-preview { position: relative; }
+.canvas-scribe-radial-control.is-right-half .canvas-scribe-radial-value-preview::after {
+  content: "a";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  font-size: 14px;
+  line-height: 1;
+}
