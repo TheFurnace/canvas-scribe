@@ -31,10 +31,42 @@ Ten new DOM regressions cover:
 
 ## Remaining acceptance
 
-These are deterministic happy-dom operation-count checks, not browser paint or
-device latency measurements. Confirm sustained writing in real Obsidian on the
-affected device, including Galaxy/S Pen if applicable, before closing FER-80.
+The automated checks are deterministic happy-dom operation counts, not browser
+paint or device latency measurements. The desktop host smoke test below passed;
+confirm sustained writing on the affected device, including Galaxy/S Pen if
+applicable, before closing FER-80.
 History snapshots, serialization, and stroke-end bounds/layout still scale with
 document size; broader long-document budgets remain in FER-59.
 
 No beta version was bumped or published by this change.
+
+## Real Obsidian sandbox smoke test
+
+Passed in Obsidian 1.12.7 on Windows using the isolated `fer-80-smoke` sandbox
+from this worktree and source commit `ba7cf2d`. The installed build was verified
+against local artifacts (main.js SHA-256
+`26a301af0806a48ef734f96f38c252302d62d63cdcd7281d6373b9f42fb0daa9`).
+The manifest remains beta.11; this is the local fix, not the published beta.11.
+
+- Cleared the new sandbox's trust prompt and created `Untitled.scribe` through
+  the plugin's Obsidian command.
+- Drew 30 consecutive, distinct 61-sample strokes through the existing CDP pen
+  driver with pressure 0.2-0.9 and tilt X=25 / Y=-15. All 1,800 move events were
+  trusted pen events. All 30 strokes / 1,830 total samples persisted.
+- Temporary instrumentation observed zero full page renders across the drawing
+  run and retained the same page DOM element. No window errors were captured.
+- First five versus last five strokes: pointerMove mean 0.037 vs 0.028 ms,
+  p95 0.10 vs 0.10 ms; active-path update mean 0.093 vs 0.084 ms,
+  p95 0.20 vs 0.20 ms. These are instrumented synchronous method durations,
+  not pen-to-display latency or an approved performance budget. CDP interval
+  was zero; event acknowledgments still govern delivery cadence.
+- Clicked the real toolbar Undo (29 model objects / paths) and Redo (30).
+- Reloaded the app after verifying the save. The note reopened with all 30
+  strokes, 1,830 samples, pressure and tilt intact; 30 rendered paths and no
+  dialog remained. Reload also removed temporary instrumentation.
+- Visually inspected screenshots before and after reload; the 30 wave strokes
+  remained visible and correctly positioned.
+
+Generated evidence is under `.canvas-scribe-sandbox/artifacts/fer-80-smoke/`:
+`results.json`, `reopened.json`, `30-strokes.png`, `reopened.png`, and input paths.
+The sandbox remains open for inspection. Physical-device validation is pending.
