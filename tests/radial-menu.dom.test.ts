@@ -16,6 +16,38 @@ afterEach(() => {
 });
 
 describe("RadialMenu DOM behavior", () => {
+  it.each(["pen", "touch"])("keeps a long %s tap open and consumes its following click", pointerType => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1000);
+    const run = vi.fn(), close = vi.fn();
+    const menu = new RadialMenu(document, [{ ...action("pen", run), longPress: true }], close);
+    menu.open(150, 150);
+    const button = requiredElement<HTMLElement>('[data-action="pen"]');
+    button.dispatchEvent(pointerEvent("pointerdown", { pointerType, pointerId: 5, button: 0 }));
+    now.mockReturnValue(1600);
+    button.dispatchEvent(pointerEvent("pointerup", { pointerType, pointerId: 5, button: 0 }));
+    expect(run).toHaveBeenCalledOnce(); expect(close).not.toHaveBeenCalled();
+    requiredElement<HTMLElement>('[data-action="pen"]').dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }));
+    expect(run).toHaveBeenCalledOnce(); expect(close).not.toHaveBeenCalled();
+    const next = requiredElement<HTMLElement>('[data-action="pen"]');
+    next.dispatchEvent(pointerEvent("pointerdown", { pointerType, pointerId: 5, button: 0 }));
+    next.dispatchEvent(pointerEvent("pointerup", { pointerType, pointerId: 5, button: 0 }));
+    next.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    expect(run).toHaveBeenCalledTimes(2); expect(close).toHaveBeenCalledOnce();
+  });
+
+  it.each(["pointercancel", "pointermove"])("does not select a held tool after %s", type => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1000), run = vi.fn();
+    const menu = new RadialMenu(document, [{ ...action("pen", run), longPress: true }], vi.fn());
+    menu.open(150, 150);
+    const button = requiredElement<HTMLElement>('[data-action="pen"]');
+    button.dispatchEvent(pointerEvent("pointerdown", { pointerType: "pen", pointerId: 5, button: 0 }));
+    now.mockReturnValue(1600);
+    button.dispatchEvent(pointerEvent(type, { pointerType: "pen", pointerId: 5, clientX: 30 }));
+    button.dispatchEvent(pointerEvent("pointerup", { pointerType: "pen", pointerId: 5 }));
+    button.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+    expect(run).not.toHaveBeenCalled(); menu.close();
+  });
+
   it("clamps the palette center inside the viewport", () => {
     setViewport(300, 200);
     const menu = new RadialMenu(document, [action("pen")], vi.fn());
@@ -63,6 +95,37 @@ describe("RadialMenu DOM behavior", () => {
 });
 
 describe("CanvasInkLayer radial-menu integration", () => {
+  it("uses the outside pen contact only to dismiss the radial, then accepts the next stroke", async () => {
+    const { layer, eventTarget } = await mountedLayer();
+    eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    const down = pointerEvent("pointerdown", { pointerId: 7, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 24, clientY: 32 });
+    eventTarget.dispatchEvent(down);
+    eventTarget.dispatchEvent(pointerEvent("pointermove", { pointerId: 7, pointerType: "pen", buttons: 1, pressure: .5, clientX: 50, clientY: 32 }));
+    eventTarget.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, pointerType: "pen", buttons: 0, clientX: 50, clientY: 32 }));
+    expect(down.defaultPrevented).toBe(true);
+    expect(document.querySelector(".canvas-scribe-radial-menu")).toBeNull();
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(0);
+    eventTarget.dispatchEvent(pointerEvent("pointerdown", { pointerId: 7, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 24, clientY: 32 }));
+    expect(document.querySelectorAll(".canvas-scribe-render-layer path")).toHaveLength(1);
+    layer.dispose();
+  });
+
+  it("keeps a long-selected Canvas tool active in the radial and toolbar", async () => {
+    const { layer, eventTarget } = await mountedLayer();
+    const now = vi.spyOn(Date, "now").mockReturnValue(1000);
+    eventTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    radialPage("Quick tools");
+    const button = requiredElement<HTMLElement>('[data-action="eraser-area"]');
+    button.dispatchEvent(pointerEvent("pointerdown", { pointerId: 7, pointerType: "pen", button: 0 }));
+    now.mockReturnValue(1600);
+    button.dispatchEvent(pointerEvent("pointerup", { pointerId: 7, pointerType: "pen", button: 0 }));
+    expect(requiredElement<HTMLElement>('[data-action="eraser-area"]').getAttribute("aria-checked")).toBe("true");
+    const eraser = requiredElement<HTMLElement>('.canvas-scribe-controls [data-action="eraser"]');
+    expect(eraser.getAttribute("aria-pressed")).toBe("true");
+    expect(eraser.title).toBe("Area eraser");
+    expect(eraser.querySelector('[data-icon="canvas-scribe-eraser-area"]')).not.toBeNull();
+    layer.dispose();
+  });
   it("dismisses expanded settings on a pen stroke without losing the first ink point", async () => {
     const { eventTarget } = await mountedLayer();
     requiredElement<HTMLElement>('.canvas-scribe-controls [data-action="pen"]').dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));

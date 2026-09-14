@@ -55,7 +55,7 @@ export function createPenActions(options: PenActionsOptions): RadialMenuAction[]
     { id: "favorites", label: "Favorites", icon: "star", children: () => [
       { id: "manage-favorites", label: "Save / manage favorites", icon: "settings-2",
         panel: (close) => createFavoriteManager(document, favorites, options.currentPreset, (preset) => defaultColor(preset.tool), close) },
-      ...favorites.list().map((preset) => ({ id: preset.id, label: `${preset.name} · ${preset.size}px`, icon: "pencil",
+      ...favorites.list().map((preset) => ({ id: preset.id, label: `${preset.name} · ${preset.size}px`, icon: "pencil", longPress: true,
         preview: (document: Document) => {
           const stroke = favoritePreview(document, preset, defaultColor(preset.tool));
           if (!options.quickColorCount) return stroke;

@@ -249,6 +249,9 @@ export class CanvasInkLayer {
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (!this.isPointerEventForLayer(event)) return;
+    // Radials from any surface own this contact. Let their document capture
+    // listener dismiss and consume it before the surface starts a gesture.
+    if (this.target.containerEl.ownerDocument.querySelector(".canvas-scribe-radial-menu")) return;
     this.updateHandwritingHover(event);
     this.updateEraserCursor(event);
     if (event.pointerType === "touch" && this.activePointerId !== null) {
@@ -916,6 +919,8 @@ export class CanvasInkLayer {
       penOpacity: this.sharedTools.penOpacity ?? PEN_PROFILES[this.sharedTools.penType].opacity,
       highlighterSize: this.sharedTools.highlighterSize,
       highlighterType: this.sharedTools.highlighterType,
+      eraserMode: this.sharedTools.eraserSettings.mode,
+      selectionMode: this.sharedTools.selectionSettings.mode,
       highlighterOpacity: this.sharedTools.highlighterOpacity,
       paletteOpen: this.colorPaletteEl !== null || this.colorPickerEl !== null,
       enabled: this.enabled,

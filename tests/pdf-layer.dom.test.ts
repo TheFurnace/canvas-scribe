@@ -23,6 +23,15 @@ function fixture() {
   return { content, page, viewer, session, host, change, layer, input, enable };
 }
 describe("native PDF input ownership", () => {
+  it("dismisses the radial with a pen contact without annotating and accepts the next stroke", () => {
+    const f = fixture(); f.enable();
+    f.page.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    expect(f.input("pointerdown", 40, 80).defaultPrevented).toBe(true);
+    f.input("pointermove", 90, 120); f.input("pointerup", 90, 120);
+    expect(document.querySelector('.canvas-scribe-radial-menu')).toBeNull(); expect(f.change).not.toHaveBeenCalled();
+    f.input("pointerdown", 40, 80); f.input("pointermove", 90, 120); f.input("pointerup", 90, 120);
+    expect(f.change).toHaveBeenCalledOnce(); f.layer.destroy();
+  });
   it("passes the radial context action to the originating PDF page without recursion", () => {
     const f = fixture(), native = vi.fn();
     f.page.addEventListener("contextmenu", native);

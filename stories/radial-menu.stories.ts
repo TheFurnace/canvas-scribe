@@ -74,17 +74,17 @@ const meta: Meta<Args> = {
     const update = () => {
       const preset = tool === "pen" || tool === "highlighter" ? presets[tool] : null;
       status.textContent = preset ? `${tool} · ${colors.current(preset.tool, defaultColor(preset.tool))} · ${preset.size}px · ${Math.round(preset.opacity * 100)}%. Favorites saved in this preview session.` : `${tool} selected`;
-      syncCanvasControls(toolbar, { activeTool: tool, enabled, canUndo: false, canRedo: false,
+      syncCanvasControls(toolbar, { activeTool: tool, enabled, canUndo: false, canRedo: false, eraserMode,
         penType: presets.pen.penType, penColor: colors.current("pen", "var(--text-normal)"), highlighterColor: colors.current("highlighter", "#fde047"),
         penSize: presets.pen.size, penOpacity: presets.pen.opacity, highlighterSize: presets.highlighter.size, highlighterOpacity: presets.highlighter.opacity });
     };
     launch.addEventListener("click", () => {
       const document = host.ownerDocument;
       closePenMenu();
-      const menu = new RadialSession(document, createRadialPages({ document, tool, colors, favorites,
-        currentPreset: tool === "pen" || tool === "highlighter" ? { ...presets[tool], color: colors.selection(tool) } : null,
-        penType: presets.pen.penType,
-        highlighterType: presets.highlighter.highlighterType ?? "round", eraserMode,
+      const menu = new RadialSession(document, createRadialPages({ document, get tool() { return tool; }, colors, favorites,
+        get currentPreset() { return tool === "pen" || tool === "highlighter" ? { ...presets[tool], color: colors.selection(tool) } : null; },
+        get penType() { return presets.pen.penType; },
+        get highlighterType() { return presets.highlighter.highlighterType ?? "round"; }, get eraserMode() { return eraserMode; },
         selectPen: (type) => { tool = "pen"; presets.pen.penType = type; presets.pen.opacity = PEN_PROFILES[type].opacity; update(); },
         selectHighlighter: (type) => { tool = "highlighter"; presets.highlighter.highlighterType = type; update(); },
         selectEraser: (mode) => { tool = "eraser"; eraserMode = mode; update(); },

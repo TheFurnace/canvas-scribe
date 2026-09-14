@@ -50,6 +50,27 @@ describe("toolbar configuration indicators", () => {
     expect(pen.title).toContain("Theme color");
     expect(pen.style.getPropertyValue("--canvas-scribe-tool-color")).toBe("var(--text-normal)");
   });
+  it("reflects both eraser and selection modes while retaining focus and active state", () => {
+    const { group, setTool } = setup(); document.body.append(group);
+    const eraser = group.querySelector<HTMLElement>('[data-action="eraser"]')!;
+    const selection = group.querySelector<HTMLElement>('[data-action="lasso"]')!;
+    selection.focus();
+    for (const [eraserMode, selectionMode, eraserLabel, selectionLabel, selectionIcon] of [
+      ["area", "rectangle", "Area eraser", "Rectangle selection", "selection-rectangle"],
+      ["stroke", "lasso", "Stroke eraser", "Lasso selection", "lasso"],
+    ] as const) {
+      syncCanvasControls(group, { ...state, activeTool: "lasso", eraserMode, selectionMode });
+      expect(eraser.title).toBe(eraserLabel); expect(selection.title).toBe(selectionLabel);
+      expect(eraser.getAttribute("aria-label")).toBe(eraserLabel); expect(selection.getAttribute("aria-label")).toBe(selectionLabel);
+      expect(eraser.querySelector('svg')?.getAttribute("data-icon")).toBe(`canvas-scribe-eraser-${eraserMode}`);
+      expect(selection.querySelector('svg')?.getAttribute("data-icon")).toBe(`canvas-scribe-${selectionIcon}`);
+      expect(selection.querySelectorAll('svg')).toHaveLength(1);
+      expect(selection.getAttribute("aria-pressed")).toBe("true"); expect(eraser.getAttribute("aria-pressed")).toBe("false");
+      expect(document.activeElement).toBe(selection);
+    }
+    selection.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    expect(setTool).toHaveBeenCalledWith("lasso"); group.remove();
+  });
   it("uses the tool color for the palette and clears it for tools without ink", () => {
     const { group } = setup();
     syncCanvasControls(group, { ...state, activeColor: "#000000" });

@@ -4,6 +4,7 @@ import { createToolColor } from "./tool-indicator";
 export interface RadialMenuItem {
   id: string; label: string; icon: string;
   active?: boolean; disabled?: boolean;
+  longPress?: boolean;
   radialAngle?: number; recentColor?: boolean;
   color?: string;
   inkColor?: string;
@@ -12,7 +13,7 @@ export interface RadialMenuItem {
 }
 export interface RadialMenuView { root: HTMLElement; palette: HTMLElement; }
 export function createRadialMenuView(document: Document, items: readonly RadialMenuItem[], renderIcon: IconRenderer,
-  onAction: (id: string) => void, onClose: () => void,
+  onAction: (id: string, longPress?: boolean) => void, onClose: () => void,
   navigation: { title?: string; back?: () => void; page?: number; pages?: number; onPage?: (page: number) => void;
     tabs?: { label: string; icon: string }[]; activeTab?: number; onTab?: (index: number) => void;
     hero?: { icon: string; label: string; color?: string }; pageId?: string } = {},
@@ -82,7 +83,35 @@ export function createRadialMenuView(document: Document, items: readonly RadialM
       button.style.setProperty("--canvas-scribe-tool-color", item.inkColor);
       if (!item.color && !item.icon.startsWith("canvas-scribe-")) button.append(createToolColor(document, item.inkColor));
     }
-    button.addEventListener("click", (event) => { consume(event); if (!button.disabled) onAction(item.id); });
+    let suppressClick = false;
+    if (item.longPress) {
+      let press: { id: number; x: number; y: number; time: number } | null = null;
+      button.addEventListener("pointerdown", event => {
+        press = null; suppressClick = false;
+        if (button.disabled || event.button !== 0 || !["pen", "touch"].includes(event.pointerType)) return;
+        press = { id: event.pointerId, x: event.clientX, y: event.clientY, time: Date.now() };
+      });
+      button.addEventListener("pointermove", event => {
+        if (press?.id === event.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 10) {
+          press = null; suppressClick = true;
+        }
+      });
+      const cancel = () => { press = null; suppressClick = true; };
+      button.addEventListener("pointercancel", cancel);
+      button.addEventListener("pointerleave", cancel);
+      button.addEventListener("pointerup", event => {
+        if (!press || press.id !== event.pointerId) return;
+        // Select on release so the pressed element survives the whole contact.
+        const held = Date.now() - press.time >= 500;
+        press = null;
+        if (held) { consume(event); suppressClick = true; onAction(item.id, true); }
+      });
+    }
+    button.addEventListener("click", (event) => {
+      consume(event);
+      if (!button.disabled && !(suppressClick && event.detail > 0)) onAction(item.id);
+      suppressClick = false;
+    });
     palette.append(button);
   });
   if (navigation.back && !navigation.hero) {

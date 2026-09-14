@@ -71,17 +71,18 @@ export function createToolRadial(document: Document, state: InkToolState, favori
   undo(): void; redo(): void; canUndo(): boolean; canRedo(): boolean;
   contextMenu?: (anchor?: { x: number; y: number }) => void;
 }) {
-  const tool = state.activeTool;
-  return createRadialPages({ document, tool, colors: state.toolColors, favorites, currentPreset: state.preset(),
-    penType: state.penType, highlighterType: state.highlighterType, eraserMode: state.eraserSettings.mode,
+  return createRadialPages({ document, get tool() { return state.activeTool; }, colors: state.toolColors, favorites,
+    get currentPreset() { return state.preset(); },
+    get penType() { return state.penType; }, get highlighterType() { return state.highlighterType; },
+    get eraserMode() { return state.eraserSettings.mode; }, get selectionMode() { return state.selectionSettings.mode; },
     selectTool: a.selectTool,
     selectPen: type => { state.selectPen(type); a.selectTool("pen"); },
     selectHighlighter: type => { state.highlighterType = type; a.selectTool("highlighter"); },
     selectEraser: mode => { state.eraserSettings = { ...state.eraserSettings, mode }; a.selectTool("eraser"); },
-    getSize: () => tool === "pen" ? state.penSize : state.highlighterSize,
-    setSize: value => { if (tool === "pen") state.penSize = value; else state.highlighterSize = value; a.changed(); },
-    getOpacity: () => state.opacity(tool === "pen" ? "pen" : "highlighter"),
-    setOpacity: value => { if (tool === "pen") state.penOpacity = value; else state.highlighterOpacity = value; a.changed(); },
+    getSize: () => state.activeTool === "pen" ? state.penSize : state.highlighterSize,
+    setSize: value => { if (state.activeTool === "pen") state.penSize = value; else state.highlighterSize = value; a.changed(); },
+    getOpacity: () => state.opacity(state.activeTool === "pen" ? "pen" : "highlighter"),
+    setOpacity: value => { if (state.activeTool === "pen") state.penOpacity = value; else state.highlighterOpacity = value; a.changed(); },
     undo: a.undo, redo: a.redo, canUndo: a.canUndo, canRedo: a.canRedo,
     defaultColor: a.defaultColor, colorsChanged: a.changed,
     applyFavorite: preset => { state.applyPreset(preset); a.selectTool(preset.tool); },
