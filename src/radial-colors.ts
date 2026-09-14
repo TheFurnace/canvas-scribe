@@ -6,9 +6,9 @@ export class RadialColors {
   readonly swatches: readonly string[];
   readonly slots: number;
   offset: number;
-  constructor(readonly tool: ColorTool, selected: string | null, history: readonly string[], document?: Document) {
+  constructor(readonly tool: ColorTool, selected: string | null, history: readonly string[]) {
     this.recent = recentColors(selected, history);
-    this.swatches = toolSwatches(tool, document).filter(color => !this.recent.includes(color));
+    this.swatches = toolSwatches(tool).filter(color => !this.recent.includes(color));
     this.slots = 8 - this.recent.length;
     this.offset = Math.max(0, Math.min(this.swatches.length - this.slots,
       nearestSwatch(this.swatches, selected) - Math.floor(this.slots / 2)));

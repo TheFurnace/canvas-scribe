@@ -11,7 +11,12 @@ import { createQuickColors } from "./quick-colors";
 import { createColorPicker } from "./color-picker";
 import { resolveColor } from "./colors";
 
-export { observeToolTheme } from "./tool-theme";
+/** Dismiss transient color previews when the host theme changes; reopened menus resolve afresh. */
+export function observeToolTheme(document: Document, changed: () => void): () => void {
+  const observer = new MutationObserver(changed);
+  for (const target of [document.documentElement, document.body]) observer.observe(target, { attributes: true, attributeFilter: ["class", "style"] });
+  return () => observer.disconnect();
+}
 
 export function createToolColors(document: Document, state: InkToolState, tool: InkTool, a: {
   defaultColor: string; mount(menu: HTMLElement): void; close(): void; changed(): void;

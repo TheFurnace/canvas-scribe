@@ -2,7 +2,6 @@ import { InkToolState } from "./ink-tool-state";
 import { addIcon, Notice, Plugin } from "obsidian";
 import { PdfController } from "./pdf-controller";
 import { registerToolIcons } from "./tool-icons";
-import { refreshToolThemes } from "./tool-theme";
 
 import { FavoritePens } from "./favorite-pens";
 import { CanvasInkLayer } from "./canvas-ink-layer";
@@ -91,8 +90,6 @@ export default class CanvasScribePlugin extends Plugin {
 
     this.registerEvent(this.app.workspace.on("layout-change", () => this.scheduleSync()));
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.scheduleSync()));
-    this.registerEvent(this.app.workspace.on("css-change", refreshToolThemes));
-    this.app.workspace.trigger("parse-style-settings");
     this.app.workspace.onLayoutReady(() => this.scheduleSync());
   }
 

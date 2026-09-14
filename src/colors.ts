@@ -5,8 +5,8 @@ export type ColorTool = InkTool;
 export const defaultColorLabel = (tool: ColorTool): string => tool === "pen" ? "Theme" : "Default";
 export const defaultColorDescription = (tool: ColorTool): string => tool === "pen" ? "Follow the theme ink color" : "Follow the highlighter default";
 
-export function paletteColors(tool: ColorTool, currentColor: string, document?: Document): string[] {
-  const pinned = toolSwatches(tool, document).slice(0, 5);
+export function paletteColors(tool: ColorTool, currentColor: string): string[] {
+  const pinned = toolSwatches(tool).slice(0, 5);
   return pinned.some((color) => color.toLowerCase() === currentColor.toLowerCase())
     ? [...pinned]
     : [currentColor, ...pinned];
@@ -99,39 +99,7 @@ export const TOOL_SWATCHES: Readonly<Record<ColorTool, readonly string[]>> = {
   ],
 };
 
-/** Standard extended colors, shared by Obsidian and themes such as Minimal. */
-export const THEME_COLOR_ROLES = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"] as const;
-
-/** Resolve only valid opaque colors: ink opacity is a separate tool preference. */
-export function opaqueCssColor(document: Document, value: string): string | null {
-  value = value.trim();
-  if (!value || /^(?:inherit|initial|unset|revert|revert-layer|currentcolor)$/i.test(value)) return null;
-  const hex = value.startsWith("#") ? parseHex(value) : null;
-  if (hex) return hex;
-  const context = document.createElement("canvas").getContext("2d");
-  if (!context) return null;
-  // An invalid assignment retains fillStyle. Two sentinels also accept either
-  // sentinel as an actual color without treating invalid input as black ink.
-  context.fillStyle = "#010203"; context.fillStyle = value;
-  const first = context.fillStyle;
-  context.fillStyle = "#040506"; context.fillStyle = value;
-  if (context.fillStyle !== first) return null;
-  context.fillRect(0, 0, 1, 1);
-  const rgba = context.getImageData(0, 0, 1, 1).data;
-  return rgba[3] === 255 ? rgbToHex(Array.from(rgba).slice(0, 3)) : null;
-}
-
-/** Theme colors are suggestions. Selecting one stores a fixed hex, never a CSS reference. */
-export function toolSwatches(tool: ColorTool, document?: Document): readonly string[] {
-  if (!document?.body.classList.contains("canvas-scribe-theme-palette")) return TOOL_SWATCHES[tool];
-  const styles = document.defaultView?.getComputedStyle(document.body);
-  if (!styles) return TOOL_SWATCHES[tool];
-  const themed = THEME_COLOR_ROLES.map(role => {
-    const override = opaqueCssColor(document, styles.getPropertyValue(`--canvas-scribe-color-${role}`));
-    return override ?? opaqueCssColor(document, styles.getPropertyValue(`--color-${role}`));
-  }).filter((color): color is string => color !== null);
-  return [...new Set([...themed, ...TOOL_SWATCHES[tool]])];
-}
+export function toolSwatches(tool: ColorTool): readonly string[] { return TOOL_SWATCHES[tool]; }
 
 export function recentColors(selected: string | null, history: readonly string[], limit = 3): string[] {
   return [...new Set([...(selected ? [selected] : []), ...history].flatMap(color => parseHex(color) ?? []))].slice(0, limit);
