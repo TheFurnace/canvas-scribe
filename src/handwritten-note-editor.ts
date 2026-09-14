@@ -3,7 +3,7 @@ import { scaleHandwrittenSelection, selectHandwrittenObject } from "./handwritte
 import { createCanvasControls, syncCanvasControls, type IconRenderer } from "./canvas-controls";
 import { DocumentHistory } from "./document-history";
 import { eraseInk, eraserOutline } from "./ink-operations";
-import { strokeIntersectsCircle } from "./geometry";
+import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { createColorPicker } from "./color-picker";
 import { resolveColor } from "./colors";
 import { positionPopup } from "./popover";
@@ -19,7 +19,7 @@ import {
   measureTextHeight, normalizeContentHeight, objectBounds, translateHandwrittenObject,
   type HandwrittenInkObject, type HandwrittenNoteDocument, type HandwrittenObject, type HandwrittenTextObject,
 } from "./handwritten-note";
-import { renderHandwrittenNotePage } from "./handwritten-note-renderer";
+import { renderHandwrittenInk, renderHandwrittenNotePage } from "./handwritten-note-renderer";
 
 type EditorTool = "pen" | "highlighter" | "eraser" | "lasso" | "text";
 
@@ -41,6 +41,8 @@ export class HandwrittenNoteEditor {
   private activePointer: number | null = null;
   private pan: { id: number; x: number; y: number } | null = null;
   private activeInk: HandwrittenInkObject | null = null;
+  private activeInkPath: SVGPathElement | null = null;
+  private inkFrame: number | null = null;
   private handleDrag: ((event: PointerEvent) => void) | null = null;
   private gesturePoints: { x: number; y: number }[] = [];
   private moveOrigin: { x: number; y: number } | null = null;
@@ -106,6 +108,7 @@ export class HandwrittenNoteEditor {
 
   setDocument(note: HandwrittenNoteDocument, clearHistory = true): void {
     this.closeOverlays();
+    this.resetGesture();
     this.note = note; this.selectedIds.clear();
     if (clearHistory) { this.history.past = []; this.history.future = []; }
     this.render();
@@ -114,7 +117,7 @@ export class HandwrittenNoteEditor {
 
   getDocument(): HandwrittenNoteDocument { return this.note; }
   focus(): void { this.root.focus(); }
-  destroy(): void { this.unsubscribeTheme(); this.unsubscribeTools(); this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
+  destroy(): void { this.resetGesture(); this.unsubscribeTheme(); this.unsubscribeTools(); this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
 
   setTool(tool: DrawingTool): void { this.closeOverlays(); this.sharedTools.activeTool = tool; if (this.activePointer === null) this.tool = tool; this.syncControls(); }
   toggleEnabled(): void { this.closeOverlays(); this.enabled = !this.enabled; this.syncControls(); }
@@ -205,6 +208,7 @@ export class HandwrittenNoteEditor {
     page.style.zoom = String(this.note.viewport.zoom);
     for (const textarea of Array.from(page.querySelectorAll<HTMLTextAreaElement>("textarea.canvas-scribe-note-text"))) this.wireTextArea(textarea);
     this.paperHost.replaceChildren(page);
+    this.activeInkPath = this.activeInk ? page.querySelector<SVGPathElement>(`path[data-object-id="${this.activeInk.id}"]`) : null;
     this.syncTextLayout();
     cancelAnimationFrame(this.layoutFrame);
     this.layoutFrame = requestAnimationFrame(() => this.syncTextLayout());
@@ -212,6 +216,8 @@ export class HandwrittenNoteEditor {
   }
 
   private syncTextLayout(): void {
+    // Ink frames only update the live path. Reflow text and document bounds at lift.
+    if (this.activeInk) return;
     const page = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page"); if (!page) return;
     for (const textarea of Array.from(page.querySelectorAll<HTMLTextAreaElement>("textarea.canvas-scribe-note-text"))) {
       const object = this.textObject(textarea.dataset.objectId); if (!object) continue;
@@ -287,7 +293,11 @@ export class HandwrittenNoteEditor {
       ...(this.tool === "pen" ? { penType: this.tools.penType } : { highlighterType: this.tools.highlighterType }),
       points: [this.inkPoint(event, point)], hasPressure: event.pressure > 0, createdAt: Date.now(),
     };
-    this.note.objects.push(this.activeInk); this.render();
+    this.note.objects.push(this.activeInk);
+    const page = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page")!;
+    const svg = renderHandwrittenInk(this.root.ownerDocument, this.activeInk, this.note.logicalWidth, this.note.contentHeight + NOTE_SPARE_HEIGHT, this.note.objects.length - 1, false, false);
+    this.activeInkPath = svg.querySelector("path"); page.append(svg);
+    this.syncControls();
   }
 
   private pointerMove(event: PointerEvent): void {
@@ -302,13 +312,15 @@ export class HandwrittenNoteEditor {
     if (event.pointerId !== this.activePointer) return;
     event.preventDefault(); event.stopPropagation();
     if (this.handleDrag) { this.handleDrag(event); return; }
-    const point = this.point(event); if (!point) return;
     if (this.activeInk) {
       const coalesced = event.getCoalescedEvents?.() ?? [];
       const samples = coalesced.length ? coalesced : [event];
-      for (const sample of samples) { const p = this.point(sample); if (p) this.activeInk.points.push(this.inkPoint(sample, p)); }
-      this.render(); return;
+      const rect = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page")!.getBoundingClientRect();
+      const zoom = this.note.viewport.zoom;
+      for (const sample of samples) this.activeInk.points.push(this.inkPoint(sample, { x: (sample.clientX - rect.left) / zoom, y: (sample.clientY - rect.top) / zoom }));
+      this.scheduleInkRender(); return;
     }
+    const point = this.point(event); if (!point) return;
     if (this.tool === "eraser") { this.eraseAt(point.x, point.y); return; }
     if (this.tool === "lasso" && this.moveOrigin) {
       const dx = point.x - this.moveOrigin.x, dy = point.y - this.moveOrigin.y;
@@ -329,6 +341,24 @@ export class HandwrittenNoteEditor {
     if (this.viewport.hasPointerCapture?.(id)) this.viewport.releasePointerCapture(id);
   }
 
+  private scheduleInkRender(): void {
+    if (this.inkFrame !== null) return;
+    this.inkFrame = requestAnimationFrame(() => { this.inkFrame = null; this.renderActiveInk(false); });
+  }
+
+  private renderActiveInk(complete: boolean): void {
+    if (this.activeInk && this.activeInkPath) this.activeInkPath.setAttribute("d", strokeToSvgPath(this.activeInk, complete));
+  }
+
+  private resetGesture(): void {
+    if (this.inkFrame !== null) cancelAnimationFrame(this.inkFrame);
+    this.inkFrame = null; this.activeInk = null; this.activeInkPath = null;
+    const pointer = this.activePointer;
+    this.activePointer = null; this.gestureTools = null; this.handleDrag = null;
+    this.moveOrigin = null; this.moveSnapshot.clear(); this.gesturePoints = []; this.pan = null;
+    if (pointer !== null) this.releasePointer(pointer);
+  }
+
   private pointerUp(event: PointerEvent): void {
     if (event.pointerId === this.barrelPointer) { event.preventDefault(); event.stopPropagation(); this.barrelPointer = null; this.releasePointer(event.pointerId); this.contextSuppressedUntil = Date.now() + 800; return; }
     if (event.pointerId === this.pan?.id) {
@@ -338,7 +368,11 @@ export class HandwrittenNoteEditor {
     if (event.pointerId !== this.activePointer) return;
     event.preventDefault(); event.stopPropagation();
     if (this.handleDrag) { this.handleDrag = null; normalizeContentHeight(this.note); this.changed(); }
-    else if (this.activeInk) { this.activeInk = null; normalizeContentHeight(this.note); this.changed(); }
+    else if (this.activeInk) {
+      if (this.inkFrame !== null) cancelAnimationFrame(this.inkFrame);
+      this.inkFrame = null; this.renderActiveInk(true);
+      this.activeInk = null; this.activeInkPath = null; this.syncTextLayout(); this.changed();
+    }
     else if (this.tool === "lasso" && this.moveOrigin) { this.moveOrigin = null; this.moveSnapshot.clear(); normalizeContentHeight(this.note); this.changed(); }
     else if (this.tool === "lasso" && this.gesturePoints.length > 2) { this.selectGesture(); this.render(); }
     this.gesturePoints = []; this.activePointer = null; this.gestureTools = null; if (this.tool !== "text") this.tool = this.sharedTools.activeTool; this.releasePointer(event.pointerId); this.syncControls();
@@ -432,8 +466,8 @@ export class HandwrittenNoteEditor {
     }
   }
 
-  undo(): void { const objects = this.history.undo(this.note.objects); if (objects) { this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
-  redo(): void { const objects = this.history.redo(this.note.objects); if (objects) { this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
+  undo(): void { const objects = this.history.undo(this.note.objects); if (objects) { this.resetGesture(); this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
+  redo(): void { const objects = this.history.redo(this.note.objects); if (objects) { this.resetGesture(); this.note.objects = objects; this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); } }
   private deleteSelection(): void { if (!this.selectedIds.size) return; this.history.checkpoint(this.note.objects); this.note.objects = this.note.objects.filter(({ id }) => !this.selectedIds.has(id)); this.selectedIds.clear(); normalizeContentHeight(this.note); this.render(); this.changed(); }
 
   private zoomControls(document: Document): HTMLElement {
