@@ -116,7 +116,7 @@ export class HandwrittenNoteEditor {
   focus(): void { this.root.focus(); }
   destroy(): void { this.unsubscribeTheme(); this.unsubscribeTools(); this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
 
-  setTool(tool: DrawingTool): void { this.closeOverlays(); this.sharedTools.activeTool = tool; if (this.activePointer === null) this.tool = tool; this.syncControls(); }
+  setTool(tool: DrawingTool, keepRadial = false): void { if (!keepRadial) this.closeOverlays(); this.sharedTools.activeTool = tool; if (this.activePointer === null) this.tool = tool; this.syncControls(); }
   toggleEnabled(): void { this.closeOverlays(); this.enabled = !this.enabled; this.syncControls(); }
   private defaultColor(tool: InkTool): string { return tool === "highlighter" ? "#fde047" : resolveColor(this.root.ownerDocument, this.root.ownerDocument.defaultView!.getComputedStyle(this.root).color); }
   private closeOverlays(): void { this.closeMenu(); this.radial?.close(false); this.radial = null; }
@@ -191,7 +191,7 @@ export class HandwrittenNoteEditor {
   private openRadial(x: number, y: number): void {
     this.closeOverlays();
     const actions = createToolRadial(this.root.ownerDocument, this.sharedTools, this.favorites, {
-      selectTool: tool => this.setTool(tool), changed: () => this.syncControls(), defaultColor: tool => this.defaultColor(tool),
+      selectTool: tool => this.setTool(tool, true), changed: () => this.syncControls(), defaultColor: tool => this.defaultColor(tool),
       undo: () => this.undo(), redo: () => this.redo(), canUndo: () => this.history.past.length > 0, canRedo: () => this.history.future.length > 0,
     });
     this.radial = new RadialSession(this.root.ownerDocument, actions, () => { this.radial = null; }, this.renderIcon, this.overlayMount);
@@ -466,6 +466,7 @@ export class HandwrittenNoteEditor {
 
   private syncControls(): void {
     syncCanvasControls(this.controls, { activeTool: this.tool === "text" ? null : this.sharedTools.activeTool, penDefault: this.sharedTools.toolColors.selection("pen") === null, highlighterDefault: this.sharedTools.toolColors.selection("highlighter") === null, penType: this.sharedTools.penType, highlighterType: this.sharedTools.highlighterType,
+      eraserMode: this.sharedTools.eraserSettings.mode, selectionMode: this.sharedTools.selectionSettings.mode,
       penColor: this.sharedTools.toolColors.current("pen", "var(--text-normal)"), highlighterColor: this.sharedTools.toolColors.current("highlighter", this.defaultColor("highlighter")), penSize: this.sharedTools.penSize, highlighterSize: this.sharedTools.highlighterSize,
       penOpacity: this.sharedTools.opacity("pen"), highlighterOpacity: this.sharedTools.opacity("highlighter"), enabled: this.enabled, canUndo: this.history.past.length > 0, canRedo: this.history.future.length > 0 });
     this.root.querySelector(".canvas-scribe-note-text-tool")?.classList.toggle("is-active", this.tool === "text");

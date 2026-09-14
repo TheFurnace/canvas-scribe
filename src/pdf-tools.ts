@@ -35,13 +35,14 @@ export class PdfTools {
     this.unsubscribe = state.subscribe(() => actions.changed());
     this.unsubscribeTheme = observeToolTheme(document, () => { this.close(); actions.changed(); });
   }
-  setTool(tool: DrawingTool): void { this.state.activeTool = tool; this.close(); this.actions.changed(); }
+  setTool(tool: DrawingTool, keepRadial = false): void { this.state.activeTool = tool; if (!keepRadial) this.close(); this.actions.changed(); }
   destroy(): void { this.close(); this.unsubscribeTheme(); this.unsubscribe(); this.root.remove(); }
   color(): string { const tool = this.state.activeTool === "highlighter" ? "highlighter" : "pen"; return this.state.toolColors.current(tool, tool === "pen" ? "#1f2937" : "#fde047"); }
   sync(enabled: boolean, undo: boolean, redo: boolean, count: number, canClear: boolean): void {
     this.count = count; this.canClear = canClear; this.canUndo = undo; this.canRedo = redo;
     syncCanvasControls(this.controls, { activeTool: this.state.activeTool, penDefault: this.state.toolColors.selection("pen") === null, highlighterDefault: this.state.toolColors.selection("highlighter") === null, enabled, canUndo: undo, canRedo: redo,
       penType: this.state.penType, highlighterType: this.state.highlighterType, penSize: this.state.penSize, highlighterSize: this.state.highlighterSize,
+      eraserMode: this.state.eraserSettings.mode, selectionMode: this.state.selectionSettings.mode,
       penOpacity: this.state.penOpacity ?? PEN_PROFILES[this.state.penType].opacity, highlighterOpacity: this.state.highlighterOpacity,
       penColor: this.state.toolColors.current("pen", "#1f2937"), highlighterColor: this.state.toolColors.current("highlighter", "#fde047") });
   }
@@ -68,7 +69,7 @@ export class PdfTools {
   openRadial(x: number, y: number, contextMenu?: () => void): void {
     this.close();
     this.radial = new RadialSession(this.document, createToolRadial(this.document, this.state, this.favorites, {
-      selectTool: tool => this.setTool(tool), changed: this.actions.changed, defaultColor: tool => tool === "pen" ? "#1f2937" : "#fde047",
+      selectTool: tool => this.setTool(tool, true), changed: this.actions.changed, defaultColor: tool => tool === "pen" ? "#1f2937" : "#fde047",
       undo: this.actions.undo, redo: this.actions.redo, canUndo: () => this.canUndo, canRedo: () => this.canRedo, contextMenu,
     }), () => { this.radial = null; }, this.icons);
     this.radial.open(x, y);

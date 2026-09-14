@@ -22,8 +22,24 @@ export class RadialSession {
   private page = 0;
   private topPage = 0;
   private restoreFocus: HTMLElement | null = null;
+  private suppressClick = false;
+  // Rebuilding on a long-tap release can retarget its native click to the
+  // document or a replacement button. Consume either before it activates UI.
+  private readonly consumeLongPressClick = (event: MouseEvent) => {
+    if (!this.suppressClick || event.detail === 0) return;
+    this.suppressClick = false;
+    event.preventDefault(); event.stopImmediatePropagation();
+  };
   private readonly dismissOutside = (event: Event) => {
-    if (this.rootEl && !this.rootEl.contains(event.target as Node)) this.close(false);
+    this.suppressClick = false;
+    if (!this.rootEl?.isConnected) { this.close(false); return; }
+    if (!this.rootEl.contains(event.target as Node)) {
+      if ((event as PointerEvent).pointerType === "pen") {
+        if (event.cancelable) event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      this.close(false);
+    }
   };
 
   constructor(private readonly document: Document, private readonly actions: readonly RadialMenuAction[],
@@ -40,6 +56,7 @@ export class RadialSession {
     this.topPage = Math.max(0, pages.findIndex((item) => item.pageId === lastPage.get(this.document)));
     this.render();
     this.document.addEventListener("pointerdown", this.dismissOutside, true);
+    this.document.addEventListener("click", this.consumeLongPressClick, true);
   }
 
   close(restoreFocus = true): void {
@@ -47,6 +64,7 @@ export class RadialSession {
     this.parent?.onLeave?.(); this.parent = null;
     this.actions.forEach(action => action.onDismiss?.());
     this.document.removeEventListener("pointerdown", this.dismissOutside, true);
+    this.document.removeEventListener("click", this.consumeLongPressClick, true);
     this.rootEl.remove(); this.rootEl = null;
     if (restoreFocus && this.restoreFocus?.isConnected) this.restoreFocus.focus({ preventScroll: true });
     this.onClose();
@@ -66,13 +84,16 @@ export class RadialSession {
       view.palette.hidden = true; view.root.append(panel);
       panel.querySelector<HTMLElement>("button, input")?.focus();
     };
-    const view = createRadialMenuView(this.document, visible, this.renderIcon, (id) => {
+    const view = createRadialMenuView(this.document, visible, this.renderIcon, (id, longPress) => {
       const item = visible.find((candidate) => candidate.id === id);
       if (!item || item.disabled) return;
       if (item.children || item.content) { item.onEnter?.(); this.parent = item; this.page = 0; this.render(); }
       else if (item.panel) {
         openPanel(item);
-      } else if (item.keepOpen) { item.run?.(); this.render(id); }
+      } else if (item.keepOpen || longPress) {
+        this.suppressClick = Boolean(longPress);
+        item.run?.(); this.render(id);
+      }
       else {
         const button = view.palette.querySelector<HTMLElement>(`[data-action="${id}"]`);
         const bounds = button?.getBoundingClientRect();

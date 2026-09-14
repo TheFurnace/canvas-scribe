@@ -14,7 +14,7 @@ import type { App } from "obsidian";
 import type { CanvasTarget } from "../src/canvas-target";
 
 const dispose: (() => void)[] = [];
-afterEach(() => { dispose.splice(0).forEach(fn => fn()); document.body.replaceChildren(); });
+afterEach(() => { dispose.splice(0).forEach(fn => fn()); document.body.replaceChildren(); vi.restoreAllMocks(); });
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
 it("dismisses stale theme previews while preserving semantic Default", async () => {
   const { state, pdf, tool } = fixtures();
@@ -57,6 +57,58 @@ it("restores validated global choices and semantic Default independently of fixe
   expect(restored.eraserSettings).toEqual({ mode: "area", radius: 30, highlighterOnly: true });
   const invalid = new InkToolState({ activeTool: "text", penSize: -20, penOpacity: 99, highlighterSize: Infinity, colors: { selected: { pen: "junk" }, history: { pen: ["#abc", "#aabbcc", null, "junk"] } } });
   expect(invalid.activeTool).toBe("pen"); expect(invalid.penSize).toBe(3.5); expect(invalid.toolColors.selection("pen")).toBeNull(); expect(invalid.toolColors.recent("pen")).toEqual(["#aabbcc"]);
+});
+
+it.each(["note", "pdf"])("keeps long-selected tools and settings current in the %s radial", async surface => {
+  const f = fixtures();
+  const now = vi.spyOn(Date, "now").mockReturnValue(1000);
+  if (surface === "pdf") f.pdf.openRadial(300, 300);
+  else f.editor.root.querySelector('.canvas-scribe-note-viewport')!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
+  const click = (selector: string) => { const el = document.querySelector<HTMLElement>(selector); expect(el, selector).not.toBeNull(); el!.click(); };
+  const hold = (id: string) => {
+    click('[data-tab="0"]');
+    const button = document.querySelector<HTMLElement>(`.canvas-scribe-radial-action[data-action="${id}"]`)!;
+    now.mockReturnValue(1000);
+    button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "pen", pointerId: 7, button: 0 }));
+    now.mockReturnValue(1600);
+    button.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, pointerType: "pen", pointerId: 7, button: 0 }));
+    expect(document.querySelector(`.canvas-scribe-radial-action[data-action="${id}"]`)?.getAttribute("aria-checked")).toBe("true");
+  };
+  hold("highlighter-chisel"); await flush();
+  expect(f.state.activeTool).toBe("highlighter"); expect(f.state.highlighterType).toBe("chisel");
+  click('[data-tab="1"]'); click('[data-action="size"]');
+  const width = document.querySelector<HTMLElement>('[role="slider"][aria-label="Tool thickness"]')!;
+  expect(width.getAttribute("aria-valuenow")).toBe("17");
+  width.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+  expect(f.state.highlighterSize).toBe(18); expect(f.state.penSize).toBe(3.5);
+  click('[aria-label="Back to pen actions"]'); click('[data-action="colors"]'); click('[data-color="#fb7185"]');
+  expect(f.state.toolColors.selection("highlighter")).toBe("#fb7185"); expect(f.state.toolColors.selection("pen")).toBeNull();
+  expect(f.state.toolColors.recent("highlighter")).toEqual([]);
+  click('[aria-label="Back to pen actions"]'); hold("pen-brush");
+  click('[data-tab="1"]'); click('[data-action="colors"]'); click('[data-color="#dc2626"]');
+  expect(f.state.toolColors.selection("pen")).toBe("#dc2626");
+  click('[aria-label="Back to pen actions"]'); hold("eraser-area");
+  click('[data-tab="1"]');
+  expect(document.querySelector<HTMLButtonElement>('[data-action="colors"]')?.disabled).toBe(true);
+  expect(document.querySelector<HTMLButtonElement>('[data-action="size"]')?.disabled).toBe(true);
+  f.state.selectionSettings = { mode: "rectangle", partial: true };
+  hold("lasso"); await flush();
+  for (const root of [f.editor.root, f.pdf.root]) {
+    expect(root.querySelector('[data-action="eraser"]')?.getAttribute("title")).toBe("Area eraser");
+    expect(root.querySelector('[data-action="lasso"]')?.getAttribute("title")).toBe("Rectangle selection");
+    expect(root.querySelector('[data-action="lasso"]')?.getAttribute("aria-pressed")).toBe("true");
+  }
+  expect(f.note.objects).toHaveLength(0);
+  document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "pen" }));
+  expect(document.querySelector('.canvas-scribe-radial-menu')).toBeNull();
+  expect(f.state.toolColors.recent("pen")[0]).toBe("#dc2626"); expect(f.state.toolColors.recent("highlighter")[0]).toBe("#fb7185");
+});
+
+it("consumes an outside pen gesture over notes before allowing the next stroke", () => {
+  const f = fixtures(); f.pdf.openRadial(300, 300);
+  f.pointer("pointerdown"); f.pointer("pointermove", 180); f.pointer("pointerup", 180);
+  expect(document.querySelector('.canvas-scribe-radial-menu')).toBeNull(); expect(f.note.objects).toHaveLength(0);
+  f.pointer("pointerdown"); f.pointer("pointerup", 180); expect(f.note.objects).toHaveLength(1);
 });
 
 it("updates both view toolbars while keeping an in-progress note stroke stable", async () => {

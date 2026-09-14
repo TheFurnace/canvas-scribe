@@ -17,6 +17,8 @@ export interface CanvasControlsActions {
 }
 
 export interface CanvasControlsState {
+  eraserMode?: "stroke" | "area";
+  selectionMode?: "lasso" | "rectangle";
   highlighterType?: HighlighterType;
   activeTool: DrawingTool | null;
   activeColor?: string;
@@ -135,6 +137,19 @@ export function syncCanvasControls(group: HTMLElement, state: CanvasControlsStat
     const active = state.activeTool === tool && state.enabled;
     button?.classList.toggle("is-active", active);
     button?.setAttribute("aria-pressed", String(active));
+  }
+  for (const tool of ["eraser", "lasso"] as const) {
+    const button = group.querySelector<HTMLElement>(`[data-action="${tool}"]`);
+    if (!button) continue;
+    const mode = tool === "eraser" ? state.eraserMode ?? "stroke" : state.selectionMode ?? "lasso";
+    const label = tool === "eraser" ? `${mode === "area" ? "Area" : "Stroke"} eraser` : `${mode === "rectangle" ? "Rectangle" : "Lasso"} selection`;
+    button.setAttribute("aria-label", label); button.setAttribute("title", label);
+    if (button.dataset.mode !== mode) {
+      const icon = button.querySelector<HTMLElement>(".canvas-scribe-tool-icon");
+      const name = tool === "eraser" ? mode === "area" ? "eraser-area" : "eraser-stroke" : mode === "rectangle" ? "selection-rectangle" : "lasso";
+      if (icon) { icon.replaceChildren(); renderers.get(group)?.(icon, toolIconId(name)); }
+      button.dataset.mode = mode;
+    }
   }
 
   const toggle = group.querySelector<HTMLElement>("[data-action=toggle]");

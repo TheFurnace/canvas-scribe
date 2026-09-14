@@ -7,27 +7,29 @@ import { createCircularSize } from "./circular-size";
 import { defaultColorLabel } from "./colors";
 import { createRadialColors, RadialColors } from "./radial-colors";
 import { createColorPicker } from "./color-picker";
+import type { InkTool } from "./types";
 
 export function createRadialPages(options: PenActionsOptions & {
   contextAction?: RadialMenuAction | null;
   highlighterType: HighlighterType; eraserMode: "stroke" | "area";
+  selectionMode?: "lasso" | "rectangle";
   selectPen: (type: PenType) => void; selectHighlighter: (type: HighlighterType) => void;
   selectEraser: (mode: "stroke" | "area") => void;
   setSize: (value: number) => void; getSize: () => number;
   undo: () => void; redo: () => void; canUndo: () => boolean; canRedo: () => boolean;
   getOpacity: () => number; setOpacity: (value: number) => void;
 }): RadialMenuAction[] {
-  const existing = createPenActions({ ...options, quickColorCount: 7 });
+  const selectionIcon = () => options.selectionMode === "rectangle" ? "selection-rectangle" : "lasso";
   const hero = () => ({
-    icon: toolIconId(options.tool === "pen" ? options.penType ?? "fountain" : options.tool === "highlighter" ? `highlighter-${options.highlighterType}` : options.tool === "eraser" ? `eraser-${options.eraserMode}` : "lasso", "full"),
+    icon: toolIconId(options.tool === "pen" ? options.penType ?? "fountain" : options.tool === "highlighter" ? `highlighter-${options.highlighterType}` : options.tool === "eraser" ? `eraser-${options.eraserMode}` : selectionIcon(), "full"),
     label: options.tool === "pen" ? PEN_PROFILES[options.penType ?? "fountain"].label : options.tool === "highlighter" ? "Highlighter" : options.tool === "eraser" ? "Eraser" : "Selection",
     color: options.tool === "pen" || options.tool === "highlighter" ? options.colors.current(options.tool, options.defaultColor(options.tool)) : undefined,
   });
-  const colorTool = options.tool === "pen" || options.tool === "highlighter" ? options.tool : null;
-  let colorModel: RadialColors | null = null;
-  let colorVisited = false;
+  const colorTool = () => options.tool === "pen" || options.tool === "highlighter" ? options.tool : null;
+  const colorModels = new Map<InkTool, RadialColors>();
   const confirmColor = (color: string | null) => {
-    if (colorTool) { options.colors.confirm(colorTool, color, false); options.colorsChanged(); }
+    const tool = colorTool();
+    if (tool) { options.colors.confirm(tool, color, false); options.colorsChanged(); }
   };
   const circularControl = (opacity: boolean) => createCircularSize(options.document, {
     half: options.tool === "highlighter" ? opacity ? "right" : "left" : undefined,
@@ -50,29 +52,33 @@ export function createRadialPages(options: PenActionsOptions & {
   return [
     { id: "quick-page", pageId: "quick", label: "Quick tools", icon: "pencil", hero, children: () => [
       ...PEN_TYPES.map((type) => ({ id: `pen-${type}`, label: PEN_PROFILES[type].label, icon: toolIconId(type),
+        longPress: true,
         active: options.tool === "pen" && options.penType === type,
         inkColor: options.colors.current("pen", options.defaultColor("pen")), run: () => options.selectPen(type) })),
       ...HIGHLIGHTER_TYPES.map((type) => ({ id: `highlighter-${type}`, label: `${type === "round" ? "Round" : "Chisel"} highlighter`, icon: toolIconId(`highlighter-${type}`),
+        longPress: true,
         active: options.tool === "highlighter" && options.highlighterType === type,
         inkColor: options.colors.current("highlighter", options.defaultColor("highlighter")), run: () => options.selectHighlighter(type) })),
       ...(["stroke", "area"] as const).map((mode) => ({ id: `eraser-${mode}`, label: `${mode === "stroke" ? "Stroke" : "Area"} eraser`, icon: toolIconId(`eraser-${mode}`),
+        longPress: true,
         active: options.tool === "eraser" && options.eraserMode === mode, run: () => options.selectEraser(mode) })),
-      { id: "lasso", label: "Select ink", icon: toolIconId("lasso"), active: options.tool === "lasso", run: () => options.selectTool("lasso") },
+      { id: "lasso", label: "Select ink", icon: toolIconId(selectionIcon()), longPress: true, active: options.tool === "lasso", run: () => options.selectTool("lasso") },
     ] },
     { id: "settings-page", pageId: "settings", label: "Settings", icon: "sliders-horizontal", hero,
       onDismiss: () => {
-        if (colorVisited && colorTool) options.colors.confirm(colorTool, options.colors.selection(colorTool));
-        colorVisited = false; colorModel = null;
-      }, children: () => [
-      { id: "colors", label: colorTool && options.colors.selection(colorTool) === null ? `Colors · ${defaultColorLabel(colorTool)}` : "Colors", icon: "palette", color: hero().color, disabled: !colorTool,
+        for (const tool of colorModels.keys()) options.colors.confirm(tool, options.colors.selection(tool));
+        colorModels.clear();
+      }, children: () => {
+        const tool = colorTool();
+        return [
+      { id: "colors", label: tool && options.colors.selection(tool) === null ? `Colors · ${defaultColorLabel(tool)}` : "Colors", icon: "palette", color: hero().color, disabled: !tool,
         onEnter: () => {
-          colorVisited = true;
-          colorModel ??= new RadialColors(colorTool!, options.colors.selection(colorTool!), options.colors.recent(colorTool!));
+          if (tool && !colorModels.has(tool)) colorModels.set(tool, new RadialColors(tool, options.colors.selection(tool), options.colors.recent(tool)));
         },
-        content: (openPanel) => createRadialColors(options.document, colorModel!, {
-          defaultColor: options.defaultColor(colorTool!), selection: () => options.colors.selection(colorTool!), onSelect: confirmColor,
+        content: (openPanel) => createRadialColors(options.document, colorModels.get(tool!)!, {
+          defaultColor: options.defaultColor(tool!), selection: () => options.colors.selection(tool!), onSelect: confirmColor,
           onMore: () => openPanel({ id: "full-picker", label: "More colors…", icon: "palette", panel: (close, back) => createColorPicker(options.document, {
-            tool: colorTool!, isDefault: options.colors.selection(colorTool!) === null, current: hero().color!, defaultColor: options.defaultColor(colorTool!), recent: options.colors.recent(colorTool!),
+            tool: tool!, isDefault: options.colors.selection(tool!) === null, current: hero().color!, defaultColor: options.defaultColor(tool!), recent: options.colors.recent(tool!),
             onConfirm: (color) => { confirmColor(color); (back ?? close)(); }, onCancel: back ?? close,
           }) }),
         }),
@@ -96,7 +102,8 @@ export function createRadialPages(options: PenActionsOptions & {
       { id: "undo", label: "Undo ink", icon: "undo-2", disabled: !options.canUndo(), keepOpen: true, run: options.undo },
       { id: "redo", label: "Redo ink", icon: "redo-2", disabled: !options.canRedo(), keepOpen: true, run: options.redo },
       ...(options.contextAction === null ? [] : [options.contextAction ?? { id: "canvas-menu", label: "Open Canvas menu", icon: "menu", run: options.openCanvasMenu }]),
-    ] },
-    { ...existing.find((item) => item.id === "favorites")!, pageId: "favorites", hero },
+    ]; } },
+    { id: "favorites", label: "Favorites", icon: "star", pageId: "favorites", hero,
+      children: () => createPenActions({ ...options, quickColorCount: 7 }).find(item => item.id === "favorites")!.children!() },
   ];
 }
