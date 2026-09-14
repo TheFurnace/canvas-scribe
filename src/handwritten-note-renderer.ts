@@ -1,7 +1,17 @@
 import { strokeToSvgPath } from "./geometry";
-import type { HandwrittenNoteDocument } from "./handwritten-note";
+import type { HandwrittenInkObject, HandwrittenNoteDocument } from "./handwritten-note";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+
+export function renderHandwrittenInk(document: Document, object: HandwrittenInkObject, width: number, height: number, index: number, selected = false, complete = true): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.classList.add("canvas-scribe-note-ink"); svg.style.zIndex = String(index + 1);
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`); svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(SVG_NS, "path");
+  path.classList.add("canvas-scribe-stroke", `is-${object.tool}`); path.classList.toggle("is-selected", selected);
+  path.dataset.objectId = object.id; path.setAttribute("d", strokeToSvgPath(object, complete)); path.setAttribute("fill", object.color); path.setAttribute("opacity", String(object.opacity));
+  svg.append(path); return svg;
+}
 
 export interface HandwrittenNoteRenderOptions {
   interactive?: boolean;
@@ -15,13 +25,7 @@ export function renderHandwrittenNotePage(document: Document, note: HandwrittenN
   page.style.setProperty("--canvas-scribe-note-height", `${note.contentHeight}px`);
   note.objects.forEach((object, index) => {
     if (object.kind === "ink") {
-      const svg = document.createElementNS(SVG_NS, "svg");
-      svg.classList.add("canvas-scribe-note-ink"); svg.style.zIndex = String(index + 1);
-      svg.setAttribute("viewBox", `0 0 ${note.logicalWidth} ${note.contentHeight}`); svg.setAttribute("aria-hidden", "true");
-      const path = document.createElementNS(SVG_NS, "path");
-      path.classList.add("canvas-scribe-stroke", `is-${object.tool}`); path.classList.toggle("is-selected", options.selectedIds?.has(object.id) === true);
-      path.dataset.objectId = object.id; path.setAttribute("d", strokeToSvgPath(object)); path.setAttribute("fill", object.color); path.setAttribute("opacity", String(object.opacity));
-      svg.append(path); page.append(svg); return;
+      page.append(renderHandwrittenInk(document, object, note.logicalWidth, note.contentHeight, index, options.selectedIds?.has(object.id))); return;
     }
     if (!options.interactive) {
       const svg = document.createElementNS(SVG_NS, "svg"); svg.classList.add("canvas-scribe-note-ink"); svg.style.zIndex = String(index + 1);
