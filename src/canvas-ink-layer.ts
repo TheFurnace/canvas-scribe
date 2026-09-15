@@ -51,7 +51,8 @@ const PALETTE_CLOSE_ANIMATION_MS = 180;
 export class CanvasInkLayer {
   private gestureTools: InkToolState | null = null;
   private get toolState(): InkToolState { return this.gestureTools ?? this.sharedTools; }
-  private readonly history = new DocumentHistory<InkStroke>(cloneStrokes, 100);
+  // Only live ink mutates; checkpoints precede insertion and all completed edits replace values.
+  private readonly history = new DocumentHistory<InkStroke>(strokes => strokes.map(stroke => stroke === this.activeStroke ? cloneStrokes([stroke])[0]! : stroke), 100);
   private readonly surface: CanvasInkSurface;
   private data: CanvasInkData = createEmptyInkData();
   private svgEl: SVGSVGElement | null = null;

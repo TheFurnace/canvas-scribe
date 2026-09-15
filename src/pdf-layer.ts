@@ -8,7 +8,7 @@ import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
 import { boundsForStrokes, pointInBounds, selectRenderedStroke } from "./selection";
 import { PEN_PROFILES } from "./pen-types";
 import { createStrokeId, type InkPoint } from "./types";
-import { clonePdfInk, clipPdfInk, type PdfCompanion, type PdfInk } from "./pdf-document";
+import { clipPdfInk, type PdfCompanion, type PdfInk } from "./pdf-document";
 import { PdfSession, PdfStore } from "./pdf-store";
 import { pdfScreenPoint, type NativePdfHost, type NativePdfView } from "./pdf-native";
 import { PdfTools } from "./pdf-tools";
@@ -16,6 +16,7 @@ import type { FavoritePens } from "./favorite-pens";
 
 const NS = "http://www.w3.org/2000/svg";
 type Point = { x: number; y: number };
+interface RenderedInk { stroke: PdfInk; path: SVGPathElement; complete: boolean; }
 interface Gesture { tools: InkToolState; id: number; page: number; before: PdfInk[]; working: PdfInk[]; points: Point[]; origin: Point; stroke?: PdfInk; moving: boolean; }
 
 export class PdfSurface implements InkSurfaceAdapter<PdfCompanion> {
@@ -41,6 +42,8 @@ export class PdfLayer {
   private selectedPage = 0;
   private gesture: Gesture | null = null;
   private readonly overlays = new Map<number, SVGSVGElement>();
+  private readonly rendered = new Map<number, Map<string, RenderedInk>>();
+  private fullRender = true;
   private readonly touches = new Map<number, Point>();
   private touchScale = 0;
   private frame: number | null = null;
@@ -102,7 +105,7 @@ export class PdfLayer {
     for (const event of this.events) this.host.eventBus.off(event, this.redraw);
     this.host.eventBus.off("scalechanging", this.viewportChanged); this.host.eventBus.off("rotationchanging", this.viewportChanged);
     this.session.listeners.delete(this.changed); if (this.frame !== null) cancelAnimationFrame(this.frame);
-    for (const svg of this.overlays.values()) svg.remove(); this.overlays.clear(); this.tools.destroy();
+    for (const svg of this.overlays.values()) svg.remove(); this.overlays.clear(); this.rendered.clear(); this.tools.destroy();
   }
   private toggle(): void {
     if (this.session.error) { this.status(this.session.error); return; }
@@ -116,30 +119,58 @@ export class PdfLayer {
       this.session.document.strokes.some(s => s.page === this.pageIndex()));
     this.status(this.session.reviewing ? "Applying reviewed association…" : this.session.error || (this.session.saving ? "Saving annotations…" : this.enabled ? "Annotating · pen draws, fingers navigate" : "Reading · annotations saved separately"));
   }
-  private schedule(): void { if (this.frame === null) this.frame = requestAnimationFrame(() => { this.frame = null; this.render(); }); }
+  private schedule(full = true): void {
+    this.fullRender ||= full;
+    if (this.frame === null) this.frame = requestAnimationFrame(() => {
+      this.frame = null;
+      if (this.fullRender) { this.fullRender = false; this.render(); }
+      else {
+        const g = this.gesture, stroke = g?.stroke;
+        const path = g && stroke && this.rendered.get(g.page)?.get(stroke.id)?.path;
+        if (path && stroke) path.setAttribute("d", strokeToSvgPath(stroke, false));
+        else this.render();
+      }
+    });
+  }
   private render(): void {
     this.sync();
     const visible = this.host.pdfViewer.container.getBoundingClientRect();
     const strokes = this.gesture?.working ?? this.session.document.strokes;
+    const byPage = new Map<number, PdfInk[]>();
+    for (const stroke of strokes) { const list = byPage.get(stroke.page) ?? []; list.push(stroke); byPage.set(stroke.page, list); }
     for (let i = 0; i < this.host.pdfDocument.numPages; i++) {
       const page = this.host.pdfViewer.getPageView(i), box = page?.div.getBoundingClientRect();
-      if (!page || !box || box.bottom < visible.top - 400 || box.top > visible.bottom + 400 || !page.viewport) { this.overlays.get(i)?.remove(); this.overlays.delete(i); continue; }
+      if (!page || !box || box.bottom < visible.top - 400 || box.top > visible.bottom + 400 || !page.viewport) { this.overlays.get(i)?.remove(); this.overlays.delete(i); this.rendered.delete(i); continue; }
       let svg = this.overlays.get(i);
       if (!svg) { svg = page.div.ownerDocument.createElementNS(NS, "svg"); svg.classList.add("canvas-scribe-pdf-overlay"); svg.setAttribute("aria-hidden", "true"); this.overlays.set(i, svg); }
       if (svg.parentElement !== page.div) page.div.append(svg);
       svg.setAttribute("viewBox", `0 0 ${page.viewport.width} ${page.viewport.height}`); svg.setAttribute("preserveAspectRatio", "none");
-      const group = svg.ownerDocument.createElementNS(NS, "g"); group.setAttribute("transform", `matrix(${page.viewport.transform.join(" ")})`);
-      for (const stroke of strokes.filter(s => s.page === i)) {
-        const path = svg.ownerDocument.createElementNS(NS, "path"); path.setAttribute("d", strokeToSvgPath(stroke)); path.setAttribute("fill", stroke.color); path.setAttribute("opacity", String(stroke.opacity));
+      let group = svg.querySelector("g");
+      if (!group) { group = svg.ownerDocument.createElementNS(NS, "g"); svg.append(group); }
+      group.setAttribute("transform", `matrix(${page.viewport.transform.join(" ")})`);
+      group.querySelector(".canvas-scribe-pdf-lasso")?.remove();
+      const previous = this.rendered.get(i) ?? new Map<string, RenderedInk>();
+      const next = new Map<string, RenderedInk>();
+      let cursor = group.firstChild;
+      for (const stroke of byPage.get(i) ?? []) {
+        const cached = previous.get(stroke.id);
+        const path = cached?.path ?? svg.ownerDocument.createElementNS(NS, "path");
+        const complete = stroke !== this.gesture?.stroke;
+        if (cached?.stroke !== stroke || !complete || cached.complete !== complete) path.setAttribute("d", strokeToSvgPath(stroke, complete));
+        path.setAttribute("fill", stroke.color); path.setAttribute("opacity", String(stroke.opacity));
         if (this.selected.has(stroke.id)) { path.setAttribute("stroke", "#5688ff"); path.setAttribute("stroke-width", String(1 / page.viewport.scale)); }
-        group.append(path);
+        else { path.removeAttribute("stroke"); path.removeAttribute("stroke-width"); }
+        if (path !== cursor) group.insertBefore(path, cursor);
+        cursor = path.nextSibling;
+        next.set(stroke.id, { stroke, path, complete });
       }
+      for (const [id, entry] of previous) if (!next.has(id)) entry.path.remove();
+      this.rendered.set(i, next);
       const gesture = this.gesture;
       if (gesture?.page === i && gesture.tools.activeTool === "lasso" && !gesture.moving && gesture.points.length > 1) {
-        const outline = svg.ownerDocument.createElementNS(NS, "path"); outline.setAttribute("d", `M ${this.polygon(gesture.points).map(p => `${p.x} ${p.y}`).join(" L ")} Z`);
+        const outline = svg.ownerDocument.createElementNS(NS, "path"); outline.classList.add("canvas-scribe-pdf-lasso"); outline.setAttribute("d", `M ${this.polygon(gesture.points).map(p => `${p.x} ${p.y}`).join(" L ")} Z`);
         outline.setAttribute("fill", "none"); outline.setAttribute("stroke", "#5688ff"); outline.setAttribute("stroke-width", String(1 / page.viewport.scale)); group.append(outline);
       }
-      svg.replaceChildren(group);
     }
   }
   private point(event: PointerEvent, index: number): Point | null { const page = this.host.pdfViewer.getPageView(index); return page ? pdfScreenPoint(page, event.clientX, event.clientY) : null; }
@@ -154,7 +185,7 @@ export class PdfLayer {
     const pageEl = (event.target as Element).closest<HTMLElement>(".page[data-page-number]");
     const index = Number(pageEl?.dataset.pageNumber) - 1, point = this.point(event, index); if (!point || !this.session.document.source.pages[index]) return;
     this.consume(event); this.tools.close(); this.touches.clear(); this.view.contentEl.setPointerCapture(event.pointerId);
-    const before = this.session.document.strokes, working = before.map(stroke => stroke.page === index ? clonePdfInk([stroke])[0]! : stroke);
+    const before = this.session.document.strokes, working = [...before];
     const bounds = boundsForStrokes(working.filter(s => this.selected.has(s.id) && s.page === index));
     const g: Gesture = { tools: this.tools.state.snapshot(), id: event.pointerId, page: index, before, working, points: [point], origin: point, moving: this.tools.state.activeTool === "lasso" && !!bounds && pointInBounds(point, bounds) };
     this.gesture = g; this.selectedPage = index;
@@ -187,14 +218,14 @@ export class PdfLayer {
       const bounds = boundsForStrokes(g.before.filter(s => this.selected.has(s.id))); if (!bounds) return;
       const [x0, y0, x1, y1] = this.session.document.source.pages[g.page]!.box;
       const dx = Math.max(x0 - bounds.minX, Math.min(x1 - bounds.maxX, point.x - g.origin.x)), dy = Math.max(y0 - bounds.minY, Math.min(y1 - bounds.maxY, point.y - g.origin.y));
-      g.working = g.before.map(s => this.selected.has(s.id) ? { ...transformInk(s, (x, y) => [x + dx, y + dy]), page: s.page } : s);
+      g.working = g.before.map(s => (dx || dy) && this.selected.has(s.id) ? { ...transformInk(s, (x, y) => [x + dx, y + dy]), page: s.page } : s);
     } else g.points.push(point);
-    this.schedule();
+    this.schedule(!g.stroke);
   }
   private erase(point: Point): void {
     const g = this.gesture!; const scale = this.host.pdfViewer.getPageView(g.page)?.viewport.scale ?? 1;
     const result = eraseInk(g.working.filter(s => s.page === g.page), eraserOutline(point.x, point.y, g.tools.eraserSettings.radius / scale), g.tools.eraserSettings);
-    if (result.changed) g.working = [...g.working.filter(s => s.page !== g.page), ...result.strokes.map(s => ({ ...s, page: g.page }))];
+    if (result.changed) g.working = [...g.working.filter(s => s.page !== g.page), ...result.strokes.map(s => "page" in s ? s as PdfInk : { ...s, page: g.page })];
   }
   private up(event: PointerEvent, canceled = false): void {
     if (this.touches.delete(event.pointerId)) { this.consume(event); this.touchScale = this.touchDistance(); this.release(event.pointerId); return; }
@@ -204,8 +235,9 @@ export class PdfLayer {
       if (g.tools.activeTool === "lasso" && !g.moving) {
         for (const stroke of g.working.filter(s => s.page === g.page)) if (selectRenderedStroke(stroke, this.polygon(g.points, g.tools), g.tools.selectionSettings.partial)) this.selected.add(stroke.id);
       } else {
-        const strokes = g.working.flatMap(s => { const clipped = s.page === g.page ? clipPdfInk(s, this.session.document.source.pages[s.page]!) : s; return clipped ? [clipped] : []; });
-        if (JSON.stringify(strokes) !== JSON.stringify(g.before)) this.commit(strokes);
+        const previous = new Set(g.before);
+        const strokes = g.working.flatMap(s => { const clipped = !previous.has(s) ? clipPdfInk(s, this.session.document.source.pages[s.page]!) : s; return clipped ? [clipped] : []; });
+        if (strokes.length !== g.before.length || strokes.some((s, i) => s !== g.before[i])) this.commit(strokes);
       }
     }
     this.schedule();

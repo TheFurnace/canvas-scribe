@@ -11,30 +11,45 @@ export class HandwrittenNoteView extends TextFileView {
   private editor: HandwrittenNoteEditor | null = null;
   private error: HTMLElement | null = null;
   private rawData = serializeHandwrittenNote(createHandwrittenNote());
+  private serializationPending = false;
+  private savedViewport = "";
 
   constructor(leaf: WorkspaceLeaf, private readonly favorites = new FavoritePens(), private readonly tools = new InkToolState()) { super(leaf); }
   commands(): HandwrittenNoteEditor | null { return this.editor; }
   getViewType(): string { return HANDWRITTEN_NOTE_VIEW_TYPE; }
   getDisplayText(): string { return this.file?.basename ?? "Handwritten note"; }
   getIcon(): string { return "pencil"; }
-  getViewData(): string { return this.editor ? serializeHandwrittenNote(this.editor.getDocument()) : this.rawData; }
+  getViewData(): string {
+    if (this.editor) {
+      const note = this.editor.getDocument();
+      // Scrolling changes the viewport without producing a document edit callback.
+      const viewport = `${note.viewport.scrollTop}:${note.viewport.zoom}`;
+      if (this.serializationPending || this.editor.hasActiveGesture() || viewport !== this.savedViewport) {
+        this.rawData = serializeHandwrittenNote(note);
+        this.savedViewport = viewport; this.serializationPending = false;
+      }
+    }
+    return this.rawData;
+  }
 
   setViewData(data: string, clear: boolean): void {
     this.editable = false;
     this.rawData = data;
+    this.serializationPending = false;
     try {
       const note = parseHandwrittenNote(data);
       this.error?.remove(); this.error = null;
       if (this.editor) this.editor.setDocument(note, clear);
       else {
-        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, (changed) => { if (!this.editable) return; this.rawData = serializeHandwrittenNote(changed); this.requestSave(); }, setIcon, false, this.favorites, this.contentEl.ownerDocument.body, this.tools);
+        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, () => { if (!this.editable) return; this.serializationPending = true; this.requestSave(); }, setIcon, false, this.favorites, this.contentEl.ownerDocument.body, this.tools);
         this.contentEl.replaceChildren(this.editor.root);
       }
       this.editable = true;
+      this.serializationPending = true;
     } catch (error) { this.showError(error); }
   }
 
-  clear(): void { this.editable = false; this.editor?.destroy(); this.editor = null; this.error?.remove(); this.error = null; this.contentEl.replaceChildren(); }
+  clear(): void { this.getViewData(); this.editable = false; this.editor?.destroy(); this.editor = null; this.error?.remove(); this.error = null; this.contentEl.replaceChildren(); }
   onResize(): void { /* Logical coordinates remain stable; Fit is an explicit user action. */ }
 
   private showError(error: unknown): void {

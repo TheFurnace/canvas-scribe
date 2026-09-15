@@ -16,7 +16,7 @@ function setup() {
   return { note, viewport, pointer };
 }
 describe("handwritten note gesture ownership", () => {
-  it("keeps erasing inside the host swipe opt-out across empty space and page replacement", () => {
+  it("keeps erasing inside the host swipe opt-out while retaining the page", () => {
     const { note, viewport, pointer } = setup();
     pointer("pointerdown", "pen", 1, 100, 100);
     pointer("pointerup", "pen", 1, 100, 100);
@@ -28,7 +28,7 @@ describe("handwritten note gesture ownership", () => {
     expect(page.isConnected).toBe(true); // Erasing empty space does not render.
     pointer("pointermove", "pen", 2, 100, 100);
     expect(note.objects).toHaveLength(0);
-    expect(page.isConnected).toBe(false);
+    expect(page.isConnected).toBe(true);
     expect(viewport.querySelector(".canvas-scribe-note-page")!.closest('[data-ignore-swipe="true"]')).toBe(viewport);
     pointer("pointercancel", "pen", 2, 100, 100);
     document.querySelector<HTMLElement>('[data-action="undo"]')!.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));

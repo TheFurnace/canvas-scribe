@@ -1,0 +1,21 @@
+{"node":"v24.19.0","platform":"win32","arch":"x64","method":"2 warmups, 7 samples; synchronous source functions, no DOM, paint or I/O"}
+{"operation":"completed SVG generation","strokes":100,"points":8000,"medianMs":3.617999999999995,"minMs":3.009200000000007,"maxMs":4.120699999999999}
+{"operation":"PDF pen-up clipping existing page","strokes":100,"points":8000,"medianMs":17.04159999999999,"minMs":16.111800000000017,"maxMs":17.96380000000002}
+{"operation":"PDF equality two stringifies","strokes":100,"points":8000,"medianMs":3.6351999999999975,"minMs":3.5276000000000067,"maxMs":3.685600000000022}
+{"operation":"note serialize","strokes":100,"points":8000,"medianMs":2.7390000000000327,"minMs":2.6497999999999706,"maxMs":3.6952}
+{"operation":"history snapshot","strokes":100,"points":8000,"medianMs":0.11820000000000164,"minMs":0.1079000000000292,"maxMs":0.133199999999988}
+{"operation":"eraser empty footprint","strokes":100,"points":8000,"medianMs":0.3867999999999938,"minMs":0.3672000000000253,"maxMs":0.6620999999999526}
+{"operation":"completed SVG generation","strokes":500,"points":40000,"medianMs":15.664999999999964,"minMs":14.840800000000002,"maxMs":18.510699999999986}
+{"operation":"PDF pen-up clipping existing page","strokes":500,"points":40000,"medianMs":77.51730000000009,"minMs":75.96299999999997,"maxMs":83.86609999999996}
+{"operation":"PDF equality two stringifies","strokes":500,"points":40000,"medianMs":16.568899999999985,"minMs":16.486799999999903,"maxMs":17.4058}
+{"operation":"note serialize","strokes":500,"points":40000,"medianMs":12.48070000000007,"minMs":12.2346,"maxMs":14.241400000000112}
+{"operation":"history snapshot","strokes":500,"points":40000,"medianMs":0.5487000000000535,"minMs":0.5367000000001099,"maxMs":0.6385999999999967}
+{"operation":"eraser empty footprint","strokes":500,"points":40000,"medianMs":0.6247000000000753,"minMs":0.6040000000000418,"maxMs":1.9020000000000437}
+{"operation":"completed SVG generation","strokes":3000,"points":240000,"medianMs":91.81680000000006,"minMs":90.05189999999993,"maxMs":94.65740000000005}
+{"operation":"PDF pen-up clipping existing page","strokes":3000,"points":240000,"medianMs":458.15380000000005,"minMs":455.14690000000064,"maxMs":510.28189999999995}
+{"operation":"PDF equality two stringifies","strokes":3000,"points":240000,"medianMs":101.78729999999996,"minMs":100.88909999999942,"maxMs":105.61129999999957}
+{"operation":"note serialize","strokes":3000,"points":240000,"medianMs":71.58399999999983,"minMs":70.75600000000031,"maxMs":88.2512999999999}
+{"operation":"history snapshot","strokes":3000,"points":240000,"medianMs":9.40809999999965,"minMs":3.6376000000000204,"maxMs":14.0579000000007}
+{"operation":"eraser empty footprint","strokes":3000,"points":240000,"medianMs":3.8885000000009313,"minMs":3.5169999999998254,"maxMs":7.5583000000005995}
+{"operation":"100 retained deep snapshots","strokes":500,"heapDeltaMiB":435.82965087890625,"totalMs":266.79089999999997,"snapshots":100}
+{"operation":"100 retained deep snapshots","strokes":3000,"heapDeltaMiB":2615.242446899414,"totalMs":3136.8611,"snapshots":100}

@@ -1,0 +1,12 @@
+{"node":"v24.19.0","platform":"win32","method":"2 warmups, 7 samples; source operations only"}
+{"operation":"one live SVG path","strokes":100,"medianMs":0.17389999999999617,"minMs":0.09239999999999782,"maxMs":0.5480000000000018}
+{"operation":"PDF changed-only pen-up geometry and identity comparison","strokes":100,"medianMs":0.7109000000000023,"minMs":0.3652000000000015,"maxMs":0.8307000000000002}
+{"operation":"shared ink history snapshot","strokes":100,"medianMs":0.0033000000000029672,"minMs":0.0020999999999986585,"maxMs":0.09449999999999648}
+{"operation":"one live SVG path","strokes":500,"medianMs":0.04009999999999536,"minMs":0.03979999999999961,"maxMs":0.0730000000000004}
+{"operation":"PDF changed-only pen-up geometry and identity comparison","strokes":500,"medianMs":0.3655000000000044,"minMs":0.19489999999999696,"maxMs":0.4457000000000022}
+{"operation":"shared ink history snapshot","strokes":500,"medianMs":0.0029000000000038995,"minMs":0.0029000000000038995,"maxMs":0.003099999999996328}
+{"operation":"one live SVG path","strokes":3000,"medianMs":0.03330000000001121,"minMs":0.03289999999999793,"maxMs":0.03730000000000189}
+{"operation":"PDF changed-only pen-up geometry and identity comparison","strokes":3000,"medianMs":0.5144000000000091,"minMs":0.4532999999999987,"maxMs":0.6585999999999927}
+{"operation":"shared ink history snapshot","strokes":3000,"medianMs":0.018000000000000682,"minMs":0.01650000000000773,"maxMs":0.043500000000008754}
+{"operation":"100 retained shared snapshots","strokes":500,"heapDeltaMiB":0.27211761474609375,"totalMs":2.043900000000008,"snapshots":100}
+{"operation":"100 retained shared snapshots","strokes":3000,"heapDeltaMiB":2.2941207885742188,"totalMs":12.177700000000002,"snapshots":100}
