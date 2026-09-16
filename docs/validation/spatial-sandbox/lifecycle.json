@@ -1,0 +1,1460 @@
+{
+  "timestamp": "2026-09-16T03:01:46.784Z",
+  "results": [
+    {
+      "algorithm": "scan",
+      "phase": "cold-first-gesture",
+      "setup": {
+        "buildMs": 0,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 36.90000009536743,
+          "candidates": 10000,
+          "changed": true,
+          "rebuilt": false
+        },
+        {
+          "ms": 2.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 2,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.4000000953674316,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.3000001907348633,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.4000000953674316,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.0999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.4000000953674316,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.3000001907348633,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.0999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.0999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.4000000953674316,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.0999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 44.40000009536743,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 46.19999980926514,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 4.099999904632568,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 3.5,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.9000000953674316,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.9000000953674316,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.8000001907348633,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.799999713897705,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.5999999046325684,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.19999980926513672,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "scan",
+      "phase": "erase-after-undo",
+      "samples": [
+        {
+          "ms": 10,
+          "candidates": 10000,
+          "changed": true,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.3000001907348633,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.200000286102295,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.3000001907348633,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.4000000953674316,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.1999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.4000000953674316,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.0999999046325684,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 2.299999713897705,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.9000000953674316,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.6999998092651367,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.700000286102295,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.3000001907348633,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.5,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 1.200000286102295,
+          "candidates": 9999,
+          "changed": false,
+          "rebuilt": false
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 14.199999809265137,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 15.799999713897705,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.9000000953674316,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.8000001907348633,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.9000000953674316,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.8000001907348633,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.5999999046325684,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 4,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 3.5999999046325684,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 3.1000003814697266,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 2.8000001907348633,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.19999980926513672,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "rbush",
+      "phase": "cold-first-gesture",
+      "setup": {
+        "buildMs": 0,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 30.5,
+          "candidates": 1,
+          "changed": true,
+          "rebuilt": true
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 42.90000009536743,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 45.30000019073486,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.20000028610229492,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "rbush",
+      "phase": "erase-after-undo",
+      "samples": [
+        {
+          "ms": 22.199999809265137,
+          "candidates": 1,
+          "changed": true,
+          "rebuilt": true
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 26.90000009536743,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 29.199999809265137,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.20000028610229492,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.20000028610229492,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "grid-256",
+      "phase": "cold-first-gesture",
+      "setup": {
+        "buildMs": 0,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 47.30000019073486,
+          "candidates": 1,
+          "changed": true,
+          "rebuilt": true
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 56,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 58.39999961853027,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.20000028610229492,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.09999990463256836,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "grid-256",
+      "phase": "erase-after-undo",
+      "samples": [
+        {
+          "ms": 37.40000009536743,
+          "candidates": 1,
+          "changed": true,
+          "rebuilt": true
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        },
+        {
+          "ms": 0,
+          "candidates": 0,
+          "changed": false,
+          "rebuilt": false
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 43,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 45.19999980926514,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    }
+  ]
+}

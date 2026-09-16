@@ -88,3 +88,46 @@ Production integration would still need explicit invalidation for every edit,
 undo/redo, external replacement and multi-view document lifecycle. It must preserve
 the existing ordered arrays, precise hit tests and document schema. PDF page
 partitioning and physical Galaxy/Obsidian A/B acceptance are separate next steps.
+
+## Real Obsidian sandbox experiment
+
+See the [recorded real-host results](validation/2026-09-15-spatial-sandbox.md).
+
+Use a disposable named sandbox from this worktree. The explicit experimental build
+replaces only the Canvas eraser call at build time, importing the adapter from
+`scripts/spatial/sandbox-adapter.ts`. It writes directly to that generated vault;
+the normal production build and `src/` files remain unchanged.
+
+```powershell
+pnpm sandbox -Name spatial-ab
+# Inspect; accept the fresh vault's trust dialog if present.
+pnpm sandbox:agent inspect --name spatial-ab
+node scripts/build-spatial-sandbox.mjs spatial-ab
+# Reload only that sandbox using Obsidian's Reload app command.
+node scripts/run-spatial-sandbox.mjs spatial-ab --quick
+node scripts/run-spatial-sandbox.mjs spatial-ab
+node scripts/run-spatial-sandbox.mjs spatial-ab --lifecycle
+node scripts/report-spatial-sandbox.mjs .canvas-scribe-sandbox/artifacts/spatial-ab/spatial
+```
+
+The runner replaces ink and removes cards in the named fixture Canvas. It injects
+deterministic document fixtures outside timing, then erases through trusted CDP pen
+input. It requires an idle Canvas with the experiment build loaded, no dialogs, and
+the default 1024 × 800 sandbox window; gestures target fixed viewport coordinates.
+Do not draw or pan while a run is active. Results remain in the named artifact
+folder; the quick and full runs use the same output filename, while lifecycle
+checks have a separate file. Full runs record one warmup and three measured
+gestures per combination, rotating the algorithm order.
+
+The adapter exposes `globalThis.__scribeSpatial` only in the experiment build. It
+uses the original `eraseInk` for the scan and precise candidate geometry, maintains
+document ordering across repeated cuts, and rebuilds on array replacement. Warm
+runs report index preparation separately; lifecycle probes include cold first use
+and a new erase after undo. This is not complete production invalidation for live
+in-place stroke mutation or other tools/surfaces.
+
+Timing covers eraser work and synchronous Canvas SVG updates. Input latency,
+compositor presentation, Android and physical S Pen performance are not measured.
+Post-timing checks compare geometry with production, history and persisted data.
+Restore the standard sandbox build with `pnpm sandbox:prepare --name spatial-ab`
+after `pnpm build`, then reload the sandbox.
