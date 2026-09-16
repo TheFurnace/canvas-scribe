@@ -1,6 +1,6 @@
 import type { InkStroke } from "./types";
 import type { SelectionBounds } from "./selection";
-import { strokeOutline } from "./ink-operations";
+import { strokeBounds } from "./ink-operations";
 import { isPenType } from "./pen-types";
 import { isHighlighterType } from "./highlighter-types";
 import type { MultiPolygon } from "polygon-clipping";
@@ -85,6 +85,11 @@ export function cloneHandwrittenObjects(objects: readonly HandwrittenObject[]): 
   });
 }
 
+/** Completed ink is replaced by edits; text fields remain mutable in the editor. */
+export function snapshotHandwrittenObjects(objects: readonly HandwrittenObject[], active?: HandwrittenInkObject | null): HandwrittenObject[] {
+  return objects.map(object => object === active ? cloneHandwrittenObjects([object])[0]! : object.kind === "text" ? { ...object } : object);
+}
+
 export function createHandwrittenObjectId(prefix: "ink" | "text"): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -112,12 +117,7 @@ export function objectBounds(object: HandwrittenObject): SelectionBounds {
     const height = measured?.key === textMetricKey(object) ? measured.height : Math.max(48, lines * object.fontSize * 1.35 + 14);
     return { minX: object.x, minY: object.y, maxX: object.x + object.width, maxY: object.y + height };
   }
-  const coordinates = strokeOutline(object).flatMap((polygon) => polygon.flatMap((ring) => ring));
-  if (!coordinates.length) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
-  return coordinates.reduce((bounds, [x, y]) => ({
-    minX: Math.min(bounds.minX, x), minY: Math.min(bounds.minY, y),
-    maxX: Math.max(bounds.maxX, x), maxY: Math.max(bounds.maxY, y),
-  }), { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+  return strokeBounds(object) ?? { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 }
 
 export function boundsForObjects(objects: readonly HandwrittenObject[]): SelectionBounds | null {

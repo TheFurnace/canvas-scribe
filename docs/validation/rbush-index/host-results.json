@@ -1,0 +1,14 @@
+{
+  "canvasSelection": {
+    "selected": 2,
+    "total": 10001
+  },
+  "canvasMove": {
+    "dy": 73.76499999999999,
+    "count": 2
+  },
+  "canvasHistory": {
+    "saved": 10001,
+    "orderedQueries": 4
+  }
+}

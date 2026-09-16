@@ -1,8 +1,9 @@
 import { createToolColors, createToolMenu, createToolRadial, observeToolTheme } from "./tool-suite";
-import { scaleHandwrittenSelection, selectHandwrittenObject } from "./handwritten-selection";
+import { scaleHandwrittenSelection, selectHandwrittenObject, handwrittenCandidateBounds } from "./handwritten-selection";
 import { createCanvasControls, syncCanvasControls, type IconRenderer } from "./canvas-controls";
 import { DocumentHistory } from "./document-history";
 import { eraseInk, eraserOutline } from "./ink-operations";
+import { SpatialIndex, polygonBounds, replaceSpatialCandidates } from "./spatial-index";
 import { strokeIntersectsCircle, strokeToSvgPath } from "./geometry";
 import { createColorPicker } from "./color-picker";
 import { resolveColor } from "./colors";
@@ -15,7 +16,7 @@ import { InkToolState } from "./ink-tool-state";
 import { pointInBounds } from "./selection";
 import { PEN_PROFILES } from "./pen-types";
 import {
-  NOTE_SPARE_HEIGHT, boundsForObjects, cloneHandwrittenObjects, createHandwrittenObjectId,
+  NOTE_SPARE_HEIGHT, boundsForObjects, cloneHandwrittenObjects, snapshotHandwrittenObjects, createHandwrittenObjectId,
   measureTextHeight, normalizeContentHeight, objectBounds, translateHandwrittenObject,
   type HandwrittenInkObject, type HandwrittenNoteDocument, type HandwrittenObject, type HandwrittenTextObject,
 } from "./handwritten-note";
@@ -25,7 +26,7 @@ type EditorTool = "pen" | "highlighter" | "eraser" | "lasso" | "text";
 
 export class HandwrittenNoteEditor {
   readonly root: HTMLElement;
-  private readonly history = new DocumentHistory<HandwrittenObject>(cloneHandwrittenObjects, 100);
+  private readonly history = new DocumentHistory<HandwrittenObject>(objects => snapshotHandwrittenObjects(objects, this.activeInk), 100);
   private gestureTools: InkToolState | null = null;
   private unsubscribeTools: () => void = () => undefined;
   private unsubscribeTheme: () => void;
@@ -36,6 +37,7 @@ export class HandwrittenNoteEditor {
   private viewport: HTMLElement;
   private paperHost: HTMLElement;
   private note: HandwrittenNoteDocument;
+  private readonly spatial = new SpatialIndex<HandwrittenObject>(handwrittenCandidateBounds);
   private tool: EditorTool = "pen";
   private enabled = true;
   private activePointer: number | null = null;
@@ -51,6 +53,7 @@ export class HandwrittenNoteEditor {
   private readonly allowMouse: boolean;
   private readonly resizeObserver: ResizeObserver;
   private layoutFrame = 0;
+  private readonly wiredTextAreas = new WeakSet<HTMLTextAreaElement>();
   private menu: HTMLElement | null = null;
   private menuDispose: (() => void) | null = null;
   private radial: RadialSession | null = null;
@@ -113,15 +116,16 @@ export class HandwrittenNoteEditor {
   setDocument(note: HandwrittenNoteDocument, clearHistory = true): void {
     this.closeOverlays();
     this.resetGesture();
-    this.note = note; this.selectedIds.clear();
+    this.note = note; this.spatial.clear(); this.selectedIds.clear();
     if (clearHistory) { this.history.past = []; this.history.future = []; }
     this.render();
     requestAnimationFrame(() => { this.viewport.scrollTop = note.viewport.scrollTop * note.viewport.zoom; });
   }
 
   getDocument(): HandwrittenNoteDocument { return this.note; }
+  hasActiveGesture(): boolean { return this.activePointer !== null; }
   focus(): void { this.root.focus(); }
-  destroy(): void { this.resetGesture(); this.unsubscribeTheme(); this.unsubscribeTools(); this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
+  destroy(): void { this.resetGesture(); this.spatial.clear(); this.unsubscribeTheme(); this.unsubscribeTools(); this.closeOverlays(); this.resizeObserver.disconnect(); cancelAnimationFrame(this.layoutFrame); this.root.remove(); }
 
   setTool(tool: DrawingTool, keepRadial = false): void { if (!keepRadial) this.closeOverlays(); this.sharedTools.activeTool = tool; if (this.activePointer === null) this.tool = tool; this.syncControls(); }
   toggleEnabled(): void { this.closeOverlays(); this.enabled = !this.enabled; this.syncControls(); }
@@ -208,12 +212,13 @@ export class HandwrittenNoteEditor {
   }
 
   private render(): void {
-    const page = renderHandwrittenNotePage(this.root.ownerDocument, { ...this.note, contentHeight: this.note.contentHeight + NOTE_SPARE_HEIGHT }, { interactive: true, selectedIds: this.selectedIds });
+    this.spatial.sync(this.note.objects, this.activeInk);
+    const page = renderHandwrittenNotePage(this.root.ownerDocument, { ...this.note, contentHeight: this.note.contentHeight + NOTE_SPARE_HEIGHT }, { interactive: true, selectedIds: this.selectedIds, page: this.paperHost.firstElementChild as HTMLElement | undefined });
     page.style.width = `${this.note.logicalWidth}px`;
     page.style.height = `${this.note.contentHeight + NOTE_SPARE_HEIGHT}px`;
     page.style.zoom = String(this.note.viewport.zoom);
     for (const textarea of Array.from(page.querySelectorAll<HTMLTextAreaElement>("textarea.canvas-scribe-note-text"))) this.wireTextArea(textarea);
-    this.paperHost.replaceChildren(page);
+    if (page.parentElement !== this.paperHost) this.paperHost.replaceChildren(page);
     this.activeInkPath = this.activeInk ? page.querySelector<SVGPathElement>(`path[data-object-id="${this.activeInk.id}"]`) : null;
     this.syncTextLayout();
     cancelAnimationFrame(this.layoutFrame);
@@ -232,6 +237,7 @@ export class HandwrittenNoteEditor {
       const height = textarea.scrollHeight ? Math.max(48, textarea.scrollHeight + 2) : objectBounds(object).maxY - object.y;
       textarea.style.height = `${height}px`;
       measureTextHeight(object, height);
+      this.spatial.refresh(object);
     }
     normalizeContentHeight(this.note);
     const height = this.note.contentHeight + NOTE_SPARE_HEIGHT;
@@ -241,6 +247,8 @@ export class HandwrittenNoteEditor {
   }
 
   private wireTextArea(textarea: HTMLTextAreaElement): void {
+    if (this.wiredTextAreas.has(textarea)) return;
+    this.wiredTextAreas.add(textarea);
     textarea.addEventListener("pointerdown", (event) => {
       event.stopPropagation();
       const id = textarea.dataset.objectId; if (!id) return;
@@ -252,6 +260,7 @@ export class HandwrittenNoteEditor {
     });
     textarea.addEventListener("input", () => {
       const object = this.textObject(textarea.dataset.objectId);
+      if (textarea.dataset.editing !== "true") { this.history.checkpoint(this.note.objects); textarea.dataset.editing = "true"; }
       if (object) { object.text = textarea.value; this.syncTextLayout(); this.changed(false); }
     });
     textarea.addEventListener("blur", () => { textarea.classList.remove("is-editing"); delete textarea.dataset.editing; this.changed(); });
@@ -359,6 +368,8 @@ export class HandwrittenNoteEditor {
   }
 
   private resetGesture(): void {
+    this.spatial.sync(this.note.objects, this.activeInk);
+    this.paperHost.querySelectorAll<HTMLTextAreaElement>("textarea").forEach(textarea => { delete textarea.dataset.editing; });
     this.hideEraserCursor();
     if (this.inkFrame !== null) cancelAnimationFrame(this.inkFrame);
     this.inkFrame = null; this.activeInk = null; this.activeInkPath = null;
@@ -381,6 +392,7 @@ export class HandwrittenNoteEditor {
     else if (this.activeInk) {
       if (this.inkFrame !== null) cancelAnimationFrame(this.inkFrame);
       this.inkFrame = null; this.renderActiveInk(true);
+      this.spatial.sync(this.note.objects, this.activeInk);
       this.activeInk = null; this.activeInkPath = null; this.syncTextLayout(); this.changed();
     }
     else if (this.tool === "lasso" && this.moveOrigin) { this.moveOrigin = null; this.moveSnapshot.clear(); normalizeContentHeight(this.note); this.changed(); }
@@ -389,7 +401,9 @@ export class HandwrittenNoteEditor {
   }
 
   private selectGesture(): void {
-    for (const object of this.note.objects) {
+    this.spatial.sync(this.note.objects);
+    const bounds = polygonBounds(this.gesturePoints);
+    for (const object of bounds ? this.spatial.search(bounds) : []) {
       if (selectHandwrittenObject(object, this.gesturePoints, this.tools.selectionSettings.partial)) this.selectedIds.add(object.id);
     }
   }
@@ -435,21 +449,20 @@ export class HandwrittenNoteEditor {
   private eraseAt(x: number, y: number): void {
     const before = this.note.objects;
     const region = eraserOutline(x, y, this.tools.eraserSettings.radius / this.note.viewport.zoom);
-    let changed = false;
-    const next = before.flatMap((object): HandwrittenObject[] => {
+    const radius = this.tools.eraserSettings.radius / this.note.viewport.zoom;
+    const result = replaceSpatialCandidates(before, this.spatial, { minX: x - radius, minY: y - radius, maxX: x + radius, maxY: y + radius }, (object): HandwrittenObject[] => {
       if (object.kind === "text") return [object];
       if (this.tools.eraserSettings.highlighterOnly && object.tool !== "highlighter") return [object];
       if (this.tools.eraserSettings.mode === "stroke") {
         const hit = strokeIntersectsCircle(object, x, y, this.tools.eraserSettings.radius / this.note.viewport.zoom);
-        changed ||= hit; return hit ? [] : [object];
+        return hit ? [] : [object];
       }
       const result = eraseInk([object], region, this.tools.eraserSettings);
-      changed ||= result.changed;
-      return result.strokes.map((stroke) => ({ ...stroke, kind: "ink" }));
+      return result.strokes.map((stroke) => stroke === object ? object : ({ ...stroke, kind: "ink" }));
     });
-    if (!changed) return;
+    if (!result.changed) return;
     if (this.gesturePoints.length === 0) this.history.checkpoint(before);
-    this.gesturePoints.push({ x, y }); this.note.objects = next; this.render(); this.changed(false);
+    this.gesturePoints.push({ x, y }); this.note.objects = result.values; this.render(); this.changed(false);
   }
 
   private addText(x: number, y: number): void {

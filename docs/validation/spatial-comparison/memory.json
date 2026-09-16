@@ -1,0 +1,181 @@
+{
+  "method": "One isolated process per case; median of three forced-GC heap deltas; excludes document and shared bounds",
+  "results": [
+    {
+      "algorithm": "scan",
+      "scene": "canvas",
+      "strokes": 10000,
+      "heapBytes": 216,
+      "samplesBytes": [
+        216,
+        216,
+        1136
+      ],
+      "stats": {
+        "strokes": 10000
+      }
+    },
+    {
+      "algorithm": "rbush",
+      "scene": "canvas",
+      "strokes": 10000,
+      "heapBytes": 2483272,
+      "samplesBytes": [
+        1416120,
+        2483272,
+        2496184
+      ],
+      "stats": {
+        "entries": 10000
+      }
+    },
+    {
+      "algorithm": "grid-64",
+      "scene": "canvas",
+      "strokes": 10000,
+      "heapBytes": 13160264,
+      "samplesBytes": [
+        12050712,
+        13160264,
+        13198416
+      ],
+      "stats": {
+        "entries": 10000,
+        "cells": 36921,
+        "references": 55456,
+        "oversized": 0,
+        "cellSize": 64,
+        "maxStrokeCells": 64,
+        "maxQueryCells": 4096
+      }
+    },
+    {
+      "algorithm": "grid-256",
+      "scene": "canvas",
+      "strokes": 10000,
+      "heapBytes": 5637984,
+      "samplesBytes": [
+        4528816,
+        5637984,
+        5673464
+      ],
+      "stats": {
+        "entries": 10000,
+        "cells": 4006,
+        "references": 18100,
+        "oversized": 0,
+        "cellSize": 256,
+        "maxStrokeCells": 64,
+        "maxQueryCells": 4096
+      }
+    },
+    {
+      "algorithm": "grid-1024",
+      "scene": "canvas",
+      "strokes": 10000,
+      "heapBytes": 4926400,
+      "samplesBytes": [
+        3826632,
+        4926400,
+        4971312
+      ],
+      "stats": {
+        "entries": 10000,
+        "cells": 260,
+        "references": 11655,
+        "oversized": 0,
+        "cellSize": 1024,
+        "maxStrokeCells": 64,
+        "maxQueryCells": 4096
+      }
+    },
+    {
+      "algorithm": "scan",
+      "scene": "crossing",
+      "strokes": 10000,
+      "heapBytes": 216,
+      "samplesBytes": [
+        216,
+        216,
+        1136
+      ],
+      "stats": {
+        "strokes": 10000
+      }
+    },
+    {
+      "algorithm": "rbush",
+      "scene": "crossing",
+      "strokes": 10000,
+      "heapBytes": 2483272,
+      "samplesBytes": [
+        1418544,
+        2483272,
+        2484216
+      ],
+      "stats": {
+        "entries": 10000
+      }
+    },
+    {
+      "algorithm": "grid-64",
+      "scene": "crossing",
+      "strokes": 10000,
+      "heapBytes": 10886728,
+      "samplesBytes": [
+        9779064,
+        10886728,
+        10924144
+      ],
+      "stats": {
+        "entries": 10000,
+        "cells": 31967,
+        "references": 44736,
+        "oversized": 2000,
+        "cellSize": 64,
+        "maxStrokeCells": 64,
+        "maxQueryCells": 4096
+      }
+    },
+    {
+      "algorithm": "grid-256",
+      "scene": "crossing",
+      "strokes": 10000,
+      "heapBytes": 5140704,
+      "samplesBytes": [
+        4027672,
+        5140704,
+        5185664
+      ],
+      "stats": {
+        "entries": 10000,
+        "cells": 3912,
+        "references": 14513,
+        "oversized": 2000,
+        "cellSize": 256,
+        "maxStrokeCells": 64,
+        "maxQueryCells": 4096
+      }
+    },
+    {
+      "algorithm": "grid-1024",
+      "scene": "crossing",
+      "strokes": 10000,
+      "heapBytes": 4496240,
+      "samplesBytes": [
+        3396552,
+        4496240,
+        4542712
+      ],
+      "stats": {
+        "entries": 10000,
+        "cells": 259,
+        "references": 9359,
+        "oversized": 2000,
+        "cellSize": 1024,
+        "maxStrokeCells": 64,
+        "maxQueryCells": 4096
+      }
+    }
+  ]
+}

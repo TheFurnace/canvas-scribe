@@ -1,6 +1,6 @@
 {
   "name": "canvas-scribe",
-  "version": "2.0.0-beta.11",
+  "version": "2.0.0-beta.14",
   "description": "Stylus-first handwriting directly on Obsidian Canvas.",
   "main": "main.js",
   "type": "module",
@@ -22,6 +22,7 @@
     "sync:obsidian-css": "node scripts/sync-obsidian-css.mjs",
     "build": "tsc --noEmit && node esbuild.config.mjs production",
     "test": "vitest run",
+    "bench:spatial": "tsc -p tsconfig.spatial.json --noEmit && node scripts/benchmark-spatial.mjs",
     "sandbox": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/open-sandbox.ps1",
     "sandbox:agent": "node scripts/sandbox-agent.mjs",
     "sandbox:prepare": "node scripts/sandbox-vault.mjs prepare",
@@ -42,7 +43,8 @@
   "dependencies": {
     "pdf-lib": "1.17.1",
     "perfect-freehand": "^1.2.2",
-    "polygon-clipping": "0.15.7"
+    "polygon-clipping": "0.15.7",
+    "rbush": "4.0.1"
   },
   "devDependencies": {
     "@electron/asar": "4.3.0",
@@ -50,6 +52,7 @@
     "@storybook/addon-docs": "^10.6.0",
     "@storybook/web-components-vite": "^10.6.0",
     "@types/node": "^24.0.0",
+    "@types/rbush": "4.0.0",
     "esbuild": "^0.25.0",
     "happy-dom": "^20.14.0",
     "obsidian": "latest",

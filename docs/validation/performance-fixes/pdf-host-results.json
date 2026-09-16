@@ -1,0 +1,27 @@
+{
+  "after": 501,
+  "undo": 500,
+  "redo": 501,
+  "retained": true,
+  "identities": true,
+  "diskStrokes": 501,
+  "error": "",
+  "companion": "Scribe PDF annotations/ad349426-2b59-438f-bfc1-c0471583c15a.json",
+  "timings": {
+    "render": {
+      "count": 6,
+      "meanMs": 1.383333444595337,
+      "maxMs": 2
+    },
+    "move": {
+      "count": 60,
+      "meanMs": 0.055000019073486325,
+      "maxMs": 0.3000001907348633
+    },
+    "up": {
+      "count": 2,
+      "meanMs": 0.34999990463256836,
+      "maxMs": 0.6999998092651367
+    }
+  }
+}

@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "moduleResolution": "bundler",
+    "paths": {},
     "target": "ES2022"
   },
   "include": [".storybook/**/*.ts", "stories/**/*.ts"]

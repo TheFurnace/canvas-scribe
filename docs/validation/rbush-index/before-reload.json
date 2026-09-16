@@ -1,0 +1,17 @@
+[
+  {
+    "path": "Canvas Scribe Smoke Test.canvas",
+    "count": 10001,
+    "digest": "e48b6a8829752931498229b6d55c1d16f614391259067ee54913e307319bc8aa"
+  },
+  {
+    "path": "Untitled.scribe",
+    "count": 1001,
+    "digest": "f2818e1d560f1523a3711f561cdeef8f97b04d9e1164d3d1fcf1589eaff13e04"
+  },
+  {
+    "path": "RBush pages.pdf",
+    "count": 3,
+    "digest": "0eb87a9b09791714ce65e8c0b3bf29c771a887803c58658a36adfbcc03265df1"
+  }
+]

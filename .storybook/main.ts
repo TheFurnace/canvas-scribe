@@ -19,6 +19,7 @@ const config: StorybookConfig = {
     viteConfig.resolve ??= {};
     viteConfig.resolve.alias = {
       ...viteConfig.resolve.alias,
+      rbush: resolve(configDirectory, "../node_modules/rbush/index.js"),
       "virtual:obsidian-app.css": obsidianCss,
       "virtual:obsidian-app.css?inline": `${obsidianCss}?inline`,
     };

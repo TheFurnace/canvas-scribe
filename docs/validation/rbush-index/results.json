@@ -1,0 +1,2738 @@
+{
+  "timestamp": "2026-09-16T03:25:33.279Z",
+  "inspection": {
+    "title": "Canvas Scribe Smoke Test - rbush-adoption - Obsidian 1.12.7",
+    "viewport": {
+      "width": 1024,
+      "height": 800
+    },
+    "file": "Canvas Scribe Smoke Test.canvas",
+    "pluginLoaded": true,
+    "dialogs": [],
+    "controls": [
+      {
+        "action": "pen",
+        "label": "Fountain pen · Theme color · 3.5px · 100% opacity",
+        "pressed": "true",
+        "rect": {
+          "x": 975,
+          "y": 87.046875,
+          "width": 40,
+          "height": 41,
+          "top": 87.046875,
+          "right": 1015,
+          "bottom": 128.046875,
+          "left": 975
+        }
+      },
+      {
+        "action": "highlighter",
+        "label": "Round Highlighter · Default color · 17px · 38% opacity",
+        "pressed": "false",
+        "rect": {
+          "x": 975,
+          "y": 128.046875,
+          "width": 40,
+          "height": 41,
+          "top": 128.046875,
+          "right": 1015,
+          "bottom": 169.046875,
+          "left": 975
+        }
+      },
+      {
+        "action": "eraser",
+        "label": "Stroke eraser",
+        "pressed": "false",
+        "rect": {
+          "x": 975,
+          "y": 169.046875,
+          "width": 40,
+          "height": 41,
+          "top": 169.046875,
+          "right": 1015,
+          "bottom": 210.046875,
+          "left": 975
+        }
+      },
+      {
+        "action": "lasso",
+        "label": "Lasso selection",
+        "pressed": "false",
+        "rect": {
+          "x": 975,
+          "y": 210.046875,
+          "width": 40,
+          "height": 41,
+          "top": 210.046875,
+          "right": 1015,
+          "bottom": 251.046875,
+          "left": 975
+        }
+      },
+      {
+        "action": "color",
+        "label": "Choose pen color · Default (theme adaptive)",
+        "pressed": null,
+        "rect": {
+          "x": 975,
+          "y": 251.046875,
+          "width": 40,
+          "height": 41,
+          "top": 251.046875,
+          "right": 1015,
+          "bottom": 292.046875,
+          "left": 975
+        }
+      },
+      {
+        "action": "undo",
+        "label": "Undo ink",
+        "pressed": null,
+        "rect": {
+          "x": 975,
+          "y": 292.046875,
+          "width": 40,
+          "height": 41,
+          "top": 292.046875,
+          "right": 1015,
+          "bottom": 333.046875,
+          "left": 975
+        }
+      },
+      {
+        "action": "redo",
+        "label": "Redo ink",
+        "pressed": null,
+        "rect": {
+          "x": 975,
+          "y": 333.046875,
+          "width": 40,
+          "height": 41,
+          "top": 333.046875,
+          "right": 1015,
+          "bottom": 374.046875,
+          "left": 975
+        }
+      },
+      {
+        "action": "toggle",
+        "label": "Toggle stylus input",
+        "pressed": "true",
+        "rect": {
+          "x": 975,
+          "y": 374.046875,
+          "width": 40,
+          "height": 40,
+          "top": 374.046875,
+          "right": 1015,
+          "bottom": 414.046875,
+          "left": 975
+        }
+      }
+    ],
+    "surfaces": [
+      {
+        "x": 344,
+        "y": 78.046875,
+        "width": 680,
+        "height": 721.953125,
+        "top": 78.046875,
+        "right": 1024,
+        "bottom": 800,
+        "left": 344
+      }
+    ]
+  },
+  "method": "Production build; trusted CDP pen; first round warmup; ordered candidate equivalence, undo/redo/save checked outside timing; index prepared during render",
+  "results": [
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "empty",
+      "round": 0,
+      "warmup": true,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 0.5999999046325684,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 2.6999998092651367,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.20000028610229492,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.20000028610229492,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10000,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "saved": 10000
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "empty",
+      "round": 1,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 0.19999980926513672,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 12.599999904632568,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.40000009536743164,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10000,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "saved": 10000
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "empty",
+      "round": 2,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 12.100000381469727,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.10000038146972656,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10000,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "saved": 10000
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "empty",
+      "round": 3,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 0.19999980926513672,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 15.899999618530273,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.09999990463256836,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10000,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "saved": 10000
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "stroke-round",
+      "round": 0,
+      "warmup": true,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 23.5,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 35,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.09999990463256836,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "stroke-round",
+      "round": 1,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 15.400000095367432,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 17.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.19999980926513672,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.19999980926513672,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.10000038146972656,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.20000028610229492,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "stroke-round",
+      "round": 2,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 16.59999990463257,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 18.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.09999990463256836,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "stroke-round",
+      "round": 3,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        },
+        {
+          "ms": 0,
+          "candidates": 0
+        }
+      ],
+      "host": [
+        {
+          "method": "eraseSamples",
+          "ms": 12.800000190734863,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 14.5,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.20000028610229492,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 0.09999990463256836,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.09999990463256836,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 9999,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 9999,
+      "saved": 9999
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "area-round",
+      "round": 0,
+      "warmup": true,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 1
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        }
+      ],
+      "host": [
+        {
+          "method": "renderAll",
+          "ms": 13.399999618530273,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 155.7999997138977,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 157.89999961853027,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.900000095367432,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 25.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.700000286102295,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 23.600000381469727,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.599999904632568,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 22.5,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.5,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 33.60000038146973,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.300000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 24.200000286102295,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.199999809265137,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 23.699999809265137,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 9.099999904632568,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 29.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.200000286102295,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 27.300000190734863,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.5,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 21.800000190734863,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.699999809265137,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 21.699999809265137,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 10.800000190734863,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 11.699999809265137,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.19999980926513672,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10001,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 10001,
+      "saved": 10001
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "area-round",
+      "round": 1,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0.10000038146972656,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        }
+      ],
+      "host": [
+        {
+          "method": "renderAll",
+          "ms": 12.600000381469727,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 206.10000038146973,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 207.80000019073486,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.799999713897705,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 28.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.099999904632568,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 27.199999809265137,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.800000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 27.300000190734863,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.5,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 33.5,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.700000286102295,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.800000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 25.59999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 8.199999809265137,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26.5,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.700000286102295,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 25.700000286102295,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.099999904632568,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 21.59999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 5.899999618530273,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 20.399999618530273,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 10.600000381469727,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 11.5,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.20000028610229492,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10001,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 10001,
+      "saved": 10001
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "area-round",
+      "round": 2,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        }
+      ],
+      "host": [
+        {
+          "method": "renderAll",
+          "ms": 10,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 198,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 199.59999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.400000095367432,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.099999904632568,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26.299999713897705,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.299999713897705,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.300000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 34.09999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.400000095367432,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26.199999809265137,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.299999713897705,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 25.59999990463257,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.199999809265137,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 24.799999713897705,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 6.800000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 25.800000190734863,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 5.900000095367432,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 22,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 5.900000095367432,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 22.5,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 10.900000095367432,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 10.699999809265137,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.19999980926513672,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10001,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 10001,
+      "saved": 10001
+    },
+    {
+      "algorithm": "rbush-production",
+      "count": 10000,
+      "scenario": "area-round",
+      "round": 3,
+      "warmup": false,
+      "setup": {
+        "preparedDuringRender": true,
+        "screenScale": 0.8133971095085144,
+        "paths": 10000
+      },
+      "samples": [
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 1
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0.09999990463256836,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        },
+        {
+          "ms": 0,
+          "candidates": 2
+        }
+      ],
+      "host": [
+        {
+          "method": "renderAll",
+          "ms": 12.300000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 185.69999980926514,
+          "trusted": true
+        },
+        {
+          "method": "beginGesture",
+          "ms": 187.40000009536743,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 8.5,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26.40000009536743,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.799999713897705,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 35.40000009536743,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.599999904632568,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 27.40000009536743,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.800000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 35.40000009536743,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.899999618530273,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 27.5,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.800000190734863,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 27.300000190734863,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.599999904632568,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 25.699999809265137,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 8.200000286102295,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 26.800000190734863,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.5,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 23.700000286102295,
+          "trusted": true
+        },
+        {
+          "method": "renderAll",
+          "ms": 7.5,
+          "trusted": null
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 23,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 10.699999809265137,
+          "trusted": true
+        },
+        {
+          "method": "eraseSamples",
+          "ms": 11.599999904632568,
+          "trusted": true
+        },
+        {
+          "method": "finishGesture",
+          "ms": 0.09999990463256836,
+          "trusted": null
+        }
+      ],
+      "before": 10000,
+      "after": 10001,
+      "retainedPath": true,
+      "verifiedCalls": 25,
+      "undo": 10000,
+      "redo": 10001,
+      "saved": 10001
+    }
+  ]
+}

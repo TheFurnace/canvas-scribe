@@ -1,0 +1,12 @@
+{"type":"round","spacing":0.7,"method":"original union and cut","medianMs":4509.4889,"samples":[4198.3652999999995,4509.4889,4593.3958],"node":"v24.19.0"}
+{"type":"round","spacing":0.7,"method":"bounded union and cut","medianMs":213.8184000000001,"samples":[190.488400000002,213.8184000000001,259.512999999999],"node":"v24.19.0"}
+{"type":"round","spacing":0.7,"method":"current eraseInk","medianMs":214.8924999999981,"samples":[194.74500000000262,214.8924999999981,221.97249999999985],"node":"v24.19.0"}
+{"type":"round","spacing":20,"method":"original union and cut","medianMs":214.14389999999912,"samples":[185.4253000000026,214.14389999999912,219.8748999999989],"node":"v24.19.0"}
+{"type":"round","spacing":20,"method":"bounded union and cut","medianMs":137.85919999999896,"samples":[135.6190999999999,137.85919999999896,144.91400000000067],"node":"v24.19.0"}
+{"type":"round","spacing":20,"method":"current eraseInk","medianMs":145.63330000000133,"samples":[144.98769999999786,145.63330000000133,158.33590000000186],"node":"v24.19.0"}
+{"type":"chisel","spacing":0.7,"method":"original union and cut","medianMs":146.29309999999896,"samples":[140.62710000000152,146.29309999999896,160.66679999999906],"node":"v24.19.0"}
+{"type":"chisel","spacing":0.7,"method":"bounded union and cut","medianMs":28.105899999998655,"samples":[27.326199999999517,28.105899999998655,29.572199999998702],"node":"v24.19.0"}
+{"type":"chisel","spacing":0.7,"method":"current eraseInk","medianMs":29.493200000000797,"samples":[28.96939999999813,29.493200000000797,29.505199999999604],"node":"v24.19.0"}
+{"type":"chisel","spacing":20,"method":"original union and cut","medianMs":15.338499999998021,"samples":[14.713299999999435,15.338499999998021,15.399799999999232],"node":"v24.19.0"}
+{"type":"chisel","spacing":20,"method":"bounded union and cut","medianMs":15.051400000000285,"samples":[14.65480000000025,15.051400000000285,17.362099999998463],"node":"v24.19.0"}
+{"type":"chisel","spacing":20,"method":"current eraseInk","medianMs":17.331700000002456,"samples":[15.627599999999802,17.331700000002456,18.855200000001787],"node":"v24.19.0"}

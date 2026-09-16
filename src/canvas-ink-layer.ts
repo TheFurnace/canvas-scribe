@@ -7,7 +7,9 @@ import { resolveColor, type ColorTool } from "./colors";
 import { createColorPicker } from "./color-picker";
 import type { DebugLogger } from "./debug-logger";
 import { strokeToSvgPath } from "./geometry";
-import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
+import { eraserOutline, transformInk, strokeCandidateBounds } from "./ink-operations";
+import { eraseIndexedInk } from "./indexed-ink";
+import { SpatialIndex, polygonBounds } from "./spatial-index";
 import { InkToolState } from "./ink-tool-state";
 import { DocumentHistory } from "./document-history";
 import { CanvasInkSurface, type SurfaceTransform } from "./ink-surface";
@@ -51,10 +53,13 @@ const PALETTE_CLOSE_ANIMATION_MS = 180;
 export class CanvasInkLayer {
   private gestureTools: InkToolState | null = null;
   private get toolState(): InkToolState { return this.gestureTools ?? this.sharedTools; }
-  private readonly history = new DocumentHistory<InkStroke>(cloneStrokes, 100);
+  // Only live ink mutates; checkpoints precede insertion and all completed edits replace values.
+  private readonly history = new DocumentHistory<InkStroke>(strokes => strokes.map(stroke => stroke === this.activeStroke ? cloneStrokes([stroke])[0]! : stroke), 100);
   private readonly surface: CanvasInkSurface;
   private data: CanvasInkData = createEmptyInkData();
+  private readonly spatial = new SpatialIndex<InkStroke>(strokeCandidateBounds);
   private svgEl: SVGSVGElement | null = null;
+  private readonly renderedStrokes = new WeakMap<SVGPathElement, InkStroke>();
   private eraserCursorEl: SVGCircleElement | null = null;
   private lassoPathEl: SVGPathElement | null = null;
   private selectionRectEl: SVGRectElement | null = null;
@@ -168,6 +173,7 @@ export class CanvasInkLayer {
   }
 
   dispose(): void {
+    this.spatial.clear();
     this.closePenMenu();
     this.disposed = true;
     if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
@@ -585,6 +591,7 @@ export class CanvasInkLayer {
   }
 
   private finishGesture(): void {
+    this.spatial.sync(this.data.strokes, this.activeStroke);
     if (this.renderFrame !== null) {
       window.cancelAnimationFrame(this.renderFrame);
       this.renderFrame = null;
@@ -633,6 +640,7 @@ export class CanvasInkLayer {
   }
 
   private eraseSamples(event: PointerEvent): void {
+    let redraw = false;
     for (const sample of pointerSamples(event)) {
       const point = this.eventToPoint(sample);
       if (!point) continue;
@@ -646,7 +654,7 @@ export class CanvasInkLayer {
       for (let step = 1; step <= steps; step++) {
         const x = previous.x + (point.x - previous.x) * step / steps;
         const y = previous.y + (point.y - previous.y) * step / steps;
-        const result = eraseInk(this.data.strokes, eraserOutline(x, y, radius, 0.1 / screenScale), {
+        const result = eraseIndexedInk(this.data.strokes, this.spatial, eraserOutline(x, y, radius, 0.1 / screenScale), {
           ...this.toolState.eraserSettings, tolerance: 0.1 / screenScale,
         });
         changed ||= result.changed; this.data.strokes = result.strokes;
@@ -655,9 +663,17 @@ export class CanvasInkLayer {
       if (changed) {
         this.erasedStrokeCount += before - this.data.strokes.length;
         this.didEraseInGesture = true;
-        this.renderAll();
+        redraw = true;
       }
     }
+    if (!redraw) return;
+    if (this.toolState.eraserSettings.mode === "stroke" && this.svgEl) {
+      const remaining = new Set(this.data.strokes.map(stroke => stroke.id));
+      for (const path of Array.from(this.svgEl.querySelectorAll<SVGPathElement>("path.canvas-scribe-stroke"))) {
+        if (!remaining.has(path.dataset.strokeId!)) path.remove();
+      }
+      this.updateSelectionRect();
+    } else this.renderAll();
   }
 
   private appendReleasePoint(event: PointerEvent): void {
@@ -756,8 +772,22 @@ export class CanvasInkLayer {
   }
 
   private renderAll(): void {
+    this.spatial.sync(this.data.strokes, this.activeStroke);
     if (!this.svgEl) return;
-    this.svgEl.replaceChildren(...this.data.strokes.map((stroke) => this.createPath(stroke, true)));
+    const existing = new Map(Array.from(this.svgEl.querySelectorAll<SVGPathElement>("path.canvas-scribe-stroke")).map(path => [path.dataset.strokeId, path]));
+    const paths = this.data.strokes.map(stroke => {
+      const old = existing.get(stroke.id);
+      const complete = stroke !== this.activeStroke;
+      const path = complete && old && this.renderedStrokes.get(old) === stroke ? old : this.createPath(stroke, complete);
+      path.classList.toggle("is-selected", this.selectedStrokeIds.has(stroke.id));
+      if (!complete) this.activePathEl = path;
+      return path;
+    });
+    const wanted = new Set(paths);
+    for (const path of existing.values()) if (!wanted.has(path)) path.remove();
+    // Preserve paint order without detaching unchanged paths. Overlays remain above ink.
+    let cursor = this.svgEl.firstChild;
+    for (const path of paths) { if (path !== cursor) this.svgEl.insertBefore(path, cursor); cursor = path.nextSibling; }
     this.updateSelectionRect();
     this.ensureEraserCursor();
   }
@@ -814,8 +844,10 @@ export class CanvasInkLayer {
   private finishLassoGesture(): void {
     if (this.lassoMode === "select") {
       this.selectedStrokeIds.clear();
-      for (const stroke of this.data.strokes) {
-        if (selectRenderedStroke(stroke, this.selectionPolygon(), this.toolState.selectionSettings.partial)) this.selectedStrokeIds.add(stroke.id);
+      const polygon = this.selectionPolygon(), bounds = polygonBounds(polygon);
+      this.spatial.sync(this.data.strokes);
+      for (const stroke of bounds ? this.spatial.search(bounds) : []) {
+        if (selectRenderedStroke(stroke, polygon, this.toolState.selectionSettings.partial)) this.selectedStrokeIds.add(stroke.id);
       }
       this.logger.record("ink", "lasso_selected", { strokeCount: this.selectedStrokeIds.size });
       this.lassoPathEl?.remove();
@@ -848,6 +880,7 @@ export class CanvasInkLayer {
     path.setAttribute("d", strokeToSvgPath(stroke, complete));
     path.setAttribute("fill", stroke.color);
     path.setAttribute("opacity", stroke.opacity.toString());
+    if (complete) this.renderedStrokes.set(path, stroke);
     return path;
   }
 
