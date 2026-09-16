@@ -1,0 +1,90 @@
+# Spatial lookup experiment
+
+FER-91 compares the current cached-bounds scan with two index prototypes. All use
+the production conservative stroke bounds and must return identical stroke
+references in the original document order. The benchmark adds no runtime index
+to the plugin; RBush 4.0.1 is an exact development dependency.
+
+## Run
+
+From this worktree, with Node 22 or newer:
+
+```powershell
+pnpm bench:spatial
+```
+
+This type-checks the benchmark, bundles it, runs timing/correctness comparisons,
+then runs retained-memory cases in separate Node processes with explicit GC.
+Outputs go to `dist/spatial-comparison/`:
+
+- `report.md`: generated comparison tables and methodology.
+- `results.json`: query distributions, build/edit/undo costs, candidate counts and
+  production eraser-pipeline timings.
+- `memory.json`: incremental retained heap measurements and grid occupancy.
+
+For a shorter development pass:
+
+```powershell
+pnpm bench:spatial --quick
+pnpm bench:spatial --sizes=1000,3000 --skip-memory
+pnpm exec vitest run tests/spatial-comparison.test.ts
+```
+
+The quick pass uses fewer document sizes/query samples; the eraser pipeline still
+checks 1,000 and 10,000 strokes. The memory pass measures 10,000 strokes by default
+and 3,000 in quick mode. Use `--skip-memory` when only checking timing changes.
+
+## Implementations
+
+- **Current scan:** scans the ordered array and calls the production cached
+  `strokeCandidateBounds` before the intersection check. It lazily computes bounds
+  on first query. Warm query measurements isolate this lookup kernel; the eraser
+  pipeline separately runs the unchanged production `eraseInk` implementation.
+- **RBush:** bulk-loads bounds into a dynamic R-tree with the default node size 9.
+  A stroke-reference map supports removal of old entries and insertion of new
+  immutable values. Query results are filtered and sorted back into document order.
+- **Uniform grid:** three document-space cell sizes, 64/256/1024. A stroke can
+  occupy up to 64 cells; larger extents use an overflow set scanned on each query.
+  Queries exceeding 4,096 cells scan all entries. Results are deduplicated, checked
+  against exact bounding boxes, filtered and sorted. The overflow policy is shared
+  across all grid configurations; it bounds memory for enormous Canvas strokes.
+
+The grid policy was tightened after the pilot showed that a 4,096-cell-per-stroke
+limit allowed substantial reference duplication. Committed results use the final
+64-cell cap. It remains one implementation/design choice, not a universal grid result.
+
+## Fairness and correctness
+
+- Four deterministic scenes and 100/1,000/3,000/10,000 strokes. Each stroke has 80
+  samples. Scenes cover spread Canvas ink, clustered handwriting, long notes and
+  intentionally adversarial crossing strokes with huge overlapping bounds.
+- Include eraser hits, empty space, larger lasso and viewport queries. Include
+  highlighter-only filtering, negative coordinates and frozen cut outlines.
+- Include result ordering and deduplication costs. Rotate implementation order
+  across cases and eraser-pipeline rounds. Warm up shared geometry before measuring.
+- Include a 5% edit batch (moves, deletions and synthetic split replacements),
+  immutable array work, incremental updates, undo and reload. Report edit plus next
+  query so the scan's deferred bounds calculation is not hidden.
+- Cold timings include bounds generation and index loading, but exclude parsing
+  files and creating the input fixture. Memory excludes the shared document and
+  common bounds cache; forced-GC heap deltas are approximate.
+- The eraser pipeline compares resulting geometry against production `eraseInk`;
+  generated fragment IDs are ignored for equality. It includes candidate lookup,
+  geometry, immutable array reconciliation and index updates, but excludes DOM,
+  save/history, pointer dispatch and the separate long-highlighter first-cut cost.
+
+The ten regression tests compare candidate identity/order before and after edits,
+undo and reload, plus boundaries, empty ink, overflow, and live-append refresh.
+The benchmark aborts on candidate or erased-geometry differences.
+
+## Interpreting the result
+
+Use the generated report alongside the checked-in
+[recorded experiment](validation/2026-09-15-spatial-comparison.md).
+Compare the complete eraser pipeline and memory/edit tradeoffs as well as raw
+lookup speed. A faster query is not the same as a faster presented frame.
+
+Production integration would still need explicit invalidation for every edit,
+undo/redo, external replacement and multi-view document lifecycle. It must preserve
+the existing ordered arrays, precise hit tests and document schema. PDF page
+partitioning and physical Galaxy/Obsidian A/B acceptance are separate next steps.
