@@ -56,6 +56,8 @@ export class HandwrittenNoteEditor {
   private radial: RadialSession | null = null;
   private barrelPointer: number | null = null;
   private contextSuppressedUntil = 0;
+  private eraserCursor: SVGSVGElement | null = null;
+  private eraserPosition: { x: number; y: number } | null = null;
 
   constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, private readonly renderIcon: IconRenderer, allowMouse = false, private readonly favorites = new FavoritePens(), private readonly overlayMount: HTMLElement = document.body, private readonly sharedTools = new InkToolState()) {
     this.note = note; this.onChange = onChange; this.allowMouse = allowMouse;
@@ -86,6 +88,8 @@ export class HandwrittenNoteEditor {
     this.viewport.addEventListener("pointerup", (event) => this.pointerUp(event));
     this.viewport.addEventListener("pointercancel", (event) => this.pointerUp(event));
     this.viewport.addEventListener("lostpointercapture", (event) => this.pointerUp(event));
+    this.viewport.addEventListener("pointerleave", () => this.hideEraserCursor());
+    this.viewport.addEventListener("scroll", () => this.hideEraserCursor());
     this.viewport.addEventListener("contextmenu", (event) => {
       if ((event.target as Element).closest("textarea, button") || this.activePointer !== null) return;
       event.preventDefault(); event.stopPropagation();
@@ -128,6 +132,7 @@ export class HandwrittenNoteEditor {
     if (focus) this.controls.querySelector<HTMLElement>(`[data-action="${this.tool}"]`)?.focus();
   }
   private mountMenu(menu: HTMLElement): void {
+    this.hideEraserCursor();
     this.closeOverlays(); this.menu = menu;
     const document = this.root.ownerDocument;
     const anchor = this.controls.querySelector<HTMLElement>(`[data-action="${this.tool}"]`) ?? this.controls;
@@ -192,6 +197,7 @@ export class HandwrittenNoteEditor {
     }));
   }
   private openRadial(x: number, y: number): void {
+    this.hideEraserCursor();
     this.closeOverlays();
     const actions = createToolRadial(this.root.ownerDocument, this.sharedTools, this.favorites, {
       selectTool: tool => this.setTool(tool, true), changed: () => this.syncControls(), defaultColor: tool => this.defaultColor(tool),
@@ -253,6 +259,7 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerDown(event: PointerEvent): void {
+    this.updateEraserCursor(event);
     if (event.pointerType === "pen" && isStylusBarrelButton(event) && this.activePointer === null && !(event.target as Element).closest("textarea, button")) {
       event.preventDefault(); event.stopPropagation(); this.barrelPointer = event.pointerId;
       this.viewport.setPointerCapture?.(event.pointerId);
@@ -301,6 +308,7 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerMove(event: PointerEvent): void {
+    this.updateEraserCursor(event);
     if (event.pointerId === this.barrelPointer) { event.preventDefault(); event.stopPropagation(); return; }
     if (event.pointerId === this.pan?.id) {
       event.preventDefault(); event.stopPropagation();
@@ -351,6 +359,7 @@ export class HandwrittenNoteEditor {
   }
 
   private resetGesture(): void {
+    this.hideEraserCursor();
     if (this.inkFrame !== null) cancelAnimationFrame(this.inkFrame);
     this.inkFrame = null; this.activeInk = null; this.activeInkPath = null;
     const pointer = this.activePointer;
@@ -360,6 +369,7 @@ export class HandwrittenNoteEditor {
   }
 
   private pointerUp(event: PointerEvent): void {
+    this.hideEraserCursor();
     if (event.pointerId === this.barrelPointer) { event.preventDefault(); event.stopPropagation(); this.barrelPointer = null; this.releasePointer(event.pointerId); this.contextSuppressedUntil = Date.now() + 800; return; }
     if (event.pointerId === this.pan?.id) {
       event.preventDefault(); event.stopPropagation(); this.pan = null;
@@ -382,6 +392,44 @@ export class HandwrittenNoteEditor {
     for (const object of this.note.objects) {
       if (selectHandwrittenObject(object, this.gesturePoints, this.tools.selectionSettings.partial)) this.selectedIds.add(object.id);
     }
+  }
+
+  private hideEraserCursor(): void {
+    this.eraserPosition = null;
+    this.eraserCursor?.remove();
+  }
+
+  private updateEraserCursor(event: PointerEvent): void {
+    if (!this.enabled || this.tool !== "eraser" || this.radial || this.menu ||
+      (event.pointerType !== "pen" && !(this.allowMouse && event.pointerType === "mouse")) ||
+      isStylusBarrelButton(event) || (event.target as Element).closest("textarea, button") ||
+      (this.activePointer !== null && event.pointerId !== this.activePointer)) {
+      this.hideEraserCursor(); return;
+    }
+    this.eraserPosition = this.point(event);
+    this.renderEraserCursor();
+  }
+
+  private renderEraserCursor(): void {
+    if (!this.enabled || this.tool !== "eraser") { this.hideEraserCursor(); return; }
+    const position = this.eraserPosition;
+    const page = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page");
+    if (!position || !page) return;
+    if (!this.eraserCursor) {
+      const ns = "http://www.w3.org/2000/svg";
+      this.eraserCursor = this.root.ownerDocument.createElementNS(ns, "svg");
+      this.eraserCursor.classList.add("canvas-scribe-note-eraser-overlay");
+      this.eraserCursor.setAttribute("aria-hidden", "true");
+      const circle = this.root.ownerDocument.createElementNS(ns, "circle");
+      circle.classList.add("canvas-scribe-eraser-cursor", "is-visible");
+      circle.setAttribute("vector-effect", "non-scaling-stroke");
+      this.eraserCursor.append(circle);
+    }
+    const circle = this.eraserCursor.firstElementChild!;
+    circle.setAttribute("cx", String(position.x));
+    circle.setAttribute("cy", String(position.y));
+    circle.setAttribute("r", String(this.tools.eraserSettings.radius / this.note.viewport.zoom));
+    page.append(this.eraserCursor);
   }
 
   private eraseAt(x: number, y: number): void {
@@ -499,6 +547,7 @@ export class HandwrittenNoteEditor {
   }
 
   private syncControls(): void {
+    this.renderEraserCursor();
     syncCanvasControls(this.controls, { activeTool: this.tool === "text" ? null : this.sharedTools.activeTool, penDefault: this.sharedTools.toolColors.selection("pen") === null, highlighterDefault: this.sharedTools.toolColors.selection("highlighter") === null, penType: this.sharedTools.penType, highlighterType: this.sharedTools.highlighterType,
       eraserMode: this.sharedTools.eraserSettings.mode, selectionMode: this.sharedTools.selectionSettings.mode,
       penColor: this.sharedTools.toolColors.current("pen", "var(--text-normal)"), highlighterColor: this.sharedTools.toolColors.current("highlighter", this.defaultColor("highlighter")), penSize: this.sharedTools.penSize, highlighterSize: this.sharedTools.highlighterSize,

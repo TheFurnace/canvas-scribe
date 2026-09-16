@@ -13,8 +13,64 @@ function setup() {
     const event = new PointerEvent(type, { bubbles: true, cancelable: true, pointerType, pointerId, clientX: x, clientY: y, pressure: .5 });
     viewport.dispatchEvent(event); return event;
   };
-  return { note, viewport, pointer };
+  return { editor, note, viewport, pointer };
 }
+describe("handwritten note eraser outline", () => {
+  it("tracks pen hover and keeps the screen radius through zoom and erasing redraws", () => {
+    const { editor, note, viewport, pointer } = setup();
+    pointer("pointerdown", "pen", 1, 100, 100);
+    pointer("pointerup", "pen", 1, 100, 100);
+    editor.setTool("eraser");
+    note.viewport.zoom = 2;
+    pointer("pointermove", "pen", 2, 200, 200);
+    const circle = viewport.querySelector(".canvas-scribe-eraser-cursor")!;
+    expect(circle.getAttribute("cx")).toBe("100");
+    expect(circle.getAttribute("cy")).toBe("100");
+    const radius = Number(circle.getAttribute("r"));
+    expect(radius).toBeGreaterThan(0);
+    pointer("pointerdown", "pen", 2, 200, 200);
+    expect(note.objects).toHaveLength(0);
+    expect(viewport.querySelector(".canvas-scribe-eraser-cursor")).toBe(circle);
+    pointer("pointermove", "pen", 2, 240, 220);
+    expect(circle.getAttribute("cx")).toBe("120");
+    pointer("pointerup", "pen", 2, 240, 220);
+    expect(circle.isConnected).toBe(false);
+    note.viewport.zoom = .5;
+    pointer("pointermove", "pen", 2, 200, 200);
+    expect(Number(circle.getAttribute("r"))).toBe(radius * 4);
+    editor.destroy();
+  });
+
+  it("clears the footprint for navigation, pointer termination, controls, and tool changes", () => {
+    const { editor, viewport, pointer } = setup();
+    editor.setTool("eraser");
+    const visible = () => viewport.querySelector(".canvas-scribe-eraser-cursor");
+    for (const type of ["pointerleave", "pointercancel", "lostpointercapture"]) {
+      pointer("pointermove", "pen", 1, 100, 100);
+      expect(visible()).not.toBeNull();
+      pointer(type, "pen", 1, 100, 100);
+      expect(visible()).toBeNull();
+    }
+    for (const pointerType of ["touch", "mouse"]) {
+      pointer("pointermove", "pen", 1, 100, 100);
+      pointer("pointermove", pointerType, 2, 100, 100);
+      expect(visible()).toBeNull();
+    }
+    pointer("pointermove", "pen", 1, 100, 100);
+    viewport.dispatchEvent(new Event("scroll"));
+    expect(visible()).toBeNull();
+    pointer("pointermove", "pen", 1, 100, 100);
+    editor.setTool("pen");
+    expect(visible()).toBeNull();
+    editor.setTool("eraser");
+    pointer("pointermove", "pen", 1, 100, 100);
+    editor.toggleEnabled();
+    expect(visible()).toBeNull();
+    pointer("pointermove", "pen", 1, 100, 100);
+    expect(visible()).toBeNull();
+    editor.destroy();
+  });
+});
 describe("handwritten note gesture ownership", () => {
   it("keeps erasing inside the host swipe opt-out across empty space and page replacement", () => {
     const { note, viewport, pointer } = setup();
