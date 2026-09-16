@@ -1,0 +1,12 @@
+{
+  "timings": [
+    5001.099999904633,
+    28.199999809265137
+  ],
+  "after": 3002,
+  "fragments": 3,
+  "survivorRetained": true,
+  "undo": 3000,
+  "redo": 3002,
+  "saved": 3002
+}

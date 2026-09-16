@@ -1,0 +1,9 @@
+{"node":"v24.19.0","platform":"win32","method":"one warmup, three samples; source operations only"}
+{"operation":"note content sizing","strokes":500,"medianMs":72.00290000000001,"samples":[71.36430000000001,72.00290000000001,78.9257]}
+{"operation":"selected ink bounds","strokes":500,"medianMs":77.11430000000007,"samples":[75.17769999999996,77.11430000000007,79.92639999999994]}
+{"operation":"20 remote eraser samples","strokes":500,"medianMs":21.06529999999998,"samples":[19.911299999999983,21.06529999999998,21.512899999999945]}
+{"operation":"note content sizing","strokes":3000,"medianMs":434.3175000000001,"samples":[432.86649999999986,434.3175000000001,441.9982]}
+{"operation":"selected ink bounds","strokes":3000,"medianMs":542.0936999999999,"samples":[519.8724000000002,542.0936999999999,565.2578999999996]}
+{"operation":"20 remote eraser samples","strokes":3000,"medianMs":166.46110000000044,"samples":[166.0708999999997,166.46110000000044,178.07510000000002]}
+{"operation":"1000-point highlighter bounds","strokes":1,"medianMs":3980.041100000002,"samples":[3901.4519999999993,3980.041100000002,4034.7409000000007]}
+{"operation":"remote highlighter lasso","strokes":1,"medianMs":4628.0927999999985,"samples":[4324.170300000002,4628.0927999999985,4915.421399999999]}

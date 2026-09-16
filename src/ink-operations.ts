@@ -6,6 +6,24 @@ import { createStrokeId, type InkStroke } from "./types";
 export function strokeOutline(stroke: InkStroke, tolerance = 0.05): MultiPolygon {
   if (stroke.outline) return stroke.outline;
   const polygons = strokeComponents(stroke, tolerance);
+  let overlappingChiselNibs = 0;
+  if (stroke.highlighterType === "chisel") for (let i = 1; i < stroke.points.length; i++) {
+    const a = stroke.points[i - 1]!, b = stroke.points[i]!;
+    if (Math.abs(a.x - b.x) < stroke.size * .3 && Math.abs(a.y - b.y) < stroke.size) overlappingChiselNibs++;
+  }
+  if (stroke.tool === "highlighter" && stroke.highlighterType && polygons.length > 16
+    && (stroke.highlighterType === "round" || overlappingChiselNibs > (stroke.points.length - 1) / 2)) {
+    // Adjacent nibs overlap heavily. Unioning the entire compound path at once
+    // makes the sweep process thousands of redundant intersecting edges.
+    // Merge small adjacent groups first; keep only their boundary at each level.
+    let groups: MultiPolygon[] = polygons.map(polygon => [polygon]);
+    while (groups.length > 1) {
+      const next: MultiPolygon[] = [];
+      for (let i = 0; i < groups.length; i += 4) next.push(polygonClipping.union(groups[i]!, ...groups.slice(i + 1, i + 4)));
+      groups = next;
+    }
+    return groups[0] ?? [];
+  }
   return polygons.length ? polygonClipping.union(polygons) : [];
 }
 
