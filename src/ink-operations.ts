@@ -51,6 +51,7 @@ function strokePolygons(stroke: InkStroke, tolerance: number): MultiPolygon {
 type InkBounds = { minX: number; minY: number; maxX: number; maxY: number };
 type BoundsEntry = { points: InkStroke["points"]; outline: InkStroke["outline"]; key: string; bounds: InkBounds | null };
 const renderedBounds = new WeakMap<InkStroke, BoundsEntry>();
+const candidateBounds = new WeakMap<InkStroke, BoundsEntry>();
 
 // Completed geometry is immutable (as required by document history). Live strokes
 // append samples; include their length and pressure mode so early reads cannot go stale.
@@ -67,6 +68,26 @@ export function strokeBounds(stroke: InkStroke): InkBounds | null {
     else { bounds.minX = Math.min(bounds.minX, x); bounds.minY = Math.min(bounds.minY, y); bounds.maxX = Math.max(bounds.maxX, x); bounds.maxY = Math.max(bounds.maxY, y); }
   }
   renderedBounds.set(stroke, { points: stroke.points, outline: stroke.outline, key, bounds });
+  return bounds;
+}
+
+/** Cheap conservative bounds for rejecting remote ink, never for precise selection. */
+export function strokeCandidateBounds(stroke: InkStroke): InkBounds | null {
+  const key = boundsKey(stroke), cached = candidateBounds.get(stroke);
+  if (cached && cached.points === stroke.points && cached.outline === stroke.outline && cached.key === key) return cached.bounds;
+  let bounds: InkBounds | null = null;
+  const include = (x: number, y: number) => {
+    if (!bounds) bounds = { minX: x, minY: y, maxX: x, maxY: y };
+    else { bounds.minX = Math.min(bounds.minX, x); bounds.minY = Math.min(bounds.minY, y); bounds.maxX = Math.max(bounds.maxX, x); bounds.maxY = Math.max(bounds.maxY, y); }
+  };
+  if (stroke.outline) {
+    for (const polygon of stroke.outline) for (const ring of polygon) for (const [x, y] of ring) include(x, y);
+  } else {
+    // Includes pressure width, pencil tilt/strand spread and SVG coordinate rounding.
+    const pad = stroke.size * 2 + .001;
+    for (const point of stroke.points) { include(point.x - pad, point.y - pad); include(point.x + pad, point.y + pad); }
+  }
+  candidateBounds.set(stroke, { points: stroke.points, outline: stroke.outline, key, bounds });
   return bounds;
 }
 
@@ -87,10 +108,9 @@ export function eraseInk(strokes: readonly InkStroke[], region: MultiPolygon, op
   const result = strokes.flatMap((stroke) => {
     if (options.highlighterOnly && stroke.tool !== "highlighter") return [stroke];
     // Conservative broad phase avoids flattening remote strokes on every pointer sample.
-    const candidates = stroke.outline ? stroke.outline.flatMap((polygon) => polygon.flatMap((ring) => ring)) : stroke.points.map(({ x, y }): Pair => [x, y]);
-    const bounds = coordinateBounds(candidates), padding = stroke.outline ? 0 : stroke.size * 2;
-    if (bounds.maxX + padding < regionBounds.minX || bounds.minX - padding > regionBounds.maxX
-      || bounds.maxY + padding < regionBounds.minY || bounds.minY - padding > regionBounds.maxY) return [stroke];
+    const bounds = strokeCandidateBounds(stroke);
+    if (!bounds || bounds.maxX < regionBounds.minX || bounds.minX > regionBounds.maxX
+      || bounds.maxY < regionBounds.minY || bounds.minY > regionBounds.maxY) return [stroke];
     // A compound highlighter is a union of swept nibs. Deleting the stroke only
     // needs one intersecting nib, not the union of hundreds of overlapping shapes.
     // Frozen outlines still use the general path so erased gaps and holes survive.

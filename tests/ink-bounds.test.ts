@@ -1,8 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
 import polygonClipping from "polygon-clipping";
 import * as geometry from "../src/geometry";
-import { strokeBounds, strokeOutline, transformInk, eraseInk, eraserOutline } from "../src/ink-operations";
-import { boundsForStrokes } from "../src/selection";
+import { strokeBounds, strokeCandidateBounds, strokeOutline, transformInk, eraseInk, eraserOutline } from "../src/ink-operations";
+import { boundsForStrokes, selectRenderedStroke } from "../src/selection";
 import { createHandwrittenNote, normalizeContentHeight, type HandwrittenInkObject } from "../src/handwritten-note";
 import { PEN_PROFILES } from "../src/pen-types";
 
@@ -20,6 +20,22 @@ it.each(styles)("bounds match union extrema for %s pen", type => {
   const stroke = { ...ink(), penType: type as HandwrittenInkObject["penType"] };
   const expected = oracle(stroke), actual = strokeBounds(stroke);
   for (const key of ["minX", "minY", "maxX", "maxY"] as const) expect(actual![key]).toBeCloseTo(expected![key], 6);
+  const broad = strokeCandidateBounds(stroke)!;
+  expect(broad.minX).toBeLessThanOrEqual(actual!.minX); expect(broad.minY).toBeLessThanOrEqual(actual!.minY);
+  expect(broad.maxX).toBeGreaterThanOrEqual(actual!.maxX); expect(broad.maxY).toBeGreaterThanOrEqual(actual!.maxY);
+});
+it("rejects distant lasso and eraser candidates without rendering or rescanning samples", () => {
+  const stroke = { ...ink(), tool: "highlighter" as const, highlighterType: "round" as const };
+  const points = vi.spyOn(stroke.points, Symbol.iterator), render = vi.spyOn(geometry, "strokeToSvgPath");
+  const polygon = [{ x: -100, y: -100 }, { x: -80, y: -100 }, { x: -80, y: -80 }, { x: -100, y: -80 }];
+  for (let i = 0; i < 20; i++) {
+    expect(selectRenderedStroke(stroke, polygon, i % 2 === 0)).toBe(false);
+    expect(eraseInk([stroke], eraserOutline(-100, -100, 12), { mode: "stroke", highlighterOnly: false }).changed).toBe(false);
+  }
+  expect(render).not.toHaveBeenCalled(); expect(points).toHaveBeenCalledTimes(1);
+  stroke.points.push({ x: -90, y: -90, pressure: .5, time: 20 });
+  expect(selectRenderedStroke(stroke, polygon, true)).toBe(true);
+  expect(eraseInk([stroke], eraserOutline(-90, -90, 12), { mode: "stroke", highlighterOnly: false }).changed).toBe(true);
 });
 it.each(["round", "chisel"] as const)("highlighter bounds need no union: %s", highlighterType => {
   const stroke = { ...ink(), tool: "highlighter" as const, highlighterType };

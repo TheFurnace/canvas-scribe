@@ -1,6 +1,6 @@
 import type { InkPoint, InkStroke } from "./types";
 import polygonClipping, { type Ring } from "polygon-clipping";
-import { strokeBounds, strokeOutline } from "./ink-operations";
+import { strokeBounds, strokeCandidateBounds, strokeOutline } from "./ink-operations";
 
 export interface SelectionBounds {
   minX: number;
@@ -29,6 +29,12 @@ export function strokeInsidePolygon(stroke: InkStroke, polygon: readonly Pick<In
 /** Closed boundary: touching ink is included; full selection includes the ink width. */
 export function selectRenderedStroke(stroke: InkStroke, polygon: readonly Pick<InkPoint, "x" | "y">[], partial: boolean): boolean {
   if (polygon.length < 3) return false;
+  const bounds = strokeCandidateBounds(stroke);
+  if (!bounds) return false;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const point of polygon) { minX = Math.min(minX, point.x); minY = Math.min(minY, point.y); maxX = Math.max(maxX, point.x); maxY = Math.max(maxY, point.y); }
+  // Keep the existing closed-boundary epsilon for touching edges.
+  if (bounds.maxX < minX - 1e-7 || bounds.minX > maxX + 1e-7 || bounds.maxY < minY - 1e-7 || bounds.minY > maxY + 1e-7) return false;
   const ring: Ring = polygon.map(({ x, y }) => [x, y]);
   const outline = strokeOutline(stroke);
   if (!outline.length) return false;
