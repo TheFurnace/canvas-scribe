@@ -91,11 +91,11 @@ export default class CanvasScribePlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "toggle-ink-prediction", name: "Toggle predicted ink tip (experimental)",
+      id: "toggle-ink-prediction", name: "Cycle predicted ink tip: OFF / 16 / 24 / 32 ms (experimental)",
       callback: () => {
-        this.inkLatency.prediction = !this.inkLatency.prediction;
-        this.logger.record("ink-latency", "prediction_toggled", { enabled: this.inkLatency.prediction });
-        new Notice(`Predicted ink tip ${this.inkLatency.prediction ? "ON" : "OFF"} for new Canvas and note strokes. Resets on restart.`);
+        const horizonMs = this.inkLatency.cyclePrediction();
+        this.logger.record("ink-latency", "prediction_mode_changed", { enabled: this.inkLatency.prediction, horizonMs });
+        new Notice(`Predicted ink tip: ${horizonMs ? `${horizonMs} ms` : "OFF"} for new Canvas and note strokes. Resets on restart.`);
       },
     });
     this.addCommand({

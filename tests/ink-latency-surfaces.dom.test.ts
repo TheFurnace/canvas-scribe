@@ -31,7 +31,7 @@ function pointer(target: Element, type: string, x: number, time: number) {
 }
 async function setup(surface: "canvas" | "note", prediction = true) {
   const logger = new DebugLogger(), experiment = new InkLatencyExperiment(logger);
-  experiment.prediction = prediction; experiment.diagnostics = true;
+  experiment.horizonMs = prediction ? 16 : 0; experiment.diagnostics = true;
   const tools = new InkToolState();
   let target: HTMLElement, strokes: () => InkStroke[], undo: () => void, redo: () => void, save: () => string;
   if (surface === "note") {
@@ -95,4 +95,20 @@ it.each(["canvas", "note"] as const)("%s clears pending prediction on undo mid-s
   pointer(f.target, "pointerdown", 100, 100); pointer(f.target, "pointermove", 110, 110); pointer(f.target, "pointermove", 120, 120);
   f.undo(); frame(); expect(f.strokes()).toHaveLength(0);
   pointer(f.target, "pointermove", 140, 140); frame(); expect(f.strokes()).toHaveLength(0);
+});
+
+it.each([
+  ["canvas", 24], ["canvas", 32], ["note", 24], ["note", 32],
+] as const)("%s preserves real ink with the %i ms mode and snapshots mode until lift", async (surface, horizon) => {
+  const f = await setup(surface); f.experiment.horizonMs = horizon;
+  pointer(f.target, "pointerdown", 100, 100); pointer(f.target, "pointermove", 105, 110); pointer(f.target, "pointermove", 110, 120);
+  frame(); const stroke = f.strokes()[0]!;
+  expect(f.path().getAttribute("d")).not.toBe(strokeToSvgPath(stroke, false));
+  f.experiment.horizonMs = 0; // applies only to the next gesture
+  pointer(f.target, "pointerup", 110, 125); frame();
+  expect(f.path().getAttribute("d")).toBe(strokeToSvgPath(stroke, true));
+  expect(stroke.points.map(p => p.x)).toEqual([100, 105, 110]);
+  const entry = f.logger.snapshot().entries.find(e => e.category === "ink-latency")!;
+  expect(entry.data).toMatchObject({ horizonMs: horizon, predictionDistanceMeanCssPx: horizon * .5, predictionHorizonMeanMs: horizon });
+  f.undo(); expect(f.strokes()).toHaveLength(0); f.redo(); expect(f.strokes()[0]!.points).toEqual(stroke.points);
 });

@@ -123,10 +123,12 @@ Describe the result you wanted.
 - Display refresh setting and battery saver:
 - Samsung Notes version and matching pen/zoom:
 - Prediction OFF: fast-line gap, corners, stop while touching:
-- Prediction ON: fast-line gap, corners, stop while touching:
+- Prediction 16 ms: fast-line gap, corners, stop while touching:
+- Prediction 24 ms: fast-line gap, corners, stop while touching:
+- Prediction 32 ms: fast-line gap, corners, stop while touching:
 - Any overshoot or visible correction at pen lift:
 
-Use **Toggle ink latency recording**, draw a baseline, then **Toggle predicted ink tip (experimental)** and repeat. Both reset to OFF on restart and apply to new strokes. The log includes per-stroke timing summaries when recording is enabled. These measure input-to-SVG-update work, not screen presentation or physical pen-to-display latency. No stroke coordinates are included.
+Use **Toggle ink latency recording**, draw a baseline, then **Cycle predicted ink tip: OFF / 16 / 24 / 32 ms (experimental)** and repeat at each mode. Confirm the mode in the notice. Recording and prediction reset to OFF on restart and apply to new strokes. The log includes per-stroke timing, used prediction horizon/distance, cap frequency and estimated lead remaining at render. These measure JavaScript work and preview endpoints before smoothing/paint, not physical pen-to-display latency. No stroke coordinates are included.
 
 ## Optional notes
 

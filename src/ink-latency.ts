@@ -1,7 +1,8 @@
 import type { DebugData, DebugLogger } from "./debug-logger";
 import type { InkPoint, InkStroke } from "./types";
 
-const HORIZON_MS = 16;
+export const PREDICTION_HORIZONS = [0, 16, 24, 32] as const;
+export type PredictionHorizon = typeof PREDICTION_HORIZONS[number];
 const EXPIRY_MS = 40;
 const MAX_DISTANCE_PX = 24;
 type Position = { x: number; y: number };
@@ -10,13 +11,18 @@ type Project = (x: number, y: number) => Position | null;
 
 /** Session-only experiment. Neither options nor predicted points enter document data. */
 export class InkLatencyExperiment {
-  prediction = false;
+  horizonMs: PredictionHorizon = 0;
+  get prediction(): boolean { return this.horizonMs !== 0; }
   diagnostics = false;
   constructor(private readonly logger?: DebugLogger) {}
+  cyclePrediction(): PredictionHorizon {
+    this.horizonMs = PREDICTION_HORIZONS[(PREDICTION_HORIZONS.indexOf(this.horizonMs) + 1) % PREDICTION_HORIZONS.length]!;
+    return this.horizonMs;
+  }
   begin(document: Document, surface: "canvas" | "note", stroke: InkStroke, redraw: () => void): LiveInkSession | null {
     if (!this.prediction && !this.diagnostics) return null;
     return new LiveInkSession(document.defaultView!, surface, stroke.penType ?? stroke.highlighterType ?? stroke.tool,
-      this.prediction, this.diagnostics ? this.logger : undefined, redraw);
+      this.horizonMs, this.diagnostics ? this.logger : undefined, redraw);
   }
 }
 
@@ -25,25 +31,35 @@ class Timing {
   private values: number[] = [];
   private count = 0;
   private total = 0;
-  private max = 0;
+  private min = Infinity;
+  private max = -Infinity;
+  constructor(private readonly unit: "Ms" | "CssPx" = "Ms", private readonly signed = false) {}
   add(value: number): void {
-    if (!Number.isFinite(value) || value < 0) return;
+    if (!Number.isFinite(value) || (!this.signed && value < 0)) return;
     this.values[this.count++ % 256] = value;
-    this.total += value; this.max = Math.max(this.max, value);
+    this.total += value; this.min = Math.min(this.min, value); this.max = Math.max(this.max, value);
   }
   write(data: DebugData, name: string): void {
     if (!this.count) return;
     const sorted = [...this.values].sort((a, b) => a - b);
-    data[`${name}MeanMs`] = round(this.total / this.count);
-    data[`${name}MaxMs`] = round(this.max);
-    data[`${name}RecentP95Ms`] = round(sorted[Math.ceil(sorted.length * .95) - 1]!);
+    data[`${name}Count`] = this.count;
+    data[`${name}Mean${this.unit}`] = round(this.total / this.count);
+    data[`${name}Min${this.unit}`] = round(this.min);
+    data[`${name}Max${this.unit}`] = round(this.max);
+    data[`${name}RecentP95${this.unit}`] = round(sorted[Math.ceil(sorted.length * .95) - 1]!);
   }
 }
 
 export class LiveInkSession {
   private samples: Sample[] = [];
   private tip: Position | null = null;
-  private source: "native" | "fallback" | "none" = "none";
+  private source: "native" | "native-extended" | "fallback" | "none" = "none";
+  private tipTime = 0;
+  private tipHorizon = 0;
+  private nativeHorizon = 0;
+  private tipDistance = 0;
+  private uncappedDistance = 0;
+  private distanceScale = 1;
   private expiry: number | null = null;
   private ended = false;
   private newestTime: number | null = null;
@@ -52,6 +68,8 @@ export class LiveInkSession {
   private events = 0;
   private frames = 0;
   private nativeFrames = 0;
+  private nativeExtendedFrames = 0;
+  private distanceCappedFrames = 0;
   private fallbackFrames = 0;
   private nativeAvailable = false;
   private invalidTimestamps = 0;
@@ -61,9 +79,16 @@ export class LiveInkSession {
   private readonly frameWait = new Timing();
   private readonly frameInterval = new Timing();
   private readonly renderWork = new Timing();
+  private readonly selectedNativeHorizon = new Timing();
+  private readonly predictionHorizon = new Timing();
+  private readonly effectiveHorizonEstimate = new Timing();
+  private readonly predictionLeadAtRender = new Timing("Ms", true);
+  private readonly effectiveLeadAtRenderEstimate = new Timing("Ms", true);
+  private readonly predictionDistance = new Timing("CssPx");
+  private readonly uncappedPredictionDistance = new Timing("CssPx");
 
   constructor(private readonly view: Window, private readonly surface: string, private readonly tool: string,
-    private readonly prediction: boolean, private readonly logger: DebugLogger | undefined, private readonly redraw: () => void) {}
+    private readonly horizonMs: PredictionHorizon, private readonly logger: DebugLogger | undefined, private readonly redraw: () => void) {}
 
   observe(event: PointerEvent, actual: readonly PointerEvent[], project: Project): void {
     if (this.ended) return;
@@ -93,7 +118,7 @@ export class LiveInkSession {
       this.oldestInputAge.add(now - oldest);
     }
     if (oldest === Infinity) { this.samples = []; return; }
-    if (!this.prediction || event.pointerType !== "pen") return;
+    if (this.horizonMs === 0 || event.pointerType !== "pen") return;
     const latest = this.samples[this.samples.length - 1], previous = this.samples[this.samples.length - 2], before = this.samples[this.samples.length - 3];
     if (!latest || !previous || !before || now - latest.time >= EXPIRY_MS) return;
     const dt = latest.time - previous.time, priorDt = previous.time - before.time;
@@ -104,24 +129,35 @@ export class LiveInkSession {
     // Suppress extrapolation at stops, sudden speed changes, and sharp corners.
     if (speed < .08 || priorSpeed < .08 || speed / priorSpeed < .5 || speed / priorSpeed > 2 ||
       (vx * ux + vy * uy) / (speed * priorSpeed) < .85) return;
-    let dx = vx * HORIZON_MS, dy = vy * HORIZON_MS;
+    let dx = vx * this.horizonMs, dy = vy * this.horizonMs;
+    this.tipHorizon = this.horizonMs; this.nativeHorizon = 0;
     this.source = "fallback";
     try {
       const predictions = native.getPredictedEvents?.() ?? [];
       let bestTime = latest.time;
       for (const p of predictions) {
-        if (p.timeStamp > bestTime && p.timeStamp <= latest.time + HORIZON_MS &&
+        if (p.timeStamp > bestTime && p.timeStamp <= latest.time + this.horizonMs &&
           Number.isFinite(p.clientX) && Number.isFinite(p.clientY)) {
           const px = p.clientX - latest.x, py = p.clientY - latest.y;
           if (px * vx + py * vy <= 0) continue;
           dx = px; dy = py; bestTime = p.timeStamp; this.source = "native";
+          this.nativeHorizon = this.tipHorizon = bestTime - latest.time;
         }
       }
     } catch { /* Some WebViews expose the method but cannot supply predictions. */ }
+    // Preserve beta.15's 16 ms mode. Longer modes must not silently reuse a
+    // shorter native endpoint unchanged: extend it with already-guarded velocity.
+    if (this.horizonMs > 16 && this.source === "native" && this.tipHorizon < this.horizonMs) {
+      const extra = this.horizonMs - this.tipHorizon;
+      dx += vx * extra; dy += vy * extra;
+      this.tipHorizon = this.horizonMs; this.source = "native-extended";
+    }
     const distance = Math.hypot(dx, dy);
     const scale = Math.min(1, MAX_DISTANCE_PX / distance);
     this.tip = project(latest.x + dx * scale, latest.y + dy * scale);
     if (!this.tip || !Number.isFinite(this.tip.x) || !Number.isFinite(this.tip.y)) { this.tip = null; return; }
+    this.tipTime = latest.time;
+    this.tipDistance = distance * scale; this.uncappedDistance = distance; this.distanceScale = scale;
     // No new event is required to retract the tip when the pen stops in contact.
     this.expiry = this.view.setTimeout(() => {
       this.expiry = null; this.tip = null; this.source = "none";
@@ -139,8 +175,19 @@ export class LiveInkSession {
     draw(point ? { ...stroke, points: [...stroke.points, point] } : stroke);
     if (!this.logger) return;
     this.frames++;
-    if (point && this.source === "native") this.nativeFrames++;
-    if (point && this.source === "fallback") this.fallbackFrames++;
+    if (point) {
+      if (this.source === "native" || this.source === "native-extended") {
+        this.nativeFrames++; this.selectedNativeHorizon.add(this.nativeHorizon);
+      }
+      if (this.source === "native-extended") this.nativeExtendedFrames++;
+      if (this.source === "fallback") this.fallbackFrames++;
+      if (this.distanceScale < 1) this.distanceCappedFrames++;
+      this.predictionHorizon.add(this.tipHorizon);
+      this.effectiveHorizonEstimate.add(this.tipHorizon * this.distanceScale);
+      this.predictionLeadAtRender.add(this.tipTime + this.tipHorizon - start);
+      this.effectiveLeadAtRenderEstimate.add(this.tipTime + this.tipHorizon * this.distanceScale - start);
+      this.predictionDistance.add(this.tipDistance); this.uncappedPredictionDistance.add(this.uncappedDistance);
+    }
     if (this.newestTime !== null) this.renderAge.add(start - this.newestTime);
     if (this.pendingAt !== null) this.frameWait.add(start - this.pendingAt);
     if (this.lastFrame !== null) this.frameInterval.add(start - this.lastFrame);
@@ -152,13 +199,19 @@ export class LiveInkSession {
     if (this.ended) return;
     this.ended = true; this.clearExpiry(); this.tip = null; this.samples = [];
     if (!this.logger) return;
-    const data: DebugData = { surface: this.surface, tool: this.tool, prediction: this.prediction, reason,
+    const data: DebugData = { surface: this.surface, tool: this.tool, prediction: this.horizonMs !== 0, reason,
       events: this.events, frames: this.frames, nativeFrames: this.nativeFrames, fallbackFrames: this.fallbackFrames,
       nativeAvailable: this.nativeAvailable, invalidTimestamps: this.invalidTimestamps,
-      horizonMs: HORIZON_MS, maxDistanceCssPx: MAX_DISTANCE_PX, expiryMs: EXPIRY_MS,
+      nativeExtendedFrames: this.nativeExtendedFrames, distanceCappedFrames: this.distanceCappedFrames,
+      horizonMs: this.horizonMs, maxDistanceCssPx: MAX_DISTANCE_PX, expiryMs: EXPIRY_MS,
+      predictionScope: "Frame-weighted endpoint metrics, before smoothing/paint. Effective horizon/lead are linear distance-cap estimates; negative lead means behind render time.",
       timingScope: "JS input-to-SVG-update; excludes paint/display; recent p95 uses last 256 observations" };
     for (const [name, timing] of Object.entries({ inputAge: this.inputAge, oldestInputAge: this.oldestInputAge,
-      renderAge: this.renderAge, frameWait: this.frameWait, activeRenderInterval: this.frameInterval, renderWork: this.renderWork })) timing.write(data, name);
+      renderAge: this.renderAge, frameWait: this.frameWait, activeRenderInterval: this.frameInterval, renderWork: this.renderWork,
+      selectedNativeHorizon: this.selectedNativeHorizon, predictionHorizon: this.predictionHorizon,
+      effectiveHorizonEstimate: this.effectiveHorizonEstimate, predictionLeadAtRender: this.predictionLeadAtRender,
+      effectiveLeadAtRenderEstimate: this.effectiveLeadAtRenderEstimate, predictionDistance: this.predictionDistance,
+      uncappedPredictionDistance: this.uncappedPredictionDistance })) timing.write(data, name);
     this.logger.record("ink-latency", "stroke", data);
   }
 

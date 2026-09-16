@@ -1,0 +1,186 @@
+{
+  "surfaces": [
+    {
+      "surface": "canvas",
+      "before": 3,
+      "after": 7,
+      "undo": 6,
+      "redo": 7,
+      "file": "Canvas Scribe Smoke Test.canvas",
+      "savedSamples": [
+        31,
+        31,
+        31,
+        31
+      ]
+    },
+    {
+      "surface": "note",
+      "before": 0,
+      "after": 4,
+      "undo": 3,
+      "redo": 4,
+      "file": "Untitled 1.scribe",
+      "savedSamples": [
+        31,
+        31,
+        31,
+        31
+      ]
+    }
+  ],
+  "stops": [
+    {
+      "surface": "canvas",
+      "tipBefore": true,
+      "tipAfter": false,
+      "geometryRetracted": true,
+      "samplesBefore": 31,
+      "samplesAfter": 31
+    },
+    {
+      "surface": "note",
+      "tipBefore": true,
+      "tipAfter": false,
+      "geometryRetracted": true,
+      "samplesBefore": 31,
+      "samplesAfter": 31
+    }
+  ],
+  "setup": {
+    "version": "2.0.0-beta.16",
+    "mode": 0,
+    "recording": true,
+    "title": "Canvas Scribe Smoke Test - fer-93-latency - Obsidian 1.13.7",
+    "command": "Canvas Scribe: Cycle predicted ink tip: OFF / 16 / 24 / 32 ms (experimental)"
+  },
+  "timings": [
+    {
+      "surface": "canvas",
+      "horizonMs": 0,
+      "frames": 30,
+      "nativeFrames": 0,
+      "nativeExtendedFrames": 0,
+      "fallbackFrames": 0,
+      "distanceCappedFrames": 0
+    },
+    {
+      "surface": "canvas",
+      "horizonMs": 16,
+      "frames": 30,
+      "nativeFrames": 21,
+      "nativeExtendedFrames": 0,
+      "fallbackFrames": 8,
+      "distanceCappedFrames": 0,
+      "selectedNativeHorizonMeanMs": 15.562,
+      "predictionHorizonMeanMs": 15.683,
+      "effectiveHorizonEstimateMeanMs": 15.683,
+      "predictionDistanceMeanCssPx": 2.934,
+      "predictionLeadAtRenderMeanMs": 12.903,
+      "effectiveLeadAtRenderEstimateMeanMs": 12.903
+    },
+    {
+      "surface": "canvas",
+      "horizonMs": 24,
+      "frames": 30,
+      "nativeFrames": 26,
+      "nativeExtendedFrames": 26,
+      "fallbackFrames": 3,
+      "distanceCappedFrames": 0,
+      "selectedNativeHorizonMeanMs": 15.769,
+      "predictionHorizonMeanMs": 24,
+      "effectiveHorizonEstimateMeanMs": 24,
+      "predictionDistanceMeanCssPx": 4.508,
+      "predictionLeadAtRenderMeanMs": 21.286,
+      "effectiveLeadAtRenderEstimateMeanMs": 21.286
+    },
+    {
+      "surface": "canvas",
+      "horizonMs": 32,
+      "frames": 31,
+      "nativeFrames": 25,
+      "nativeExtendedFrames": 25,
+      "fallbackFrames": 4,
+      "distanceCappedFrames": 0,
+      "selectedNativeHorizonMeanMs": 15.784,
+      "predictionHorizonMeanMs": 32,
+      "effectiveHorizonEstimateMeanMs": 32,
+      "predictionDistanceMeanCssPx": 6.008,
+      "predictionLeadAtRenderMeanMs": 29.334,
+      "effectiveLeadAtRenderEstimateMeanMs": 29.334
+    },
+    {
+      "surface": "note",
+      "horizonMs": 0,
+      "frames": 30,
+      "nativeFrames": 0,
+      "nativeExtendedFrames": 0,
+      "fallbackFrames": 0,
+      "distanceCappedFrames": 0
+    },
+    {
+      "surface": "note",
+      "horizonMs": 16,
+      "frames": 30,
+      "nativeFrames": 24,
+      "nativeExtendedFrames": 0,
+      "fallbackFrames": 4,
+      "distanceCappedFrames": 0,
+      "selectedNativeHorizonMeanMs": 15.754,
+      "predictionHorizonMeanMs": 15.789,
+      "effectiveHorizonEstimateMeanMs": 15.789,
+      "predictionDistanceMeanCssPx": 3.019,
+      "predictionLeadAtRenderMeanMs": 13.296,
+      "effectiveLeadAtRenderEstimateMeanMs": 13.296
+    },
+    {
+      "surface": "note",
+      "horizonMs": 24,
+      "frames": 30,
+      "nativeFrames": 22,
+      "nativeExtendedFrames": 22,
+      "fallbackFrames": 5,
+      "distanceCappedFrames": 0,
+      "selectedNativeHorizonMeanMs": 15.645,
+      "predictionHorizonMeanMs": 24,
+      "effectiveHorizonEstimateMeanMs": 24,
+      "predictionDistanceMeanCssPx": 4.536,
+      "predictionLeadAtRenderMeanMs": 21.648,
+      "effectiveLeadAtRenderEstimateMeanMs": 21.648
+    },
+    {
+      "surface": "note",
+      "horizonMs": 32,
+      "frames": 31,
+      "nativeFrames": 18,
+      "nativeExtendedFrames": 18,
+      "fallbackFrames": 9,
+      "distanceCappedFrames": 0,
+      "selectedNativeHorizonMeanMs": 15.644,
+      "predictionHorizonMeanMs": 32,
+      "effectiveHorizonEstimateMeanMs": 32,
+      "predictionDistanceMeanCssPx": 5.827,
+      "predictionLeadAtRenderMeanMs": 29.044,
+      "effectiveLeadAtRenderEstimateMeanMs": 29.044
+    }
+  ],
+  "errors": [],
+  "reopened": {
+    "version": "2.0.0-beta.16",
+    "mode": 0,
+    "recording": false,
+    "canvasLastFour": [
+      31,
+      31,
+      31,
+      31
+    ],
+    "noteSamples": [
+      31,
+      31,
+      31,
+      31
+    ],
+    "notePaths": 4
+  }
+}

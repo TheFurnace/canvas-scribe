@@ -1,5 +1,7 @@
 # FER-93: Galaxy S Pen latency experiment
 
+Historical beta.15 validation. For the current four-mode experiment and test steps, see [beta.16 prediction horizons](2026-09-16-prediction-horizons.md).
+
 ## Purpose and scope
 
 User reports a roughly 1 cm tip-to-ink gap when moving fast on Galaxy Tab with S Pen in Canvas and handwritten notes, similar across tools, which catches up when stationary. Samsung Notes is the user's lower-latency comparison. The experiment is based on main d54ec3d, including the prior history, retained-rendering, bounds and spatial-index work. It does not claim to match Samsung Notes or reduce measured physical latency yet.
