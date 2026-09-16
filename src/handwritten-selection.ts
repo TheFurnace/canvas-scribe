@@ -1,6 +1,19 @@
 import { boundsForObjects, objectBounds, type HandwrittenObject } from "./handwritten-note";
-import { transformInk } from "./ink-operations";
+import { transformInk, strokeCandidateBounds } from "./ink-operations";
 import { selectRenderedStroke } from "./selection";
+
+/** Notes' stroke eraser tests the sample path, including for cut ink. Cover both
+ * that path and the rendered outline so indexing does not change its hit policy. */
+export function handwrittenCandidateBounds(object: HandwrittenObject) {
+  if (object.kind === "text") return objectBounds(object);
+  const bounds = strokeCandidateBounds(object);
+  if (!object.outline) return bounds;
+  const samples = strokeCandidateBounds({ ...object, outline: undefined });
+  if (!bounds) return samples;
+  if (!samples) return bounds;
+  return { minX: Math.min(bounds.minX, samples.minX), minY: Math.min(bounds.minY, samples.minY),
+    maxX: Math.max(bounds.maxX, samples.maxX), maxY: Math.max(bounds.maxY, samples.maxY) };
+}
 
 /** Reuse the rendered-geometry predicate for text rectangles and ink. */
 export function selectHandwrittenObject(object: HandwrittenObject, polygon: readonly { x: number; y: number }[], partial: boolean): boolean {

@@ -4,7 +4,9 @@ import { isStylusBarrelButton, pointerSamples, pointerToInkPoint } from "./point
 import { setIcon } from "obsidian";
 import type { InkSurfaceAdapter, SurfaceTransform } from "./ink-surface";
 import { strokeToSvgPath } from "./geometry";
-import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
+import { eraserOutline, transformInk, strokeCandidateBounds } from "./ink-operations";
+import { eraseIndexedInk } from "./indexed-ink";
+import { SpatialIndex, polygonBounds } from "./spatial-index";
 import { boundsForStrokes, pointInBounds, selectRenderedStroke } from "./selection";
 import { PEN_PROFILES } from "./pen-types";
 import { createStrokeId, type InkPoint } from "./types";
@@ -43,6 +45,7 @@ export class PdfLayer {
   private gesture: Gesture | null = null;
   private readonly overlays = new Map<number, SVGSVGElement>();
   private readonly rendered = new Map<number, Map<string, RenderedInk>>();
+  private readonly spatial = new SpatialIndex<PdfInk>(strokeCandidateBounds, stroke => stroke.page);
   private fullRender = true;
   private readonly touches = new Map<number, Point>();
   private touchScale = 0;
@@ -50,12 +53,13 @@ export class PdfLayer {
   private readonly surface: PdfSurface;
   private readonly abort = new AbortController();
   private readonly events = ["pagerendered", "pagesinit", "scalechanging", "rotationchanging", "updateviewarea"];
-  private readonly changed = () => { if (this.gesture && (this.session.error || this.session.reviewing || this.gesture.before !== this.session.document.strokes)) this.cancel(); this.schedule(); };
+  private readonly changed = () => { if (this.gesture && (this.session.error || this.session.reviewing || this.gesture.before !== this.session.document.strokes)) this.cancel(); if (!this.gesture) this.spatial.sync(this.session.document.strokes); this.schedule(); };
   private readonly redraw = () => this.schedule();
   private readonly viewportChanged = () => { this.cancel(); this.schedule(); };
   constructor(private readonly view: NativePdfView, private readonly host: NativePdfHost, private readonly session: PdfSession,
     store: PdfStore, favorites: FavoritePens, private readonly status: (message: string) => void, state = new InkToolState()) {
     this.surface = new PdfSurface(store, session);
+    this.spatial.sync(session.document.strokes);
     this.undoAction = () => { this.cancel(); store.undo(session); };
     this.redoAction = () => { this.cancel(); store.undo(session, true); };
     this.tools = new PdfTools(view.contentEl.ownerDocument, setIcon, {
@@ -105,7 +109,7 @@ export class PdfLayer {
     for (const event of this.events) this.host.eventBus.off(event, this.redraw);
     this.host.eventBus.off("scalechanging", this.viewportChanged); this.host.eventBus.off("rotationchanging", this.viewportChanged);
     this.session.listeners.delete(this.changed); if (this.frame !== null) cancelAnimationFrame(this.frame);
-    for (const svg of this.overlays.values()) svg.remove(); this.overlays.clear(); this.rendered.clear(); this.tools.destroy();
+    for (const svg of this.overlays.values()) svg.remove(); this.overlays.clear(); this.rendered.clear(); this.spatial.clear(); this.tools.destroy();
   }
   private toggle(): void {
     if (this.session.error) { this.status(this.session.error); return; }
@@ -136,6 +140,7 @@ export class PdfLayer {
     this.sync();
     const visible = this.host.pdfViewer.container.getBoundingClientRect();
     const strokes = this.gesture?.working ?? this.session.document.strokes;
+    this.spatial.sync(strokes, this.gesture?.stroke);
     const byPage = new Map<number, PdfInk[]>();
     for (const stroke of strokes) { const list = byPage.get(stroke.page) ?? []; list.push(stroke); byPage.set(stroke.page, list); }
     for (let i = 0; i < this.host.pdfDocument.numPages; i++) {
@@ -185,7 +190,7 @@ export class PdfLayer {
     const pageEl = (event.target as Element).closest<HTMLElement>(".page[data-page-number]");
     const index = Number(pageEl?.dataset.pageNumber) - 1, point = this.point(event, index); if (!point || !this.session.document.source.pages[index]) return;
     this.consume(event); this.tools.close(); this.touches.clear(); this.view.contentEl.setPointerCapture(event.pointerId);
-    const before = this.session.document.strokes, working = [...before];
+    const before = this.session.document.strokes, working = before;
     const bounds = boundsForStrokes(working.filter(s => this.selected.has(s.id) && s.page === index));
     const g: Gesture = { tools: this.tools.state.snapshot(), id: event.pointerId, page: index, before, working, points: [point], origin: point, moving: this.tools.state.activeTool === "lasso" && !!bounds && pointInBounds(point, bounds) };
     this.gesture = g; this.selectedPage = index;
@@ -194,7 +199,7 @@ export class PdfLayer {
       this.selected.clear();
       g.stroke = { id: createStrokeId(), page: index, tool: s.activeTool, color: this.tools.color(), size: s.activeTool === "pen" ? s.penSize : s.highlighterSize,
         opacity: s.activeTool === "pen" ? s.penOpacity ?? PEN_PROFILES[s.penType].opacity : s.highlighterOpacity, penType: s.penType, highlighterType: s.highlighterType,
-        points: [this.inkPoint(event, point)], hasPressure: event.pressure > 0, createdAt: Date.now() }; g.working.push(g.stroke);
+        points: [this.inkPoint(event, point)], hasPressure: event.pressure > 0, createdAt: Date.now() }; g.working = [...before, g.stroke];
     } else if (s.activeTool === "eraser") this.erase(point);
     else if (!g.moving) this.selected.clear();
     this.schedule();
@@ -224,8 +229,8 @@ export class PdfLayer {
   }
   private erase(point: Point): void {
     const g = this.gesture!; const scale = this.host.pdfViewer.getPageView(g.page)?.viewport.scale ?? 1;
-    const result = eraseInk(g.working.filter(s => s.page === g.page), eraserOutline(point.x, point.y, g.tools.eraserSettings.radius / scale), g.tools.eraserSettings);
-    if (result.changed) g.working = [...g.working.filter(s => s.page !== g.page), ...result.strokes.map(s => "page" in s ? s as PdfInk : { ...s, page: g.page })];
+    const result = eraseIndexedInk(g.working, this.spatial, eraserOutline(point.x, point.y, g.tools.eraserSettings.radius / scale), g.tools.eraserSettings, g.page);
+    if (result.changed) g.working = result.strokes;
   }
   private up(event: PointerEvent, canceled = false): void {
     if (this.touches.delete(event.pointerId)) { this.consume(event); this.touchScale = this.touchDistance(); this.release(event.pointerId); return; }
@@ -233,13 +238,16 @@ export class PdfLayer {
     this.consume(event); this.gesture = null; this.release(event.pointerId);
     if ((!canceled || !!g.stroke) && g.before === this.session.document.strokes && !this.session.error) {
       if (g.tools.activeTool === "lasso" && !g.moving) {
-        for (const stroke of g.working.filter(s => s.page === g.page)) if (selectRenderedStroke(stroke, this.polygon(g.points, g.tools), g.tools.selectionSettings.partial)) this.selected.add(stroke.id);
+        const polygon = this.polygon(g.points, g.tools), bounds = polygonBounds(polygon);
+        this.spatial.sync(g.working);
+        for (const stroke of bounds ? this.spatial.search(bounds, g.page) : []) if (selectRenderedStroke(stroke, polygon, g.tools.selectionSettings.partial)) this.selected.add(stroke.id);
       } else {
         const previous = new Set(g.before);
         const strokes = g.working.flatMap(s => { const clipped = !previous.has(s) ? clipPdfInk(s, this.session.document.source.pages[s.page]!) : s; return clipped ? [clipped] : []; });
         if (strokes.length !== g.before.length || strokes.some((s, i) => s !== g.before[i])) this.commit(strokes);
       }
     }
+    this.spatial.sync(this.session.document.strokes);
     this.schedule();
   }
   private polygon(points: Point[], tools = this.gesture?.tools ?? this.tools.state): Point[] {
@@ -248,7 +256,7 @@ export class PdfLayer {
   }
   private inkPoint(event: PointerEvent, point: Point): InkPoint { return pointerToInkPoint(event, point.x, point.y); }
   private release(id: number): void { if (this.view.contentEl.hasPointerCapture?.(id)) this.view.contentEl.releasePointerCapture(id); }
-  private cancel(): void { const g = this.gesture; this.gesture = null; if (g) this.release(g.id); this.schedule(); }
+  private cancel(): void { const g = this.gesture; this.gesture = null; this.spatial.sync(this.session.document.strokes); if (g) this.release(g.id); this.schedule(); }
   private commit(strokes: PdfInk[]): void { void this.surface.save({ ...this.session.document, strokes }); this.selected.clear(); this.schedule(); }
   private scale(factor: number): void {
     const selected = this.session.document.strokes.filter(s => this.selected.has(s.id)); const bounds = boundsForStrokes(selected); if (!bounds || !Number.isFinite(factor) || factor <= 0) return;

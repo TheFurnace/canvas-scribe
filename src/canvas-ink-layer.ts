@@ -7,7 +7,9 @@ import { resolveColor, type ColorTool } from "./colors";
 import { createColorPicker } from "./color-picker";
 import type { DebugLogger } from "./debug-logger";
 import { strokeToSvgPath } from "./geometry";
-import { eraseInk, eraserOutline, transformInk } from "./ink-operations";
+import { eraserOutline, transformInk, strokeCandidateBounds } from "./ink-operations";
+import { eraseIndexedInk } from "./indexed-ink";
+import { SpatialIndex, polygonBounds } from "./spatial-index";
 import { InkToolState } from "./ink-tool-state";
 import { DocumentHistory } from "./document-history";
 import { CanvasInkSurface, type SurfaceTransform } from "./ink-surface";
@@ -55,6 +57,7 @@ export class CanvasInkLayer {
   private readonly history = new DocumentHistory<InkStroke>(strokes => strokes.map(stroke => stroke === this.activeStroke ? cloneStrokes([stroke])[0]! : stroke), 100);
   private readonly surface: CanvasInkSurface;
   private data: CanvasInkData = createEmptyInkData();
+  private readonly spatial = new SpatialIndex<InkStroke>(strokeCandidateBounds);
   private svgEl: SVGSVGElement | null = null;
   private readonly renderedStrokes = new WeakMap<SVGPathElement, InkStroke>();
   private eraserCursorEl: SVGCircleElement | null = null;
@@ -170,6 +173,7 @@ export class CanvasInkLayer {
   }
 
   dispose(): void {
+    this.spatial.clear();
     this.closePenMenu();
     this.disposed = true;
     if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
@@ -587,6 +591,7 @@ export class CanvasInkLayer {
   }
 
   private finishGesture(): void {
+    this.spatial.sync(this.data.strokes, this.activeStroke);
     if (this.renderFrame !== null) {
       window.cancelAnimationFrame(this.renderFrame);
       this.renderFrame = null;
@@ -649,7 +654,7 @@ export class CanvasInkLayer {
       for (let step = 1; step <= steps; step++) {
         const x = previous.x + (point.x - previous.x) * step / steps;
         const y = previous.y + (point.y - previous.y) * step / steps;
-        const result = eraseInk(this.data.strokes, eraserOutline(x, y, radius, 0.1 / screenScale), {
+        const result = eraseIndexedInk(this.data.strokes, this.spatial, eraserOutline(x, y, radius, 0.1 / screenScale), {
           ...this.toolState.eraserSettings, tolerance: 0.1 / screenScale,
         });
         changed ||= result.changed; this.data.strokes = result.strokes;
@@ -767,6 +772,7 @@ export class CanvasInkLayer {
   }
 
   private renderAll(): void {
+    this.spatial.sync(this.data.strokes, this.activeStroke);
     if (!this.svgEl) return;
     const existing = new Map(Array.from(this.svgEl.querySelectorAll<SVGPathElement>("path.canvas-scribe-stroke")).map(path => [path.dataset.strokeId, path]));
     const paths = this.data.strokes.map(stroke => {
@@ -838,8 +844,10 @@ export class CanvasInkLayer {
   private finishLassoGesture(): void {
     if (this.lassoMode === "select") {
       this.selectedStrokeIds.clear();
-      for (const stroke of this.data.strokes) {
-        if (selectRenderedStroke(stroke, this.selectionPolygon(), this.toolState.selectionSettings.partial)) this.selectedStrokeIds.add(stroke.id);
+      const polygon = this.selectionPolygon(), bounds = polygonBounds(polygon);
+      this.spatial.sync(this.data.strokes);
+      for (const stroke of bounds ? this.spatial.search(bounds) : []) {
+        if (selectRenderedStroke(stroke, polygon, this.toolState.selectionSettings.partial)) this.selectedStrokeIds.add(stroke.id);
       }
       this.logger.record("ink", "lasso_selected", { strokeCount: this.selectedStrokeIds.size });
       this.lassoPathEl?.remove();

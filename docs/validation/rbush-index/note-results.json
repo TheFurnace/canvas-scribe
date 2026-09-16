@@ -1,0 +1,53 @@
+{
+  "setup": {
+    "file": "Untitled.scribe",
+    "point": [
+      485,
+      225.9375
+    ],
+    "count": 1001
+  },
+  "erased": {
+    "erased": 1000,
+    "undo": 1001,
+    "redo": 1000,
+    "lasso": [
+      [
+        443,
+        215.4375
+      ],
+      [
+        604,
+        239.9375
+      ]
+    ]
+  },
+  "selected": {
+    "selected": [
+      "note-0"
+    ],
+    "move": [
+      [
+        485,
+        225.9375
+      ],
+      [
+        485,
+        267.9375
+      ]
+    ]
+  },
+  "moved": {
+    "y": 220,
+    "point": [
+      485,
+      267.9375
+    ]
+  },
+  "final": {
+    "file": "Untitled.scribe",
+    "saved": 1001,
+    "textBottomBefore": 298,
+    "textBottomAfter": 1503
+  }
+}

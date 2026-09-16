@@ -26,6 +26,35 @@ function input(label: string, value: string) {
   expect(control, label).not.toBeNull(); control.value = value; control.dispatchEvent(new Event("input", { bubbles: true })); control.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
+it("indexes completed live ink, erases after undo, and replaces external document bounds", () => {
+  const { note, editor, stroke, pointer } = setup(); stroke();
+  editor.setTool("eraser"); pointer("pointerdown", 195, 100); pointer("pointerup", 195, 100);
+  expect(note.objects).toHaveLength(0); editor.undo(); expect(note.objects).toHaveLength(1);
+  pointer("pointerdown", 195, 100); pointer("pointerup", 195, 100); expect(note.objects).toHaveLength(0);
+  editor.undo();
+  const object = note.objects[0]!;
+  if (object.kind !== "ink") throw Error("Expected ink");
+  const replaced = { ...note, objects: [{ ...object, points: object.points.map(p => ({ ...p, x: p.x + 500 })) }] };
+  editor.setDocument(replaced);
+  pointer("pointerdown", 195, 100); pointer("pointerup", 195, 100); expect(replaced.objects).toHaveLength(1);
+  pointer("pointerdown", 695, 100); pointer("pointerup", 695, 100); expect(replaced.objects).toHaveLength(0);
+});
+
+it("updates selection bounds after editing and resizing a text box", () => {
+  const { note, editor } = setup();
+  note.objects.push({ kind: "text", id: "reflow", x: 300, y: 300, width: 200, text: "Short", fontSize: 18, color: "#111", align: "left" });
+  editor.setDocument(note);
+  const state = editor as unknown as { spatial: { search(b: { minX: number; minY: number; maxX: number; maxY: number }): { id: string }[] } };
+  const textarea = editor.root.querySelector<HTMLTextAreaElement>('[data-object-id="reflow"] textarea, textarea[data-object-id="reflow"]')!;
+  expect(textarea).not.toBeNull();
+  Object.defineProperty(textarea, "scrollHeight", { value: 400, configurable: true });
+  textarea.value = "Long\n".repeat(20); textarea.dispatchEvent(new Event("input"));
+  expect(state.spatial.search({ minX: 310, minY: 650, maxX: 320, maxY: 660 }).map(o => o.id)).toContain("reflow");
+  Object.defineProperty(textarea, "scrollHeight", { value: 48, configurable: true });
+  textarea.value = "Short"; textarea.dispatchEvent(new Event("input"));
+  expect(state.spatial.search({ minX: 310, minY: 650, maxX: 320, maxY: 660 })).toEqual([]);
+});
+
 it("applies pen menu type, size and color to saved strokes and dismisses on drawing", () => {
   const { note, tool, stroke } = setup();
   tool("pen"); click('[data-pen-type="ballpoint"]'); input("Pen thickness", "8"); click('[aria-label="Use #dc2626"]');

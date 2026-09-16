@@ -1,0 +1,64 @@
+{
+  "setup": {
+    "point": [
+      678,
+      594.046875
+    ],
+    "pages": 2
+  },
+  "erased": {
+    "after": [
+      "other-page",
+      "remote"
+    ],
+    "lasso": [
+      [
+        454,
+        625.846875
+      ],
+      [
+        902,
+        562.246875
+      ]
+    ]
+  },
+  "selected": {
+    "ids": [
+      "target"
+    ],
+    "move": [
+      [
+        678,
+        594.046875
+      ],
+      [
+        678,
+        498.6468750000001
+      ]
+    ]
+  },
+  "moved": {
+    "y": 359.9999961613109,
+    "point": [
+      678,
+      498.6468750000001
+    ]
+  },
+  "final": {
+    "saved": [
+      {
+        "id": "other-page",
+        "page": 1
+      },
+      {
+        "id": "target",
+        "page": 0
+      },
+      {
+        "id": "remote",
+        "page": 0
+      }
+    ],
+    "companion": "Scribe PDF annotations/1138785c-bd8f-4e8d-929c-c31347c3f504.json"
+  }
+}

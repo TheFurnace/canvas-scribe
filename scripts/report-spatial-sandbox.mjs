@@ -5,6 +5,16 @@ const data = JSON.parse(readFileSync(resolve(folder, "results.json"), "utf8"));
 const median = values => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 const sum = values => values.reduce((a, b) => a + b, 0);
 const fixed = n => n == null ? "—" : n.toFixed(2);
+if (data.results.some(r => r.algorithm === "rbush-production")) {
+  const rows = ["| Scenario | Gestures | Handler total | Peak handler |", "| --- | ---: | ---: | ---: |"];
+  for (const scenario of [...new Set(data.results.map(r => r.scenario))]) {
+    const runs = data.results.filter(r => r.scenario === scenario && !r.warmup);
+    const handlers = r => r.host.filter(s => s.method === "eraseSamples").map(s => s.ms);
+    rows.push(`| ${scenario} | ${runs.length} | ${fixed(median(runs.map(r => sum(handlers(r)))))} | ${fixed(median(runs.map(r => Math.max(...handlers(r)))))} |`);
+  }
+  const report = `# Production RBush sandbox\n\n${data.inspection.title}. ${data.timestamp}.\n\n10,000 strokes; same sparse-visible-ink fixture and 13-point trusted pen gestures as the comparison. Medians in milliseconds; total is cumulative CPU time over the gesture, peak is its slowest eraser handler. Index preparation occurs during normal document rendering. Raw sample timings cover index searches only.\n\n${rows.join("\n")}\n\n${data.results.length} gestures, ${data.results.reduce((n, r) => n + r.verifiedCalls, 0)} ordered-candidate comparisons against the bounds scan; undo/redo and complete saved data checked. Untouched chisel path retained: ${data.results.every(r => r.retainedPath)}. These are desktop handler measurements, not hardware latency.\n`;
+  writeFileSync(resolve(folder, "report.md"), report); console.log(report); process.exit(0);
+}
 const rows = [];
 for (const count of [...new Set(data.results.map(r => r.count))]) for (const scenario of [...new Set(data.results.map(r => r.scenario))]) {
   for (const algorithm of ["scan", "rbush", "grid-256"]) {

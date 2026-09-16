@@ -1,9 +1,10 @@
 # Spatial lookup experiment
 
-FER-91 compares the current cached-bounds scan with two index prototypes. All use
+FER-91 compares the original cached-bounds scan with two index prototypes. All use
 the production conservative stroke bounds and must return identical stroke
-references in the original document order. The benchmark adds no runtime index
-to the plugin; RBush 4.0.1 is an exact development dependency.
+references in the original document order. FER-92 now adopts RBush 4.0.1 as a
+runtime dependency for erasing and selection across all three drawing surfaces.
+See the [production validation](validation/2026-09-15-rbush-index.md).
 
 ## Run
 
@@ -84,16 +85,32 @@ Use the generated report alongside the checked-in
 Compare the complete eraser pipeline and memory/edit tradeoffs as well as raw
 lookup speed. A faster query is not the same as a faster presented frame.
 
-Production integration would still need explicit invalidation for every edit,
-undo/redo, external replacement and multi-view document lifecycle. It must preserve
-the existing ordered arrays, precise hit tests and document schema. PDF page
-partitioning and physical Galaxy/Obsidian A/B acceptance are separate next steps.
+The production integration maintains the index through edits, undo/redo, external
+replacement and live input, preserving ordered arrays, precise hit tests and the
+document schema. PDF queries use separate page partitions. Physical Galaxy/S Pen
+acceptance remains separate from desktop measurements.
+
+## Production sandbox validation
+
+Use a disposable named sandbox; the runner replaces its Canvas fixture:
+
+```powershell
+pnpm sandbox -Name rbush-adoption
+# Inspect the named vault and accept its trust dialog before input.
+node scripts/run-spatial-sandbox.mjs rbush-adoption --production
+node scripts/report-spatial-sandbox.mjs .canvas-scribe-sandbox/artifacts/rbush-adoption/spatial
+```
+
+This measures the installed production index without the experimental adapter.
 
 ## Real Obsidian sandbox experiment
 
 See the [recorded real-host results](validation/2026-09-15-spatial-sandbox.md).
 
-Use a disposable named sandbox from this worktree. The explicit experimental build
+The following three-way adapter instructions apply to historical commit `206f1c8`,
+before production adoption. Its build guard intentionally rejects the changed
+production eraser call; use that revision to reproduce the original comparison.
+Use a disposable named sandbox. The explicit experimental build
 replaces only the Canvas eraser call at build time, importing the adapter from
 `scripts/spatial/sandbox-adapter.ts`. It writes directly to that generated vault;
 the normal production build and `src/` files remain unchanged.

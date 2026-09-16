@@ -32,6 +32,31 @@ function seed(count: number): PdfInk[] {
     opacity: 1, createdAt: 1, hasPressure: true, points: Array.from({ length: 80 }, (_, p) => ({ x: 20 + p, y: 200 + i % 100 + Math.sin(p), pressure: .5, time: p })) }));
 }
 
+it("isolates erasing by page and refreshes index before input after external replacement", () => {
+  const f = fixture();
+  f.session.document.source.pages.push({ box: [0, 0, 400, 600], rotation: 0 });
+  const base = seed(1)[0]!;
+  const strokes = [{ ...base, id: "other-page", page: 1 }, { ...base, id: "hit" }, { ...base, id: "remote", points: base.points.map(p => ({ ...p, x: p.x + 200 })) }];
+  f.session.document.strokes = strokes; f.session.notify(); f.enable(); f.layer.setTool("eraser"); f.frame();
+  f.input("pointerdown", 50, 400); f.input("pointerup", 50, 400);
+  expect(f.session.document.strokes.map(s => s.id)).toEqual(["other-page", "remote"]);
+  f.session.document.strokes = strokes; f.session.notify();
+  // No frame between replacement and input: listener must already reconcile.
+  f.input("pointerdown", 50, 400); f.input("pointerup", 50, 400);
+  expect(f.session.document.strokes.map(s => s.id)).toEqual(["other-page", "remote"]);
+  f.layer.destroy();
+});
+
+it("restricts lasso candidates to the active PDF page", () => {
+  const f = fixture(), base = seed(1)[0]!;
+  f.session.document.source.pages.push({ box: [0, 0, 400, 600], rotation: 0 });
+  f.session.document.strokes = [{ ...base, id: "other-page", page: 1 }, { ...base, id: "selected" }];
+  f.session.notify(); f.enable(); f.layer.setTool("lasso"); f.frame();
+  f.input("pointerdown", 10, 380); f.input("pointermove", 120, 380); f.input("pointermove", 120, 420); f.input("pointermove", 10, 420); f.input("pointerup", 10, 380);
+  expect([...(f.layer as unknown as { selected: Set<string> }).selected]).toEqual(["selected"]);
+  f.layer.destroy();
+});
+
 it.each([0, 100, 500])("retains completed PDF paths and clips only new ink with %i strokes", count => {
   const f = fixture(); f.session.document.strokes = seed(count); f.enable(); f.frame();
   const existing = Array.from(f.page.querySelectorAll("path")), before = [...f.session.document.strokes];

@@ -21,6 +21,8 @@ const deployPlugin = {
 const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
   bundle: true,
+  // RBush's browser field names its UMD build; use its native ESM module.
+  alias: { rbush: "rbush/index.js" },
   external: ["obsidian", "electron", "@codemirror/*", "@lezer/*"],
   format: "cjs",
   target: "es2018",

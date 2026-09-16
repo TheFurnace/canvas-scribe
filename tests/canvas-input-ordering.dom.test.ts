@@ -51,6 +51,13 @@ describe("Canvas drawing input ordering", () => {
     expect(requiredElement("path.canvas-scribe-stroke")).toBe(finished);
     layer.undo(); expect(document.querySelector("path.canvas-scribe-stroke")).toBeNull();
     layer.redo(); expect(document.querySelectorAll("path.canvas-scribe-stroke")).toHaveLength(1);
+    // The index was read while this stroke had only its initial sample. Its final
+    // release point must be hittable after completion and history restoration.
+    layer.setTool("eraser");
+    card.dispatchEvent(pointerEvent("pointerdown", { pointerId: 402, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 100, clientY: 40 }));
+    card.dispatchEvent(pointerEvent("pointerup", { pointerId: 402, pointerType: "pen", button: 0, buttons: 0, pressure: 0, clientX: 100, clientY: 40 }));
+    expect(state.data.strokes).toHaveLength(0);
+    layer.undo(); expect(state.data.strokes).toHaveLength(1);
     layer.dispose();
   });
   it("deletes highlighter strokes without rebuilding survivors and restores them through history", async () => {

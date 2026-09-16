@@ -1,10 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { build } from "esbuild";
 
 const name = process.argv[2];
 if (!name || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name)) throw Error("Supply a disposable sandbox name");
 const quick = process.argv.includes("--quick");
+const production = process.argv.includes("--production");
 const out = resolve(".canvas-scribe-sandbox/artifacts", name, "spatial");
 mkdirSync(out, { recursive: true });
 function agent(command, args = []) {
@@ -19,9 +21,21 @@ function evaluate(fn, args = []) {
 // Deliberately seed model data outside timing. Erasing itself is trusted CDP pen input.
 async function prepare(algorithm, count, scenario, warm) {
   const plugin = app.plugins.plugins["canvas-scribe"];
-  if (!globalThis.__scribeSpatial || !plugin) throw Error("Load the experimental sandbox build first");
+  if (!plugin || (algorithm !== "rbush-production" && !globalThis.__scribeSpatial)) throw Error("Load the matching sandbox build first");
   const layer = [...plugin.layers.values()][0];
   if (!layer || !layer.loaded || layer.activePointerId !== null) throw Error("Canvas not idle/ready");
+  if (algorithm === "rbush-production" && !layer.spatial) throw Error("Production spatial index missing");
+  if (algorithm === "rbush-production" && !layer.__queryInstrumented) {
+    const search = layer.spatial.search;
+    layer.spatial.search = function (bounds, partition = 0) {
+      const start = performance.now(), found = search.call(this, bounds, partition);
+      globalThis.__queryChecks.push({ source: this.source, bounds, found });
+      globalThis.__querySamples.push({ ms: performance.now() - start, candidates: found.length });
+      return found;
+    };
+    layer.__queryInstrumented = true;
+  }
+  globalThis.__queryChecks = []; globalThis.__querySamples = [];
   for (const node of [...layer.target.view.canvas.nodes.values()]) layer.target.view.canvas.removeNode(node);
   if (!layer.__spatialInstrumented) {
     for (const method of ["eraseSamples", "renderAll", "beginGesture", "finishGesture"]) {
@@ -51,7 +65,8 @@ async function prepare(algorithm, count, scenario, warm) {
   layer.sharedTools.eraserSettings = { mode: scenario.startsWith("area") ? "area" : "stroke", radius: 18, highlighterOnly: false };
   layer.setTool("eraser"); layer.renderAll(); layer.scheduleSave();
   await layer.saveNow();
-  const build = globalThis.__scribeSpatial.configure(algorithm, strokes, warm);
+  const build = algorithm === "rbush-production" ? { preparedDuringRender: true } : globalThis.__scribeSpatial.configure(algorithm, strokes, warm);
+  globalThis.__productionRun = algorithm === "rbush-production";
   globalThis.__before = strokes;
   globalThis.__untouchedPath = layer.svgEl.querySelector('[data-stroke-id="fixture-1"]');
   globalThis.__hostSamples = [];
@@ -60,12 +75,18 @@ async function prepare(algorithm, count, scenario, warm) {
 }
 async function collect(scenario) {
   const layer = [...app.plugins.plugins["canvas-scribe"].layers.values()][0];
-  const result = { samples: [...__scribeSpatial.samples], host: [...__hostSamples], before: __before.length, after: layer.data.strokes.length,
+  const result = { samples: [...(globalThis.__productionRun ? __querySamples : __scribeSpatial.samples)], host: [...__hostSamples], before: __before.length, after: layer.data.strokes.length,
     retainedPath: layer.svgEl.querySelector('[data-stroke-id="fixture-1"]') === __untouchedPath };
   if (!result.host.some(s => s.method === "eraseSamples" && s.trusted)) throw Error("No trusted eraser input reached Canvas");
-  if (scenario !== "empty" && !result.samples.some(s => s.changed)) throw Error("Eraser did not hit target");
-  if (scenario === "empty" && result.samples.some(s => s.changed)) throw Error("Empty-space gesture changed ink");
-  result.verifiedCalls = __scribeSpatial.verify();
+  if (scenario !== "empty" && result.after === result.before) throw Error("Eraser did not hit target");
+  if (scenario === "empty" && result.after !== result.before) throw Error("Empty-space gesture changed ink");
+  if (globalThis.__productionRun) {
+    for (const { source, bounds: b, found } of __queryChecks) {
+      const expected = source.filter(s => { const a = __candidateBounds(s); return a && a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY; });
+      if (expected.length !== found.length || expected.some((s, i) => s !== found[i])) throw Error("Production index differs from ordered bounds scan");
+    }
+    result.verifiedCalls = __queryChecks.length; globalThis.__queryChecks = [];
+  } else result.verifiedCalls = __scribeSpatial.verify();
   const after = layer.data.strokes;
   if (scenario !== "empty") {
     layer.undo(); result.undo = layer.data.strokes.length;
@@ -84,7 +105,13 @@ const inspection = agent("inspect");
 if (!inspection.pluginLoaded || inspection.dialogs.length) throw Error("Inspect/trust the sandbox first");
 if (inspection.viewport.width !== 1024 || inspection.viewport.height !== 800) throw Error("Use the default 1024 x 800 sandbox viewport for this recorded gesture");
 const results = [];
-const algorithms = ["scan", "rbush", "grid-256"];
+if (production) {
+  if (process.argv.includes("--lifecycle")) throw Error("Use actual production history tools for lifecycle probes");
+  const oracle = resolve(out, "candidate-oracle.js");
+  await build({ stdin: { contents: 'import { strokeCandidateBounds } from "./src/ink-operations"; globalThis.__candidateBounds = strokeCandidateBounds;', resolveDir: process.cwd(), loader: "ts" }, bundle: true, format: "iife", footer: { js: "true;" }, outfile: oracle });
+  agent("eval", ["--file", oracle]);
+}
+const algorithms = production ? ["rbush-production"] : ["scan", "rbush", "grid-256"];
 if (process.argv.includes("--lifecycle")) {
   const path = resolve(out, "gesture.json");
   writeFileSync(path, JSON.stringify({ intervalMs: 8, points: Array.from({ length: 13 }, (_, i) => ({ x: 650, y: 370 + i * 5, pressure: .5 })) }));
@@ -104,7 +131,7 @@ if (process.argv.includes("--lifecycle")) {
   }
   writeFileSync(resolve(out, "lifecycle.json"), JSON.stringify({ timestamp: new Date().toISOString(), results }, null, 2));
 } else {
-for (const count of quick ? [3000] : [3000, 10000]) for (const scenario of ["empty", "stroke-round", "area-round"]) {
+for (const count of production ? [10000] : quick ? [3000] : [3000, 10000]) for (const scenario of ["empty", "stroke-round", "area-round"]) {
   for (let round = 0; round < (quick ? 1 : 4); round++) {
     // First round warms the common host/geometry code; keep its results labelled.
     for (const algorithm of [...algorithms.slice(round % 3), ...algorithms.slice(0, round % 3)]) {
@@ -114,7 +141,7 @@ for (const count of quick ? [3000] : [3000, 10000]) for (const scenario of ["emp
       agent("stroke", ["--file", path]);
       const result = { algorithm, count, scenario, round, warmup: round === 0, setup, ...evaluate(collect, [scenario]) };
       results.push(result);
-      writeFileSync(resolve(out, "results.json"), JSON.stringify({ timestamp: new Date().toISOString(), inspection, method: "Trusted CDP pen input; 8ms requested interval; first round labelled warmup; lookup prepared before gesture; geometry/undo/redo/save checked after timing", results }, null, 2));
+      writeFileSync(resolve(out, "results.json"), JSON.stringify({ timestamp: new Date().toISOString(), inspection, method: production ? "Production build; trusted CDP pen; first round warmup; ordered candidate equivalence, undo/redo/save checked outside timing; index prepared during render" : "Trusted CDP pen input; 8ms requested interval; first round labelled warmup; lookup prepared before gesture; geometry/undo/redo/save checked after timing", results }, null, 2));
       console.log(`${count}/${scenario}/${round}/${algorithm}: ${result.before} -> ${result.after}, verified ${result.verifiedCalls} calls`);
     }
   }

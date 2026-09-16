@@ -17,6 +17,9 @@ importers:
       polygon-clipping:
         specifier: 0.15.7
         version: 0.15.7
+      rbush:
+        specifier: 4.0.1
+        version: 4.0.1
     devDependencies:
       '@electron/asar':
         specifier: 4.3.0
@@ -45,9 +48,6 @@ importers:
       obsidian:
         specifier: latest
         version: 1.13.1(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
-      rbush:
-        specifier: 4.0.1
-        version: 4.0.1
       storybook:
         specifier: ^10.6.0
         version: 10.6.0(@types/react@19.2.18)(react@19.2.8)
