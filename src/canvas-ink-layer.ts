@@ -634,6 +634,7 @@ export class CanvasInkLayer {
   }
 
   private eraseSamples(event: PointerEvent): void {
+    let redraw = false;
     for (const sample of pointerSamples(event)) {
       const point = this.eventToPoint(sample);
       if (!point) continue;
@@ -656,9 +657,17 @@ export class CanvasInkLayer {
       if (changed) {
         this.erasedStrokeCount += before - this.data.strokes.length;
         this.didEraseInGesture = true;
-        this.renderAll();
+        redraw = true;
       }
     }
+    if (!redraw) return;
+    if (this.toolState.eraserSettings.mode === "stroke" && this.svgEl) {
+      const remaining = new Set(this.data.strokes.map(stroke => stroke.id));
+      for (const path of Array.from(this.svgEl.querySelectorAll<SVGPathElement>("path.canvas-scribe-stroke"))) {
+        if (!remaining.has(path.dataset.strokeId!)) path.remove();
+      }
+      this.updateSelectionRect();
+    } else this.renderAll();
   }
 
   private appendReleasePoint(event: PointerEvent): void {

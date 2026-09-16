@@ -62,6 +62,13 @@ export function eraseInk(strokes: readonly InkStroke[], region: MultiPolygon, op
     const bounds = coordinateBounds(candidates), padding = stroke.outline ? 0 : stroke.size * 2;
     if (bounds.maxX + padding < regionBounds.minX || bounds.minX - padding > regionBounds.maxX
       || bounds.maxY + padding < regionBounds.minY || bounds.minY - padding > regionBounds.maxY) return [stroke];
+    // A compound highlighter is a union of swept nibs. Deleting the stroke only
+    // needs one intersecting nib, not the union of hundreds of overlapping shapes.
+    // Frozen outlines still use the general path so erased gaps and holes survive.
+    if (options.mode === "stroke" && !stroke.outline && stroke.tool === "highlighter" && stroke.highlighterType) {
+      if (!highlighterIntersectsRegion(stroke, region, regionBounds, options.tolerance)) return [stroke];
+      changed = true; return [];
+    }
     const outline = strokeOutline(stroke, options.tolerance);
     if (!polygonClipping.intersection(outline, region).length) return [stroke];
     changed = true;
@@ -73,6 +80,22 @@ export function eraseInk(strokes: readonly InkStroke[], region: MultiPolygon, op
     }));
   });
   return { strokes: result, changed };
+}
+
+function highlighterIntersectsRegion(stroke: InkStroke, region: MultiPolygon, bounds: ReturnType<typeof coordinateBounds>, tolerance?: number): boolean {
+  const radius = stroke.size / 2;
+  // Chisel vertices in the renderer are rounded to 0.001 document units.
+  const padX = radius * (stroke.highlighterType === "chisel" ? .3 : 1) + .001;
+  const padY = radius + .001;
+  for (let i = 0; i < stroke.points.length; i++) {
+    const a = stroke.points[i]!, b = stroke.points[i + 1] ?? a;
+    if (Math.max(a.x, b.x) + padX < bounds.minX || Math.min(a.x, b.x) - padX > bounds.maxX
+      || Math.max(a.y, b.y) + padY < bounds.minY || Math.min(a.y, b.y) - padY > bounds.maxY) continue;
+    // Use the existing renderer/flattening rules for exact nib shape and tolerance.
+    const segment = strokeOutline({ ...stroke, points: a === b ? [a] : [a, b] }, tolerance);
+    if (polygonClipping.intersection(segment, region).length) return true;
+  }
+  return false;
 }
 
 function coordinateBounds(points: Pair[]) {

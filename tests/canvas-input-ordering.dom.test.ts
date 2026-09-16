@@ -8,6 +8,7 @@ import { asElement, CanvasInkLayer } from "../src/canvas-ink-layer";
 import type { CanvasTarget } from "../src/canvas-target";
 import { DebugLogger } from "../src/debug-logger";
 import type { InkStroke } from "../src/types";
+import * as geometry from "../src/geometry";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -15,6 +16,28 @@ afterEach(() => {
 });
 
 describe("Canvas drawing input ordering", () => {
+  it("deletes highlighter strokes without rebuilding survivors and restores them through history", async () => {
+    const { wrapper } = fixture(); stubPointerCapture(wrapper);
+    const card = requiredElement<HTMLElement>(".other-card");
+    const layer = await mountLayer(); stubCanvasTransform();
+    const state = layer as unknown as { data: { strokes: InkStroke[] }; renderAll(): void };
+    state.data.strokes = [40, 100, 300].map((y, i): InkStroke => ({ id: `h${i}`, tool: "highlighter", highlighterType: "round", size: 18, opacity: .38, color: "#fde047", createdAt: 1, hasPressure: false,
+      points: Array.from({ length: 200 }, (_, p) => ({ x: p, y, pressure: .5, time: p })) }));
+    state.renderAll();
+    const survivor = requiredElement<SVGPathElement>('[data-stroke-id="h2"]'), d = survivor.getAttribute("d");
+    const original = structuredClone(state.data.strokes);
+    const paths = vi.spyOn(geometry, "strokeToSvgPath");
+    layer.setTool("eraser");
+    card.dispatchEvent(pointerEvent("pointerdown", { pointerId: 210, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 100, clientY: 40 }));
+    card.dispatchEvent(pointerEvent("pointermove", { pointerId: 210, pointerType: "pen", button: -1, buttons: 1, pressure: .5, clientX: 100, clientY: 100 }));
+    card.dispatchEvent(pointerEvent("pointerup", { pointerId: 210, pointerType: "pen", button: 0, buttons: 0, pressure: 0, clientX: 100, clientY: 100 }));
+    expect(state.data.strokes.map(s => s.id)).toEqual(["h2"]);
+    expect(requiredElement('[data-stroke-id="h2"]')).toBe(survivor); expect(survivor.getAttribute("d")).toBe(d);
+    expect(paths.mock.calls.every(([stroke]) => stroke.points.length <= 2)).toBe(true);
+    layer.undo(); expect(state.data.strokes).toEqual(original);
+    layer.redo(); expect(state.data.strokes.map(s => s.id)).toEqual(["h2"]);
+    layer.dispose();
+  });
   it("shares completed ink in history while undo and cancellation preserve geometry", async () => {
     const { wrapper } = fixture(); stubPointerCapture(wrapper);
     const card = requiredElement<HTMLElement>(".other-card");
