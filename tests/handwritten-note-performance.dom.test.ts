@@ -57,6 +57,9 @@ it.each([0, 10, 100, 500])("updates only live ink with %i existing strokes and r
   expect(path.getAttribute("d")).toBe(paths(ink, false));
   expect((path.parentElement as unknown as SVGSVGElement).style.zIndex).toBe(String(count + 2));
   pointer("pointerup");
+  // One live frame, one completed path and one bounds calculation for the new ink.
+  // Existing completed geometry must not be regenerated at lift.
+  expect(render).toHaveBeenCalledTimes(3);
   expect(path.getAttribute("d")).toBe(paths(ink, true));
   expect(changed).toHaveBeenCalledTimes(1);
   expect(existing.every(element => element.isConnected)).toBe(true);

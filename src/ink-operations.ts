@@ -5,6 +5,13 @@ import { createStrokeId, type InkStroke } from "./types";
 /** Flatten only the M/L/Q/A/Z grammar emitted by our renderer, with bounded curve error. */
 export function strokeOutline(stroke: InkStroke, tolerance = 0.05): MultiPolygon {
   if (stroke.outline) return stroke.outline;
+  const polygons = strokePolygons(stroke, tolerance);
+  return polygons.length ? polygonClipping.union(polygons) : [];
+}
+
+/** Flattened components; bounds do not need the expensive union of overlapping nibs. */
+function strokePolygons(stroke: InkStroke, tolerance: number): MultiPolygon {
+  if (stroke.outline) return stroke.outline;
   const tokens = strokeToSvgPath(stroke).match(/[MLQAZ]|[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi) ?? [];
   let index = 0, current: Pair = [0, 0], ring: Ring = [];
   const polygons: MultiPolygon = [];
@@ -38,7 +45,29 @@ export function strokeOutline(stroke: InkStroke, tolerance = 0.05): MultiPolygon
     } else if (command === "Z") { if (ring.length >= 3) polygons.push([ring]); ring = []; }
     else throw new Error(`Unsupported ink path command: ${command}`);
   }
-  return polygons.length ? polygonClipping.union(polygons) : [];
+  return polygons;
+}
+
+type InkBounds = { minX: number; minY: number; maxX: number; maxY: number };
+type BoundsEntry = { points: InkStroke["points"]; outline: InkStroke["outline"]; key: string; bounds: InkBounds | null };
+const renderedBounds = new WeakMap<InkStroke, BoundsEntry>();
+
+// Completed geometry is immutable (as required by document history). Live strokes
+// append samples; include their length and pressure mode so early reads cannot go stale.
+function boundsKey(stroke: InkStroke): string {
+  return `${stroke.points.length}/${stroke.size}/${stroke.tool}/${stroke.penType}/${stroke.highlighterType}/${stroke.hasPressure}`;
+}
+
+export function strokeBounds(stroke: InkStroke): InkBounds | null {
+  const key = boundsKey(stroke), cached = renderedBounds.get(stroke);
+  if (cached && cached.points === stroke.points && cached.outline === stroke.outline && cached.key === key) return cached.bounds;
+  let bounds: InkBounds | null = null;
+  for (const polygon of strokePolygons(stroke, .05)) for (const ring of polygon) for (const [x, y] of ring) {
+    if (!bounds) bounds = { minX: x, minY: y, maxX: x, maxY: y };
+    else { bounds.minX = Math.min(bounds.minX, x); bounds.minY = Math.min(bounds.minY, y); bounds.maxX = Math.max(bounds.maxX, x); bounds.maxY = Math.max(bounds.maxY, y); }
+  }
+  renderedBounds.set(stroke, { points: stroke.points, outline: stroke.outline, key, bounds });
+  return bounds;
 }
 
 export function eraserOutline(x: number, y: number, radius: number, tolerance = 0.05): MultiPolygon {

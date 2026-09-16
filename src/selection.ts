@@ -1,6 +1,6 @@
 import type { InkPoint, InkStroke } from "./types";
 import polygonClipping, { type Ring } from "polygon-clipping";
-import { strokeOutline } from "./ink-operations";
+import { strokeBounds, strokeOutline } from "./ink-operations";
 
 export interface SelectionBounds {
   minX: number;
@@ -45,10 +45,12 @@ export function selectRenderedStroke(stroke: InkStroke, polygon: readonly Pick<I
 }
 
 export function boundsForStrokes(strokes: readonly InkStroke[]): SelectionBounds | null {
-  const points = strokes.flatMap((stroke) => strokeOutline(stroke).flatMap((polygon) => polygon.flatMap((ring) => ring.map(([x, y]) => ({ x, y })))));
-  if (points.length === 0) return null;
-  const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
-  for (const { x, y } of points) { bounds.minX = Math.min(bounds.minX, x); bounds.minY = Math.min(bounds.minY, y); bounds.maxX = Math.max(bounds.maxX, x); bounds.maxY = Math.max(bounds.maxY, y); }
+  let bounds: SelectionBounds | null = null;
+  for (const stroke of strokes) {
+    const next = strokeBounds(stroke); if (!next) continue;
+    if (!bounds) bounds = { ...next };
+    else { bounds.minX = Math.min(bounds.minX, next.minX); bounds.minY = Math.min(bounds.minY, next.minY); bounds.maxX = Math.max(bounds.maxX, next.maxX); bounds.maxY = Math.max(bounds.maxY, next.maxY); }
+  }
   return bounds;
 }
 
