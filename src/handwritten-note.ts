@@ -85,6 +85,11 @@ export function cloneHandwrittenObjects(objects: readonly HandwrittenObject[]): 
   });
 }
 
+/** Completed ink is replaced by edits; text fields remain mutable in the editor. */
+export function snapshotHandwrittenObjects(objects: readonly HandwrittenObject[], active?: HandwrittenInkObject | null): HandwrittenObject[] {
+  return objects.map(object => object === active ? cloneHandwrittenObjects([object])[0]! : object.kind === "text" ? { ...object } : object);
+}
+
 export function createHandwrittenObjectId(prefix: "ink" | "text"): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }

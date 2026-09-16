@@ -1,0 +1,27 @@
+{
+  "before": 502,
+  "undo": 501,
+  "redo": 502,
+  "retained": true,
+  "retainedText": true,
+  "savedObjects": 502,
+  "savedText": "Edited after writing",
+  "historySharesInk": true,
+  "timings": {
+    "pointerMove": {
+      "count": 60,
+      "meanMs": 0.04000000953674317,
+      "maxMs": 0.3000001907348633
+    },
+    "renderActiveInk": {
+      "count": 61,
+      "meanMs": 0.07868853553396757,
+      "maxMs": 0.20000028610229492
+    },
+    "pointerUp": {
+      "count": 2,
+      "meanMs": 72,
+      "maxMs": 144
+    }
+  }
+}

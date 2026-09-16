@@ -7,6 +7,7 @@ import type { App } from "obsidian";
 import { asElement, CanvasInkLayer } from "../src/canvas-ink-layer";
 import type { CanvasTarget } from "../src/canvas-target";
 import { DebugLogger } from "../src/debug-logger";
+import type { InkStroke } from "../src/types";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -14,6 +15,23 @@ afterEach(() => {
 });
 
 describe("Canvas drawing input ordering", () => {
+  it("shares completed ink in history while undo and cancellation preserve geometry", async () => {
+    const { wrapper } = fixture(); stubPointerCapture(wrapper);
+    const card = requiredElement<HTMLElement>(".other-card");
+    const layer = await mountLayer(); stubCanvasTransform();
+    const stroke = (id: number, y: number) => {
+      card.dispatchEvent(pointerEvent("pointerdown", { pointerId: id, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 20, clientY: y }));
+      card.dispatchEvent(pointerEvent("pointerup", { pointerId: id, pointerType: "pen", button: 0, buttons: 0, pressure: 0, clientX: 100, clientY: y }));
+    };
+    stroke(201, 40);
+    const state = layer as unknown as { data: { strokes: InkStroke[] }; history: { past: InkStroke[][] } };
+    const first = state.data.strokes[0]!, original = structuredClone(first);
+    stroke(202, 80); stroke(203, 120);
+    expect(state.history.past[1]![0]).toBe(first); expect(state.history.past[2]![0]).toBe(first);
+    layer.undo(); layer.undo(); expect(state.data.strokes).toEqual([original]);
+    layer.redo(); expect(state.data.strokes).toHaveLength(2); expect(state.data.strokes[0]).toBe(first);
+    layer.dispose();
+  });
   it("does not save an empty document when an unsupported schema fails to load", async () => {
     fixture();
     const process = vi.fn();
