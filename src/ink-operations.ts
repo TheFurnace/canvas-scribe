@@ -5,12 +5,12 @@ import { createStrokeId, type InkStroke } from "./types";
 /** Flatten only the M/L/Q/A/Z grammar emitted by our renderer, with bounded curve error. */
 export function strokeOutline(stroke: InkStroke, tolerance = 0.05): MultiPolygon {
   if (stroke.outline) return stroke.outline;
-  const polygons = strokePolygons(stroke, tolerance);
+  const polygons = strokeComponents(stroke, tolerance);
   return polygons.length ? polygonClipping.union(polygons) : [];
 }
 
 /** Flattened components; bounds do not need the expensive union of overlapping nibs. */
-function strokePolygons(stroke: InkStroke, tolerance: number): MultiPolygon {
+export function strokeComponents(stroke: InkStroke, tolerance = .05): MultiPolygon {
   if (stroke.outline) return stroke.outline;
   const tokens = strokeToSvgPath(stroke).match(/[MLQAZ]|[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi) ?? [];
   let index = 0, current: Pair = [0, 0], ring: Ring = [];
@@ -63,7 +63,7 @@ export function strokeBounds(stroke: InkStroke): InkBounds | null {
   const key = boundsKey(stroke), cached = renderedBounds.get(stroke);
   if (cached && cached.points === stroke.points && cached.outline === stroke.outline && cached.key === key) return cached.bounds;
   let bounds: InkBounds | null = null;
-  for (const polygon of strokePolygons(stroke, .05)) for (const ring of polygon) for (const [x, y] of ring) {
+  for (const polygon of strokeComponents(stroke)) for (const ring of polygon) for (const [x, y] of ring) {
     if (!bounds) bounds = { minX: x, minY: y, maxX: x, maxY: y };
     else { bounds.minX = Math.min(bounds.minX, x); bounds.minY = Math.min(bounds.minY, y); bounds.maxX = Math.max(bounds.maxX, x); bounds.maxY = Math.max(bounds.maxY, y); }
   }

@@ -25,3 +25,7 @@ const highlighters = fixture(1, true);
 measure("1000-point highlighter bounds", 1, () => boundsForStrokes(highlighters));
 const remoteLasso = [{ x: -100, y: -100 }, { x: -80, y: -100 }, { x: -80, y: -80 }, { x: -100, y: -80 }];
 measure("remote highlighter lasso", 1, () => selectRenderedStroke(highlighters[0]!, remoteLasso, true));
+const nearLasso = [{ x: 340, y: 20 }, { x: 370, y: 20 }, { x: 370, y: 40 }, { x: 340, y: 40 }];
+const fullLasso = [{ x: 0, y: 0 }, { x: 800, y: 0 }, { x: 800, y: 80 }, { x: 0, y: 80 }];
+measure("near highlighter lasso", 1, () => selectRenderedStroke(highlighters[0]!, nearLasso, true));
+measure("full highlighter lasso", 1, () => selectRenderedStroke(highlighters[0]!, fullLasso, false));
