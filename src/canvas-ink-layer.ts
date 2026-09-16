@@ -366,7 +366,9 @@ export class CanvasInkLayer {
     this.activePathEl = this.createPath(this.activeStroke, false);
     this.activePathEl.classList.add("is-active");
     this.svgEl.appendChild(this.activePathEl);
-    this.liveInk = this.latency.begin(this.target.containerEl.ownerDocument, "canvas", this.activeStroke, () => this.scheduleActiveRender());
+    this.liveInk = this.latency.begin(this.target.containerEl.ownerDocument, "canvas", this.activeStroke, () => this.scheduleActiveRender(),
+      { area: this.wrapperEl!, path: this.activePathEl, screenScale: this.getScreenScale() });
+    this.liveInk?.acceptActual(event);
     this.observeLiveInk(event, [event]);
   }
 
@@ -411,6 +413,7 @@ export class CanvasInkLayer {
       const point = this.eventToPoint(sample);
       if (!point || !this.shouldAppendPoint(this.activeStroke, point)) continue;
       this.activeStroke.points.push(point);
+      this.liveInk?.acceptActual(sample);
       if (sample.pressure > 0 && sample.pressure !== 0.5) this.activeStroke.hasPressure = true;
     }
     this.scheduleActiveRender();

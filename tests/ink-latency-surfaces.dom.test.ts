@@ -21,13 +21,15 @@ beforeEach(() => {
   vi.spyOn(window, "requestAnimationFrame").mockImplementation(fn => { frames.set(++frameId, fn); return frameId; });
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation(id => { frames.delete(id); });
 });
-afterEach(() => { cleanup(); frames.clear(); vi.restoreAllMocks(); document.body.replaceChildren(); });
+afterEach(() => { cleanup(); frames.clear(); vi.restoreAllMocks(); delete (navigator as unknown as { ink?: unknown }).ink; document.body.replaceChildren(); });
 function frame() { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(now)); }
-function pointer(target: Element, type: string, x: number, time: number) {
+function pointer(target: Element, type: string, x: number, time: number, trusted = false) {
   now = time;
   const e = new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, pointerType: "pen", button: 0,
     buttons: type === "pointerup" ? 0 : 1, clientX: x, clientY: 100, pressure: .7, tiltX: 25 });
-  Object.defineProperty(e, "timeStamp", { value: time }); target.dispatchEvent(e);
+  Object.defineProperty(e, "timeStamp", { value: time });
+  if (trusted) Object.defineProperty(e, "isTrusted", { value: true });
+  target.dispatchEvent(e); return e;
 }
 async function setup(surface: "canvas" | "note", prediction = true) {
   const logger = new DebugLogger(), experiment = new InkLatencyExperiment(logger);
@@ -111,4 +113,43 @@ it.each([
   const entry = f.logger.snapshot().entries.find(e => e.category === "ink-latency")!;
   expect(entry.data).toMatchObject({ horizonMs: horizon, predictionDistanceMeanCssPx: horizon * .5, predictionHorizonMeanMs: horizon });
   f.undo(); expect(f.strokes()).toHaveLength(0); f.redo(); expect(f.strokes()[0]!.points).toEqual(stroke.points);
+});
+
+it.each(["canvas", "note"] as const)("%s delegates accepted actual ink while preserving geometry, save and history", async surface => {
+  const update = vi.fn();
+  const request = vi.fn(async () => ({ updateInkTrailStartPoint: update }));
+  Object.defineProperty(navigator, "ink", { configurable: true, value: { requestPresenter: request } });
+  const f = await setup(surface); f.tools.selectPen("ballpoint"); f.experiment.toggleDelegated();
+  pointer(f.target, "pointerdown", 100, 100.3, true); await Promise.resolve();
+  pointer(f.target, "pointermove", 110, 110.3, true);
+  const last = pointer(f.target, "pointermove", 120, 120.3, true); frame();
+  expect(request).toHaveBeenCalledWith({ presentationArea: f.target });
+  expect(update).toHaveBeenCalledOnce(); expect(update.mock.calls[0]![0]).toBe(last);
+  const stroke = f.strokes()[0]!, points = structuredClone(stroke.points);
+  expect(f.path().getAttribute("d")).toBe(strokeToSvgPath(stroke, false));
+  const saved = JSON.parse(f.save()); expect((saved.strokes ?? saved.objects)[0].points).toEqual(points);
+  f.experiment.cyclePrediction(); // mode is frozen for this gesture
+  pointer(f.target, "pointermove", 130, 130.3, true); frame(); expect(update).toHaveBeenCalledTimes(2);
+  pointer(f.target, "pointerup", 130, 135, true); frame(); expect(update).toHaveBeenCalledTimes(2);
+  const final = structuredClone(stroke.points); f.undo(); expect(f.strokes()).toHaveLength(0); f.redo(); expect(f.strokes()[0]!.points).toEqual(final);
+  expect(f.logger.snapshot().entries.find(e => e.event === "delegated_stroke")!.data).toMatchObject({ status: "ready", updates: 2 });
+  expect(f.logger.snapshot().entries.find(e => e.event === "stroke" && e.category === "ink-latency")!.data).toMatchObject({ delegated: true, horizonMs: 0, nativeFrames: 0, fallbackFrames: 0 });
+});
+
+it("Canvas does not anchor delegated ink to a filtered-out close sample", async () => {
+  const update = vi.fn(); Object.defineProperty(navigator, "ink", { configurable: true, value: { requestPresenter: async () => ({ updateInkTrailStartPoint: update }) } });
+  const f = await setup("canvas", false); f.experiment.toggleDelegated();
+  pointer(f.target, "pointerdown", 100, 100, true); await Promise.resolve();
+  const accepted = pointer(f.target, "pointermove", 110, 110, true);
+  pointer(f.target, "pointermove", 110.001, 120, true); frame();
+  expect(f.strokes()[0]!.points).toHaveLength(2); expect(update.mock.calls[0]![0]).toBe(accepted);
+  pointer(f.target, "pointerup", 110, 125, true);
+});
+
+it.each(["canvas", "note"] as const)("%s cancels delegation on capture loss and ignores late rendering", async surface => {
+  const update = vi.fn(); Object.defineProperty(navigator, "ink", { configurable: true, value: { requestPresenter: async () => ({ updateInkTrailStartPoint: update }) } });
+  const f = await setup(surface, false); f.experiment.toggleDelegated();
+  pointer(f.target, "pointerdown", 100, 100, true); await Promise.resolve();
+  pointer(f.target, "pointermove", 110, 110, true); f.target.releasePointerCapture(1); frame();
+  expect(update).not.toHaveBeenCalled(); expect(f.path().getAttribute("d")).toBe(strokeToSvgPath(f.strokes()[0]!, true));
 });

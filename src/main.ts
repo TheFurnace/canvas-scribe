@@ -95,7 +95,15 @@ export default class CanvasScribePlugin extends Plugin {
       callback: () => {
         const horizonMs = this.inkLatency.cyclePrediction();
         this.logger.record("ink-latency", "prediction_mode_changed", { enabled: this.inkLatency.prediction, horizonMs });
-        new Notice(`Predicted ink tip: ${horizonMs ? `${horizonMs} ms` : "OFF"} for new Canvas and note strokes. Resets on restart.`);
+        new Notice(`Predicted ink tip: ${horizonMs ? `${horizonMs} ms` : "OFF"}; delegated ink OFF for new Canvas and note strokes. Resets on restart.`);
+      },
+    });
+    this.addCommand({
+      id: "toggle-delegated-ink", name: "Toggle delegated ink trail (experimental)",
+      callback: () => {
+        const enabled = this.inkLatency.toggleDelegated();
+        this.logger.record("ink-latency", "delegated_mode_changed", { enabled, prediction: false });
+        new Notice(`Delegated ink ${enabled ? "ON" : "OFF"}; prediction OFF for new Canvas and note strokes. Use an opaque ballpoint, fountain or brush pen. Export debug report after testing.`, 8000);
       },
     });
     this.addCommand({

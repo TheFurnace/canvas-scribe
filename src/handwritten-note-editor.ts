@@ -315,7 +315,9 @@ export class HandwrittenNoteEditor {
     const page = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page")!;
     const svg = renderHandwrittenInk(this.root.ownerDocument, this.activeInk, this.note.logicalWidth, this.note.contentHeight + NOTE_SPARE_HEIGHT, this.note.objects.length - 1, false, false);
     this.activeInkPath = svg.querySelector("path"); page.append(svg);
-    this.liveInk = this.latency.begin(this.root.ownerDocument, "note", this.activeInk, () => this.scheduleInkRender());
+    this.liveInk = this.latency.begin(this.root.ownerDocument, "note", this.activeInk, () => this.scheduleInkRender(),
+      { area: this.viewport, path: this.activeInkPath!, screenScale: this.note.viewport.zoom });
+    this.liveInk?.acceptActual(event);
     this.liveInk?.observe(event, [event], () => point);
     this.syncControls();
   }
@@ -339,7 +341,10 @@ export class HandwrittenNoteEditor {
       const rect = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page")!.getBoundingClientRect();
       const zoom = this.note.viewport.zoom;
       this.liveInk?.observe(event, samples, (x, y) => ({ x: (x - rect.left) / zoom, y: (y - rect.top) / zoom }));
-      for (const sample of samples) this.activeInk.points.push(this.inkPoint(sample, { x: (sample.clientX - rect.left) / zoom, y: (sample.clientY - rect.top) / zoom }));
+      for (const sample of samples) {
+        this.activeInk.points.push(this.inkPoint(sample, { x: (sample.clientX - rect.left) / zoom, y: (sample.clientY - rect.top) / zoom }));
+        this.liveInk?.acceptActual(sample);
+      }
       this.scheduleInkRender(); return;
     }
     const point = this.point(event); if (!point) return;

@@ -126,11 +126,14 @@ Describe the result you wanted.
 - Prediction 16 ms: fast-line gap, corners, stop while touching:
 - Prediction 24 ms: fast-line gap, corners, stop while touching:
 - Prediction 32 ms: fast-line gap, corners, stop while touching:
+- Delegated ink OFF / ON (opaque ballpoint, fountain or brush): fast-line gap, joins, corners, stops and pen lift:
 - Any overshoot or visible correction at pen lift:
 
 Use **Toggle ink latency recording**, draw a baseline, then **Cycle predicted ink tip: OFF / 16 / 24 / 32 ms (experimental)** and repeat at each mode. Confirm the mode in the notice. Recording and prediction reset to OFF on restart and apply to new strokes. The log includes per-stroke timing, used prediction horizon/distance, cap frequency and estimated lead remaining at render. These measure JavaScript work and preview endpoints before smoothing/paint, not physical pen-to-display latency. No stroke coordinates are included.
 
 ## Optional notes
+
+For delegated ink, use **Toggle delegated ink trail (experimental)** to compare OFF and ON with the same opaque pen, speed and zoom. It disables application prediction; cycling prediction disables delegated ink. All experiment modes reset OFF on restart. Delegated stroke entries report unavailable/unsupported style, request failures, successful update counts and stale/untrusted input skips. Successful calls do not prove that WebView displayed a trail or reduced physical latency. Pencil, highlighter and translucent pens use ordinary SVG ink in this test.
 
 Add screenshots or a short screen recording here. The diagnostic log intentionally excludes note text, canvas names, vault names, and raw stylus coordinates.
 `;
