@@ -1,3 +1,4 @@
+import { InkLatencyExperiment } from "./ink-latency";
 import { InkToolState } from "./ink-tool-state";
 import { Notice, setIcon, TextFileView, type TFile, type WorkspaceLeaf } from "obsidian";
 import { HandwrittenNoteEditor } from "./handwritten-note-editor";
@@ -14,7 +15,7 @@ export class HandwrittenNoteView extends TextFileView {
   private serializationPending = false;
   private savedViewport = "";
 
-  constructor(leaf: WorkspaceLeaf, private readonly favorites = new FavoritePens(), private readonly tools = new InkToolState()) { super(leaf); }
+  constructor(leaf: WorkspaceLeaf, private readonly favorites = new FavoritePens(), private readonly tools = new InkToolState(), private readonly latency = new InkLatencyExperiment()) { super(leaf); }
   commands(): HandwrittenNoteEditor | null { return this.editor; }
   getViewType(): string { return HANDWRITTEN_NOTE_VIEW_TYPE; }
   getDisplayText(): string { return this.file?.basename ?? "Handwritten note"; }
@@ -41,7 +42,7 @@ export class HandwrittenNoteView extends TextFileView {
       this.error?.remove(); this.error = null;
       if (this.editor) this.editor.setDocument(note, clear);
       else {
-        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, () => { if (!this.editable) return; this.serializationPending = true; this.requestSave(); }, setIcon, false, this.favorites, this.contentEl.ownerDocument.body, this.tools);
+        this.editor = new HandwrittenNoteEditor(this.contentEl.ownerDocument, note, () => { if (!this.editable) return; this.serializationPending = true; this.requestSave(); }, setIcon, false, this.favorites, this.contentEl.ownerDocument.body, this.tools, this.latency);
         this.contentEl.replaceChildren(this.editor.root);
       }
       this.editable = true;

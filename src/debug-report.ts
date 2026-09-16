@@ -117,6 +117,17 @@ Describe the result you wanted.
 - Build: ${device.buildId}
 - Diagnostic log: [[${logName}]]
 
+## Ink latency comparison (if tested)
+
+- Surface: Canvas / handwritten note
+- Display refresh setting and battery saver:
+- Samsung Notes version and matching pen/zoom:
+- Prediction OFF: fast-line gap, corners, stop while touching:
+- Prediction ON: fast-line gap, corners, stop while touching:
+- Any overshoot or visible correction at pen lift:
+
+Use **Toggle ink latency recording**, draw a baseline, then **Toggle predicted ink tip (experimental)** and repeat. Both reset to OFF on restart and apply to new strokes. The log includes per-stroke timing summaries when recording is enabled. These measure input-to-SVG-update work, not screen presentation or physical pen-to-display latency. No stroke coordinates are included.
+
 ## Optional notes
 
 Add screenshots or a short screen recording here. The diagnostic log intentionally excludes note text, canvas names, vault names, and raw stylus coordinates.

@@ -1,3 +1,4 @@
+import { InkLatencyExperiment, type LiveInkSession } from "./ink-latency";
 import { createToolColors, createToolMenu, createToolRadial, observeToolTheme } from "./tool-suite";
 import { scaleHandwrittenSelection, selectHandwrittenObject, handwrittenCandidateBounds } from "./handwritten-selection";
 import { createCanvasControls, syncCanvasControls, type IconRenderer } from "./canvas-controls";
@@ -11,7 +12,7 @@ import { positionPopup } from "./popover";
 import { FavoritePens } from "./favorite-pens";
 import { RadialSession } from "./radial-session";
 import { isStylusBarrelButton } from "./pointer-input";
-import type { DrawingTool, InkTool } from "./types";
+import type { DrawingTool, InkTool, InkStroke } from "./types";
 import { InkToolState } from "./ink-tool-state";
 import { pointInBounds } from "./selection";
 import { PEN_PROFILES } from "./pen-types";
@@ -43,6 +44,7 @@ export class HandwrittenNoteEditor {
   private activePointer: number | null = null;
   private pan: { id: number; x: number; y: number } | null = null;
   private activeInk: HandwrittenInkObject | null = null;
+  private liveInk: LiveInkSession | null = null;
   private activeInkPath: SVGPathElement | null = null;
   private inkFrame: number | null = null;
   private handleDrag: ((event: PointerEvent) => void) | null = null;
@@ -62,7 +64,7 @@ export class HandwrittenNoteEditor {
   private eraserCursor: SVGSVGElement | null = null;
   private eraserPosition: { x: number; y: number } | null = null;
 
-  constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, private readonly renderIcon: IconRenderer, allowMouse = false, private readonly favorites = new FavoritePens(), private readonly overlayMount: HTMLElement = document.body, private readonly sharedTools = new InkToolState()) {
+  constructor(document: Document, note: HandwrittenNoteDocument, onChange: (note: HandwrittenNoteDocument) => void, private readonly renderIcon: IconRenderer, allowMouse = false, private readonly favorites = new FavoritePens(), private readonly overlayMount: HTMLElement = document.body, private readonly sharedTools = new InkToolState(), private readonly latency = new InkLatencyExperiment()) {
     this.note = note; this.onChange = onChange; this.allowMouse = allowMouse;
     this.root = document.createElement("section");
     this.root.className = "canvas-scribe-note-editor";
@@ -313,6 +315,8 @@ export class HandwrittenNoteEditor {
     const page = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page")!;
     const svg = renderHandwrittenInk(this.root.ownerDocument, this.activeInk, this.note.logicalWidth, this.note.contentHeight + NOTE_SPARE_HEIGHT, this.note.objects.length - 1, false, false);
     this.activeInkPath = svg.querySelector("path"); page.append(svg);
+    this.liveInk = this.latency.begin(this.root.ownerDocument, "note", this.activeInk, () => this.scheduleInkRender());
+    this.liveInk?.observe(event, [event], () => point);
     this.syncControls();
   }
 
@@ -334,6 +338,7 @@ export class HandwrittenNoteEditor {
       const samples = coalesced.length ? coalesced : [event];
       const rect = this.paperHost.querySelector<HTMLElement>(".canvas-scribe-note-page")!.getBoundingClientRect();
       const zoom = this.note.viewport.zoom;
+      this.liveInk?.observe(event, samples, (x, y) => ({ x: (x - rect.left) / zoom, y: (y - rect.top) / zoom }));
       for (const sample of samples) this.activeInk.points.push(this.inkPoint(sample, { x: (sample.clientX - rect.left) / zoom, y: (sample.clientY - rect.top) / zoom }));
       this.scheduleInkRender(); return;
     }
@@ -364,10 +369,13 @@ export class HandwrittenNoteEditor {
   }
 
   private renderActiveInk(complete: boolean): void {
-    if (this.activeInk && this.activeInkPath) this.activeInkPath.setAttribute("d", strokeToSvgPath(this.activeInk, complete));
+    if (!this.activeInk || !this.activeInkPath) return;
+    const draw = (stroke: InkStroke) => this.activeInkPath?.setAttribute("d", strokeToSvgPath(stroke, complete));
+    if (!complete && this.liveInk) this.liveInk.render(this.activeInk, draw); else draw(this.activeInk);
   }
 
   private resetGesture(): void {
+    this.liveInk?.end("reset"); this.liveInk = null;
     this.spatial.sync(this.note.objects, this.activeInk);
     this.paperHost.querySelectorAll<HTMLTextAreaElement>("textarea").forEach(textarea => { delete textarea.dataset.editing; });
     this.hideEraserCursor();
@@ -390,6 +398,7 @@ export class HandwrittenNoteEditor {
     event.preventDefault(); event.stopPropagation();
     if (this.handleDrag) { this.handleDrag = null; normalizeContentHeight(this.note); this.changed(); }
     else if (this.activeInk) {
+      this.liveInk?.end(event.type); this.liveInk = null;
       if (this.inkFrame !== null) cancelAnimationFrame(this.inkFrame);
       this.inkFrame = null; this.renderActiveInk(true);
       this.spatial.sync(this.note.objects, this.activeInk);

@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0-beta.15",
+  "prediction": false,
+  "recording": false,
+  "noteSamples": [
+    61
+  ],
+  "canvasSamples": [
+    4,
+    61,
+    61
+  ],
+  "notePaths": 1
+}

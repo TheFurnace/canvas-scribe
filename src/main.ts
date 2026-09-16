@@ -1,3 +1,4 @@
+import { InkLatencyExperiment } from "./ink-latency";
 import { InkToolState } from "./ink-tool-state";
 import { addIcon, Notice, Plugin } from "obsidian";
 import { PdfController } from "./pdf-controller";
@@ -20,6 +21,7 @@ export default class CanvasScribePlugin extends Plugin {
   private saveQueue: Promise<void> = Promise.resolve();
   private readonly layers = new Map<HTMLElement, CanvasInkLayer>();
   private readonly logger = new DebugLogger();
+  private readonly inkLatency = new InkLatencyExperiment(this.logger);
   private diagnostics: InputDiagnostics | null = null;
   private syncFrame: number | null = null;
   private pdfController: PdfController | null = null;
@@ -39,7 +41,7 @@ export default class CanvasScribePlugin extends Plugin {
     this.favorites = new FavoritePens(settings.favoritePens, persist);
     this.register(this.tools.subscribe(persist));
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
-    this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf, this.favorites, this.tools));
+    this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf, this.favorites, this.tools, this.inkLatency));
     this.registerExtensions([HANDWRITTEN_NOTE_EXTENSION], HANDWRITTEN_NOTE_VIEW_TYPE);
     registerHandwrittenNoteEmbeds(this);
     this.pdfController = new PdfController(this, this.favorites, this.tools);
@@ -88,6 +90,23 @@ export default class CanvasScribePlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: "toggle-ink-prediction", name: "Toggle predicted ink tip (experimental)",
+      callback: () => {
+        this.inkLatency.prediction = !this.inkLatency.prediction;
+        this.logger.record("ink-latency", "prediction_toggled", { enabled: this.inkLatency.prediction });
+        new Notice(`Predicted ink tip ${this.inkLatency.prediction ? "ON" : "OFF"} for new Canvas and note strokes. Resets on restart.`);
+      },
+    });
+    this.addCommand({
+      id: "toggle-ink-latency-diagnostics", name: "Toggle ink latency recording",
+      callback: () => {
+        this.inkLatency.diagnostics = !this.inkLatency.diagnostics;
+        this.logger.record("ink-latency", "recording_toggled", { enabled: this.inkLatency.diagnostics });
+        new Notice(`Ink latency recording ${this.inkLatency.diagnostics ? "ON" : "OFF"} for new strokes. Use Export debug report after testing.`);
+      },
+    });
+
     this.registerEvent(this.app.workspace.on("layout-change", () => this.scheduleSync()));
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.scheduleSync()));
     this.app.workspace.onLayoutReady(() => this.scheduleSync());
@@ -128,7 +147,7 @@ export default class CanvasScribePlugin extends Plugin {
       const existing = this.layers.get(target.containerEl);
       if (existing?.isFor(target)) continue;
       existing?.dispose();
-      const layer = new CanvasInkLayer(this.app, target, this.logger, this.favorites, this.tools);
+      const layer = new CanvasInkLayer(this.app, target, this.logger, this.favorites, this.tools, this.inkLatency);
       this.layers.set(target.containerEl, layer);
       try {
         await layer.mount();

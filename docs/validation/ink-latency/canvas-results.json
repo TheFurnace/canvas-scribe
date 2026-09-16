@@ -1,0 +1,126 @@
+{
+  "version": "2.0.0-beta.15",
+  "preview": {
+    "frames": 60,
+    "extended": 56,
+    "mutations": 0
+  },
+  "errors": [],
+  "model": [
+    {
+      "samples": 4
+    },
+    {
+      "samples": 61,
+      "tilt": 25
+    },
+    {
+      "samples": 61,
+      "tilt": 25
+    }
+  ],
+  "timings": [
+    {
+      "sequence": 3,
+      "timestamp": "2026-09-16T21:09:35.996Z",
+      "elapsedMs": 20829,
+      "category": "ink-latency",
+      "event": "recording_toggled",
+      "data": {
+        "enabled": true
+      }
+    },
+    {
+      "sequence": 5,
+      "timestamp": "2026-09-16T21:09:37.117Z",
+      "elapsedMs": 21950,
+      "category": "ink-latency",
+      "event": "stroke",
+      "data": {
+        "surface": "canvas",
+        "tool": "fountain",
+        "prediction": false,
+        "reason": "finish",
+        "events": 61,
+        "frames": 60,
+        "nativeFrames": 0,
+        "fallbackFrames": 0,
+        "nativeAvailable": true,
+        "invalidTimestamps": 0,
+        "horizonMs": 16,
+        "maxDistanceCssPx": 24,
+        "expiryMs": 40,
+        "timingScope": "JS input-to-SVG-update; excludes paint/display; recent p95 uses last 256 observations",
+        "inputAgeMeanMs": 1.908,
+        "inputAgeMaxMs": 7.3,
+        "inputAgeRecentP95Ms": 6.4,
+        "oldestInputAgeMeanMs": 1.908,
+        "oldestInputAgeMaxMs": 7.3,
+        "oldestInputAgeRecentP95Ms": 6.4,
+        "renderAgeMeanMs": 1.995,
+        "renderAgeMaxMs": 7.4,
+        "renderAgeRecentP95Ms": 6.5,
+        "frameWaitMeanMs": 0.462,
+        "frameWaitMaxMs": 23,
+        "frameWaitRecentP95Ms": 0.2,
+        "activeRenderIntervalMeanMs": 16.263,
+        "activeRenderIntervalMaxMs": 28.2,
+        "activeRenderIntervalRecentP95Ms": 27.4,
+        "renderWorkMeanMs": 0.108,
+        "renderWorkMaxMs": 0.2,
+        "renderWorkRecentP95Ms": 0.2
+      }
+    },
+    {
+      "sequence": 8,
+      "timestamp": "2026-09-16T21:10:06.207Z",
+      "elapsedMs": 51040,
+      "category": "ink-latency",
+      "event": "prediction_toggled",
+      "data": {
+        "enabled": true
+      }
+    },
+    {
+      "sequence": 10,
+      "timestamp": "2026-09-16T21:10:07.329Z",
+      "elapsedMs": 52162,
+      "category": "ink-latency",
+      "event": "stroke",
+      "data": {
+        "surface": "canvas",
+        "tool": "fountain",
+        "prediction": true,
+        "reason": "finish",
+        "events": 61,
+        "frames": 60,
+        "nativeFrames": 48,
+        "fallbackFrames": 8,
+        "nativeAvailable": true,
+        "invalidTimestamps": 0,
+        "horizonMs": 16,
+        "maxDistanceCssPx": 24,
+        "expiryMs": 40,
+        "timingScope": "JS input-to-SVG-update; excludes paint/display; recent p95 uses last 256 observations",
+        "inputAgeMeanMs": 2.01,
+        "inputAgeMaxMs": 7.3,
+        "inputAgeRecentP95Ms": 6.5,
+        "oldestInputAgeMeanMs": 2.01,
+        "oldestInputAgeMaxMs": 7.3,
+        "oldestInputAgeRecentP95Ms": 6.5,
+        "renderAgeMeanMs": 2.117,
+        "renderAgeMaxMs": 7.5,
+        "renderAgeRecentP95Ms": 6.5,
+        "frameWaitMeanMs": 0.472,
+        "frameWaitMaxMs": 23.1,
+        "frameWaitRecentP95Ms": 0.2,
+        "activeRenderIntervalMeanMs": 16.366,
+        "activeRenderIntervalMaxMs": 28.1,
+        "activeRenderIntervalRecentP95Ms": 26.4,
+        "renderWorkMeanMs": 0.095,
+        "renderWorkMaxMs": 0.3,
+        "renderWorkRecentP95Ms": 0.2
+      }
+    }
+  ]
+}
