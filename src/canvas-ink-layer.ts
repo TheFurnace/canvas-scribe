@@ -56,6 +56,7 @@ export class CanvasInkLayer {
   private readonly surface: CanvasInkSurface;
   private data: CanvasInkData = createEmptyInkData();
   private svgEl: SVGSVGElement | null = null;
+  private readonly renderedStrokes = new WeakMap<SVGPathElement, InkStroke>();
   private eraserCursorEl: SVGCircleElement | null = null;
   private lassoPathEl: SVGPathElement | null = null;
   private selectionRectEl: SVGRectElement | null = null;
@@ -767,7 +768,20 @@ export class CanvasInkLayer {
 
   private renderAll(): void {
     if (!this.svgEl) return;
-    this.svgEl.replaceChildren(...this.data.strokes.map((stroke) => this.createPath(stroke, true)));
+    const existing = new Map(Array.from(this.svgEl.querySelectorAll<SVGPathElement>("path.canvas-scribe-stroke")).map(path => [path.dataset.strokeId, path]));
+    const paths = this.data.strokes.map(stroke => {
+      const old = existing.get(stroke.id);
+      const complete = stroke !== this.activeStroke;
+      const path = complete && old && this.renderedStrokes.get(old) === stroke ? old : this.createPath(stroke, complete);
+      path.classList.toggle("is-selected", this.selectedStrokeIds.has(stroke.id));
+      if (!complete) this.activePathEl = path;
+      return path;
+    });
+    const wanted = new Set(paths);
+    for (const path of existing.values()) if (!wanted.has(path)) path.remove();
+    // Preserve paint order without detaching unchanged paths. Overlays remain above ink.
+    let cursor = this.svgEl.firstChild;
+    for (const path of paths) { if (path !== cursor) this.svgEl.insertBefore(path, cursor); cursor = path.nextSibling; }
     this.updateSelectionRect();
     this.ensureEraserCursor();
   }
@@ -858,6 +872,7 @@ export class CanvasInkLayer {
     path.setAttribute("d", strokeToSvgPath(stroke, complete));
     path.setAttribute("fill", stroke.color);
     path.setAttribute("opacity", stroke.opacity.toString());
+    if (complete) this.renderedStrokes.set(path, stroke);
     return path;
   }
 

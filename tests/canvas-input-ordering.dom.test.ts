@@ -16,6 +16,43 @@ afterEach(() => {
 });
 
 describe("Canvas drawing input ordering", () => {
+  it("reconciles changed ink, selection and paint order without recreating unchanged paths", async () => {
+    fixture(); const layer = await mountLayer(); stubCanvasTransform();
+    const state = layer as unknown as { data: { strokes: InkStroke[] }; selectedStrokeIds: Set<string>; renderAll(): void; ensureDom(): void };
+    state.data.strokes = Array.from({ length: 100 }, (_, i): InkStroke => ({ id: `s${i}`, tool: "pen", penType: "fountain", size: 3, color: "#111", opacity: 1, hasPressure: true, createdAt: 1, points: [{ x: i, y: 0, pressure: .5, time: 0 }, { x: i, y: 100, pressure: .5, time: 1 }] }));
+    state.renderAll();
+    const survivor = requiredElement<SVGPathElement>('[data-stroke-id="s50"]');
+    const generate = vi.spyOn(geometry, "strokeToSvgPath");
+    state.selectedStrokeIds.add("s0"); state.renderAll();
+    // Selected bounds may flatten s0 once, but unchanged paths are retained.
+    expect(generate.mock.calls.every(([stroke]) => stroke.id === "s0")).toBe(true);
+    expect(requiredElement('[data-stroke-id="s0"]').classList.contains("is-selected")).toBe(true);
+    generate.mockClear(); state.renderAll(); expect(generate).not.toHaveBeenCalled();
+    state.data.strokes[0] = { ...state.data.strokes[0]!, color: "#ff0000", points: [{ x: 20, y: 30, pressure: .5, time: 0 }] };
+    state.renderAll(); expect(requiredElement('[data-stroke-id="s0"]').getAttribute("fill")).toBe("#ff0000");
+    expect(requiredElement('[data-stroke-id="s50"]')).toBe(survivor);
+    state.data.strokes.reverse(); state.renderAll();
+    expect(Array.from(document.querySelectorAll<SVGPathElement>("path.canvas-scribe-stroke"), p => p.dataset.strokeId)).toEqual(state.data.strokes.map(s => s.id));
+    expect(requiredElement('[data-stroke-id="s50"]')).toBe(survivor);
+    requiredElement(".canvas-scribe-render-layer").remove(); state.ensureDom();
+    expect(document.querySelectorAll("path.canvas-scribe-stroke")).toHaveLength(100);
+    expect(requiredElement('[data-stroke-id="s50"]')).not.toBe(survivor);
+    layer.dispose();
+  });
+  it("keeps the active path writable if reconciliation occurs during drawing", async () => {
+    const { wrapper } = fixture(); stubPointerCapture(wrapper);
+    const card = requiredElement<HTMLElement>(".other-card"), layer = await mountLayer(); stubCanvasTransform();
+    const state = layer as unknown as { data: { strokes: InkStroke[] }; activePathEl: SVGPathElement; renderAll(): void };
+    card.dispatchEvent(pointerEvent("pointerdown", { pointerId: 401, pointerType: "pen", button: 0, buttons: 1, pressure: .5, clientX: 20, clientY: 40 }));
+    state.renderAll(); expect(state.activePathEl.isConnected).toBe(true);
+    card.dispatchEvent(pointerEvent("pointerup", { pointerId: 401, pointerType: "pen", button: 0, buttons: 0, pressure: 0, clientX: 100, clientY: 40 }));
+    expect(requiredElement("path.canvas-scribe-stroke").getAttribute("d")).toBe(geometry.strokeToSvgPath(state.data.strokes[0]!, true));
+    const finished = requiredElement("path.canvas-scribe-stroke"); state.renderAll();
+    expect(requiredElement("path.canvas-scribe-stroke")).toBe(finished);
+    layer.undo(); expect(document.querySelector("path.canvas-scribe-stroke")).toBeNull();
+    layer.redo(); expect(document.querySelectorAll("path.canvas-scribe-stroke")).toHaveLength(1);
+    layer.dispose();
+  });
   it("deletes highlighter strokes without rebuilding survivors and restores them through history", async () => {
     const { wrapper } = fixture(); stubPointerCapture(wrapper);
     const card = requiredElement<HTMLElement>(".other-card");
