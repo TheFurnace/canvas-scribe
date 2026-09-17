@@ -841,3 +841,17 @@ textarea.canvas-scribe-note-text { pointer-events: auto; }
 @media (max-width: 343px), (max-height: 399px) {
   .canvas-scribe-radial-menu.is-open .canvas-scribe-radial-palette.has-color-arc { left: max(8px, calc(50% - 125px)) !important; top: 8px !important; transform: none; }
 }
+.canvas-scribe-debug-console {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+.canvas-scribe-debug-console h3,
+.canvas-scribe-debug-console p { margin: 0; }
+.canvas-scribe-debug-hint { color: var(--text-muted); font-size: var(--font-ui-small); }
+.canvas-scribe-debug-controls { display: flex; flex-direction: column; gap: 8px; }
+.canvas-scribe-debug-console button { min-height: 44px; height: auto; white-space: normal; padding: 10px; }
+.canvas-scribe-debug-console button[aria-pressed="true"] { background: var(--interactive-accent); color: var(--text-on-accent); }
+.canvas-scribe-debug-console pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--font-ui-smaller); max-height: 320px; overflow: auto; user-select: text; }

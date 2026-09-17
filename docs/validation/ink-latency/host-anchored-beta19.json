@@ -1,0 +1,373 @@
+{
+  "surfaces": [
+    {
+      "surface": "canvas",
+      "after": 18,
+      "undo": 17,
+      "redo": 18,
+      "file": "Canvas Scribe Smoke Test.canvas",
+      "savedSamples": [
+        41,
+        41,
+        41
+      ],
+      "savedColors": [
+        "#dadada",
+        "#dadada",
+        "#dadada"
+      ],
+      "containsDiagnosticColors": false
+    },
+    {
+      "surface": "note",
+      "after": 3,
+      "undo": 2,
+      "redo": 3,
+      "file": "Untitled 4.scribe",
+      "savedSamples": [
+        41,
+        41,
+        41
+      ],
+      "savedColors": [
+        "var(--text-normal)",
+        "var(--text-normal)",
+        "var(--text-normal)"
+      ],
+      "containsDiagnosticColors": false
+    }
+  ],
+  "strokes": [
+    {
+      "surface": "canvas",
+      "mode": "baseline",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "-181.624",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": -281.7130126953125,
+          "y": 232.36300659179688,
+          "width": 99.81745910644531,
+          "height": 3.5
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "-83.271",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": -281.7130126953125,
+          "y": 232.36300659179688,
+          "width": 198.1704559326172,
+          "height": 3.5
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "canvas",
+      "mode": "prediction",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "-181.624",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": "-171.46725873757646",
+          "display": ""
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": -281.7130126953125,
+          "y": 275.3919982910156,
+          "width": 111.972900390625,
+          "height": 3.5
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "-83.271",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": "-73.33514104194728",
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": -281.7130126953125,
+          "y": 275.3919982910156,
+          "width": 198.1704559326172,
+          "height": 3.5
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "canvas",
+      "mode": "delegated",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "-181.624",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 21,
+          "status": "ready",
+          "visual": true
+        },
+        "inkBounds": {
+          "x": -281.7130126953125,
+          "y": 318.4219970703125,
+          "width": 99.81745910644531,
+          "height": 3.5
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "-83.271",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 41,
+          "status": "ready",
+          "visual": true
+        },
+        "inkBounds": {
+          "x": -281.7130126953125,
+          "y": 318.4219970703125,
+          "width": 198.1704559326172,
+          "height": 3.5
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "note",
+      "mode": "baseline",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "140",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": 58.26300048828125,
+          "y": 284.31298828125,
+          "width": 81.83843994140625,
+          "height": 3.5
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "220",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": 58.26300048828125,
+          "y": 284.31298828125,
+          "width": 161.83843994140625,
+          "height": 3.5
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "note",
+      "mode": "prediction",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "140",
+          "r": "5"
+        },
+        "yellow": {
+          "x": "148.313582540384",
+          "display": ""
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": 58.26300048828125,
+          "y": 319.31298828125,
+          "width": 91.77745056152344,
+          "height": 3.5
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "220",
+          "r": "5"
+        },
+        "yellow": {
+          "x": "227.8527608740302",
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "inkBounds": {
+          "x": 58.26300048828125,
+          "y": 319.31298828125,
+          "width": 161.83843994140625,
+          "height": 3.5
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "note",
+      "mode": "delegated",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "140",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 21,
+          "status": "ready",
+          "visual": true
+        },
+        "inkBounds": {
+          "x": 58.26300048828125,
+          "y": 354.31298828125,
+          "width": 81.83843994140625,
+          "height": 3.5
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "220",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 41,
+          "status": "ready",
+          "visual": true
+        },
+        "inkBounds": {
+          "x": 58.26300048828125,
+          "y": 354.31298828125,
+          "width": 161.83843994140625,
+          "height": 3.5
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    }
+  ],
+  "setup": {
+    "version": "2.0.0-beta.19",
+    "visual": false,
+    "delegated": false,
+    "prediction": 0,
+    "recording": false,
+    "title": "Canvas Scribe Smoke Test - fer-93-latency - Obsidian 1.13.7"
+  },
+  "delegated": [
+    {
+      "surface": "canvas",
+      "tool": "ballpoint",
+      "status": "ready",
+      "updates": 41,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 0.10000038146972656,
+      "errorName": "",
+      "reason": "finish",
+      "visualDiagnostics": true,
+      "diagnosticColor": "#ff00ff",
+      "diagnosticDiameterCssPx": 16,
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    },
+    {
+      "surface": "note",
+      "tool": "ballpoint",
+      "status": "ready",
+      "updates": 41,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 0.2999997138977051,
+      "errorName": "",
+      "reason": "pointerup",
+      "visualDiagnostics": true,
+      "diagnosticColor": "#ff00ff",
+      "diagnosticDiameterCssPx": 16,
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    }
+  ],
+  "errors": []
+}

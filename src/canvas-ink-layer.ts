@@ -1,3 +1,4 @@
+import { InkLatencyExperiment, type LiveInkSession } from "./ink-latency";
 import { createToolColors, createToolMenu, createToolRadial, observeToolTheme } from "./tool-suite";
 import { Notice, setIcon, type App } from "obsidian";
 
@@ -67,6 +68,7 @@ export class CanvasInkLayer {
   private colorPaletteEl: HTMLElement | null = null;
   private wrapperEl: HTMLElement | null = null;
   private activeStroke: InkStroke | null = null;
+  private liveInk: LiveInkSession | null = null;
   private activePathEl: SVGPathElement | null = null;
   private activePointerId: number | null = null;
   private penMenuEl: HTMLElement | null = null;
@@ -114,6 +116,7 @@ export class CanvasInkLayer {
     private readonly logger: DebugLogger,
     private readonly favorites = new FavoritePens(),
     private readonly sharedTools = new InkToolState(),
+    private readonly latency = new InkLatencyExperiment(),
   ) { this.surface = new CanvasInkSurface(app, target); }
 
   async mount(): Promise<void> {
@@ -153,6 +156,7 @@ export class CanvasInkLayer {
   }
 
   undo(): void {
+    if (this.activePointerId !== null) { this.cancelGesture("undo"); return; }
     const previous = this.history.undo(this.data.strokes);
     if (!previous) return;
     this.data.strokes = previous;
@@ -163,6 +167,7 @@ export class CanvasInkLayer {
   }
 
   redo(): void {
+    if (this.activePointerId !== null) this.cancelGesture("redo");
     const next = this.history.redo(this.data.strokes);
     if (!next) return;
     this.data.strokes = next;
@@ -173,6 +178,7 @@ export class CanvasInkLayer {
   }
 
   dispose(): void {
+    this.liveInk?.end("dispose"); this.liveInk = null;
     this.spatial.clear();
     this.closePenMenu();
     this.disposed = true;
@@ -245,6 +251,7 @@ export class CanvasInkLayer {
     this.listen(pointerRoot, "pointermove", this.onPointerMove, true, this.inputDisposers);
     this.listen(pointerRoot, "pointerup", this.onPointerUp, true, this.inputDisposers);
     this.listen(pointerRoot, "pointercancel", this.onPointerUp, true, this.inputDisposers);
+    this.listen(wrapper, "lostpointercapture", this.onPointerUp, true, this.inputDisposers);
     this.listen(pointerRoot, "pointerleave", this.onPointerLeave, true, this.inputDisposers);
     this.listen(pointerRoot, "click", this.onActivation, true, this.inputDisposers);
     this.listen(pointerRoot, "dblclick", this.onActivation, true, this.inputDisposers);
@@ -359,6 +366,10 @@ export class CanvasInkLayer {
     this.activePathEl = this.createPath(this.activeStroke, false);
     this.activePathEl.classList.add("is-active");
     this.svgEl.appendChild(this.activePathEl);
+    this.liveInk = this.latency.begin(this.target.containerEl.ownerDocument, "canvas", this.activeStroke, () => this.scheduleActiveRender(),
+      { area: this.wrapperEl!, path: this.activePathEl, screenScale: this.getScreenScale() });
+    this.liveInk?.acceptActual(event);
+    this.observeLiveInk(event, [event]);
   }
 
   private readonly onPointerMove = (event: PointerEvent): void => {
@@ -396,10 +407,13 @@ export class CanvasInkLayer {
       return;
     }
     if (!this.activeStroke) return;
-    for (const sample of pointerSamples(event)) {
+    const samples = pointerSamples(event);
+    this.observeLiveInk(event, samples);
+    for (const sample of samples) {
       const point = this.eventToPoint(sample);
       if (!point || !this.shouldAppendPoint(this.activeStroke, point)) continue;
       this.activeStroke.points.push(point);
+      this.liveInk?.acceptActual(sample);
       if (sample.pressure > 0 && sample.pressure !== 0.5) this.activeStroke.hasPressure = true;
     }
     this.scheduleActiveRender();
@@ -429,13 +443,14 @@ export class CanvasInkLayer {
     } else if (tool !== "eraser" && shouldAppendReleasePoint(event)) {
       this.appendReleasePoint(event);
     }
-    if (this.wrapperEl?.hasPointerCapture(event.pointerId)) this.wrapperEl.releasePointerCapture(event.pointerId);
+    const captured = this.wrapperEl?.hasPointerCapture(event.pointerId);
     if (event.type === "pointerup") {
       this.penActivationGuard.recordPenRelease(event.pointerId, this.gestureOriginTarget, performance.now());
     } else {
       this.penActivationGuard.recordPenCancellation();
     }
     this.finishGesture();
+    if (captured) this.wrapperEl?.releasePointerCapture(event.pointerId);
   };
 
   private readonly onPointerLeave = (event: PointerEvent): void => {
@@ -555,11 +570,13 @@ export class CanvasInkLayer {
   };
 
   private cancelGesture(reason: string): void {
+    this.liveInk?.end(reason); this.liveInk = null;
     if (this.renderFrame !== null) {
       window.cancelAnimationFrame(this.renderFrame);
       this.renderFrame = null;
     }
     const pointerId = this.activePointerId;
+    this.activePointerId = null;
     if (pointerId !== null && this.wrapperEl?.hasPointerCapture(pointerId)) this.wrapperEl.releasePointerCapture(pointerId);
     if (this.gestureHasUndoSnapshot) {
       const previous = this.history.past.pop();
@@ -591,6 +608,7 @@ export class CanvasInkLayer {
   }
 
   private finishGesture(): void {
+    this.liveInk?.end("finish"); this.liveInk = null;
     this.spatial.sync(this.data.strokes, this.activeStroke);
     if (this.renderFrame !== null) {
       window.cancelAnimationFrame(this.renderFrame);
@@ -761,12 +779,19 @@ export class CanvasInkLayer {
     return color || "#1f2937";
   }
 
+  private observeLiveInk(event: PointerEvent, samples: readonly PointerEvent[]): void {
+    const matrix = this.gestureTransform?.screenToCanvas;
+    if (!matrix) return;
+    this.liveInk?.observe(event, samples, (x, y) => ({ x: matrix.a * x + matrix.c * y + matrix.e, y: matrix.b * x + matrix.d * y + matrix.f }));
+  }
+
   private scheduleActiveRender(): void {
     if (this.renderFrame !== null) return;
     this.renderFrame = window.requestAnimationFrame(() => {
       this.renderFrame = null;
       if (this.activeStroke && this.activePathEl) {
-        this.activePathEl.setAttribute("d", strokeToSvgPath(this.activeStroke, false));
+        const draw = (stroke: InkStroke, anchorEndpoint = false) => this.activePathEl?.setAttribute("d", strokeToSvgPath(stroke, anchorEndpoint));
+        if (this.liveInk) this.liveInk.render(this.activeStroke, draw); else draw(this.activeStroke);
       }
     });
   }

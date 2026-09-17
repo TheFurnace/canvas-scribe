@@ -1,0 +1,301 @@
+{
+  "surfaces": [
+    {
+      "surface": "canvas",
+      "after": 14,
+      "undo": 13,
+      "redo": 14,
+      "file": "Canvas Scribe Smoke Test.canvas",
+      "savedSamples": [
+        41,
+        41,
+        41
+      ],
+      "savedColors": [
+        "#dadada",
+        "#dadada",
+        "#dadada"
+      ],
+      "containsDiagnosticColors": false
+    },
+    {
+      "surface": "note",
+      "after": 3,
+      "undo": 2,
+      "redo": 3,
+      "file": "Untitled 3.scribe",
+      "savedSamples": [
+        41,
+        41,
+        41
+      ],
+      "savedColors": [
+        "var(--text-normal)",
+        "var(--text-normal)",
+        "var(--text-normal)"
+      ],
+      "containsDiagnosticColors": false
+    }
+  ],
+  "strokes": [
+    {
+      "surface": "canvas",
+      "mode": "baseline",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "-181.624",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "-83.271",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "canvas",
+      "mode": "prediction",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "-181.624",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": "-171.35120683698233",
+          "display": ""
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "-83.271",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": "-73.53799335449537",
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "canvas",
+      "mode": "delegated",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "-181.624",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 21,
+          "status": "ready",
+          "visual": true
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "-83.271",
+          "r": "6.147058972241973"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 41,
+          "status": "ready",
+          "visual": true
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "note",
+      "mode": "baseline",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "140",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "220",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "note",
+      "mode": "prediction",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "140",
+          "r": "5"
+        },
+        "yellow": {
+          "x": "148.0756469964981",
+          "display": ""
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "220",
+          "r": "5"
+        },
+        "yellow": {
+          "x": "228.27182521906923",
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": null,
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    },
+    {
+      "surface": "note",
+      "mode": "delegated",
+      "during": {
+        "count": 1,
+        "cyan": {
+          "x": "140",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 21,
+          "status": "ready",
+          "visual": true
+        },
+        "samples": 21
+      },
+      "stopped": {
+        "count": 1,
+        "cyan": {
+          "x": "220",
+          "r": "5"
+        },
+        "yellow": {
+          "x": null,
+          "display": "none"
+        },
+        "magentaInDOM": false,
+        "delegated": {
+          "color": "#ff00ff",
+          "updates": 41,
+          "status": "ready",
+          "visual": true
+        },
+        "samples": 41
+      },
+      "remainingMarkers": 0
+    }
+  ],
+  "setup": {
+    "version": "2.0.0-beta.18",
+    "visual": false,
+    "delegated": false,
+    "prediction": 0,
+    "recording": false,
+    "title": "Canvas Scribe Smoke Test - fer-93-latency - Obsidian 1.13.7"
+  },
+  "delegated": [
+    {
+      "surface": "canvas",
+      "tool": "ballpoint",
+      "status": "ready",
+      "updates": 41,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 0.09999990463256836,
+      "errorName": "",
+      "reason": "finish",
+      "visualDiagnostics": true,
+      "diagnosticColor": "#ff00ff",
+      "diagnosticDiameterCssPx": 16,
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    },
+    {
+      "surface": "note",
+      "tool": "ballpoint",
+      "status": "ready",
+      "updates": 41,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 0.19999980926513672,
+      "errorName": "",
+      "reason": "pointerup",
+      "visualDiagnostics": true,
+      "diagnosticColor": "#ff00ff",
+      "diagnosticDiameterCssPx": 16,
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    }
+  ],
+  "errors": []
+}

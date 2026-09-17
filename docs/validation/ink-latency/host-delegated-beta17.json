@@ -1,0 +1,175 @@
+{
+  "surfaces": [
+    {
+      "surface": "canvas",
+      "before": 7,
+      "after": 11,
+      "undo": 10,
+      "redo": 11,
+      "file": "Canvas Scribe Smoke Test.canvas",
+      "savedSamples": [
+        31,
+        31,
+        31,
+        31
+      ],
+      "pressure": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "tilt": [
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "surface": "note",
+      "before": 0,
+      "after": 4,
+      "undo": 3,
+      "redo": 4,
+      "file": "Untitled 2.scribe",
+      "savedSamples": [
+        31,
+        31,
+        31,
+        31
+      ],
+      "pressure": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "tilt": [
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  ],
+  "stops": [
+    {
+      "surface": "canvas",
+      "before": {
+        "n": 31,
+        "updates": 31,
+        "status": "ready",
+        "event": true,
+        "color": "rgb(218, 218, 218)",
+        "scale": 0.8133971095085144,
+        "prediction": 0
+      },
+      "after": {
+        "n": 31,
+        "updates": 31,
+        "event": false
+      }
+    },
+    {
+      "surface": "note",
+      "before": {
+        "n": 31,
+        "updates": 31,
+        "status": "ready",
+        "event": true,
+        "color": "rgb(218, 218, 218)",
+        "scale": 1,
+        "prediction": 0
+      },
+      "after": {
+        "n": 31,
+        "updates": 31,
+        "event": false
+      }
+    }
+  ],
+  "setup": {
+    "version": "2.0.0-beta.17",
+    "delegated": false,
+    "prediction": 0,
+    "recording": false,
+    "title": "Untitled 1 - fer-93-latency - Obsidian 1.13.7",
+    "api": "function"
+  },
+  "delegated": [
+    {
+      "surface": "canvas",
+      "tool": "ballpoint",
+      "status": "ready",
+      "updates": 31,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 1.4000000953674316,
+      "errorName": "",
+      "reason": "finish",
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    },
+    {
+      "surface": "canvas",
+      "tool": "fountain",
+      "status": "ready",
+      "updates": 31,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 0.10000038146972656,
+      "errorName": "",
+      "reason": "finish",
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    },
+    {
+      "surface": "canvas",
+      "tool": "pencil",
+      "status": "unsupported-style",
+      "updates": 0,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": null,
+      "errorName": "",
+      "reason": "finish",
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    },
+    {
+      "surface": "note",
+      "tool": "ballpoint",
+      "status": "ready",
+      "updates": 31,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 0.3000001907348633,
+      "errorName": "",
+      "reason": "pointerup",
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    },
+    {
+      "surface": "note",
+      "tool": "fountain",
+      "status": "ready",
+      "updates": 31,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": 0.40000009536743164,
+      "errorName": "",
+      "reason": "pointerup",
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    },
+    {
+      "surface": "note",
+      "tool": "pencil",
+      "status": "unsupported-style",
+      "updates": 0,
+      "untrustedSkipped": 0,
+      "staleSkipped": 0,
+      "requestMs": null,
+      "errorName": "",
+      "reason": "pointerup",
+      "scope": "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged."
+    }
+  ],
+  "errors": []
+}

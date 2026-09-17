@@ -117,7 +117,26 @@ Describe the result you wanted.
 - Build: ${device.buildId}
 - Diagnostic log: [[${logName}]]
 
+## Ink latency comparison (if tested)
+
+- Surface: Canvas / handwritten note
+- Display refresh setting and battery saver:
+- Samsung Notes version and matching pen/zoom:
+- Prediction OFF: fast-line gap, corners, stop while touching:
+- Prediction 16 ms: fast-line gap, corners, stop while touching:
+- Prediction 24 ms: fast-line gap, corners, stop while touching:
+- Prediction 32 ms: fast-line gap, corners, stop while touching:
+- Delegated ink OFF / ON (opaque ballpoint, fountain or brush): fast-line gap, joins, corners, stops and pen lift:
+- Bright diagnostics: cyan dot visible? Yellow extension visible with prediction? Magenta trail visible with delegation?
+- Any overshoot or visible correction at pen lift:
+
+Use **Toggle ink latency recording**, draw a baseline, then **Debug: Cycle prediction horizon OFF / 16 / 24 / 32 ms** and repeat at each mode. Confirm the mode in the notice. Prediction defaults to the recommended 16 ms. Toggle ink prediction saves ON (16 ms) or OFF; debug horizons are session-only. Restart restores that preference and turns recording OFF. Changes apply to new strokes. The log includes per-stroke timing, used prediction horizon/distance, cap frequency and estimated lead remaining at render. These measure JavaScript work and preview endpoints before smoothing/paint, not physical pen-to-display latency. No stroke coordinates are included.
+
 ## Optional notes
+
+For delegated ink, use **Toggle delegated ink trail (experimental)** to compare OFF and ON with the same opaque pen, speed and zoom. It disables application prediction; cycling prediction disables delegated ink. Delegation resets OFF on restart, restoring your saved 16 ms/OFF prediction preference. Delegated stroke entries report unavailable/unsupported style, request failures, successful update counts and stale/untrusted input skips. Successful calls do not prove that WebView displayed a trail or reduced physical latency. Pencil, highlighter and translucent pens use ordinary SVG ink in this test.
+
+Use **Toggle bright ink diagnostics (cyan / yellow / magenta)** for a visibility test. Cyan marks the latest accepted actual point; yellow marks the unsmoothed predicted endpoint and extension. In delegated mode only the browser is asked to draw a magenta 16 CSS-pixel trail: the plugin never draws a magenta replacement. Cyan alone does not prove delegation. Markers are temporary, reset OFF on restart, and never enter saved ink. This deliberately oversized display is for visibility, not latency measurement.
 
 Add screenshots or a short screen recording here. The diagnostic log intentionally excludes note text, canvas names, vault names, and raw stylus coordinates.
 `;

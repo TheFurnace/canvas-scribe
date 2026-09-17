@@ -1,6 +1,6 @@
 {
   "name": "canvas-scribe",
-  "version": "2.0.0-beta.14",
+  "version": "2.0.0-beta.20",
   "description": "Stylus-first handwriting directly on Obsidian Canvas.",
   "main": "main.js",
   "type": "module",

@@ -81,6 +81,7 @@ class FakeElement {
 class FakeDocument {
   querySelector(): null { return null; }
   readonly defaultView = {
+    performance: { now: () => 2 },
     Element: FakeElement,
     getComputedStyle: () => ({ getPropertyValue: () => "#111111" }),
   };
