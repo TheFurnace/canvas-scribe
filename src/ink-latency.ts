@@ -1,6 +1,7 @@
 import type { DebugData, DebugLogger } from "./debug-logger";
 import type { InkPoint, InkStroke } from "./types";
 import { DelegatedInkSession, type DelegatedInkTarget } from "./delegated-ink";
+import { InkLatencyVisuals } from "./ink-latency-visuals";
 
 export const PREDICTION_HORIZONS = [0, 16, 24, 32] as const;
 export type PredictionHorizon = typeof PREDICTION_HORIZONS[number];
@@ -16,6 +17,7 @@ export class InkLatencyExperiment {
   get prediction(): boolean { return this.horizonMs !== 0; }
   diagnostics = false;
   delegated = false;
+  visualDiagnostics = false;
   constructor(private readonly logger?: DebugLogger) {}
   cyclePrediction(): PredictionHorizon {
     this.delegated = false;
@@ -27,10 +29,11 @@ export class InkLatencyExperiment {
     return this.delegated;
   }
   begin(document: Document, surface: "canvas" | "note", stroke: InkStroke, redraw: () => void, target?: DelegatedInkTarget): LiveInkSession | null {
-    if (!this.prediction && !this.diagnostics && !this.delegated) return null;
+    if (!this.prediction && !this.diagnostics && !this.delegated && !this.visualDiagnostics) return null;
     return new LiveInkSession(document.defaultView!, surface, stroke.penType ?? stroke.highlighterType ?? stroke.tool,
       this.delegated ? 0 : this.horizonMs, this.diagnostics ? this.logger : undefined, redraw,
-      this.delegated && target ? new DelegatedInkSession(target, surface, stroke, redraw, this.logger) : undefined);
+      this.delegated && target ? new DelegatedInkSession(target, surface, stroke, redraw, this.logger, this.visualDiagnostics) : undefined,
+      this.visualDiagnostics && target ? new InkLatencyVisuals(target) : undefined);
   }
 }
 
@@ -97,9 +100,12 @@ export class LiveInkSession {
 
   constructor(private readonly view: Window, private readonly surface: string, private readonly tool: string,
     private readonly horizonMs: PredictionHorizon, private readonly logger: DebugLogger | undefined, private readonly redraw: () => void,
-    private readonly delegated?: DelegatedInkSession) {}
+    private readonly delegated?: DelegatedInkSession, private readonly visuals?: InkLatencyVisuals) {}
 
-  acceptActual(event: PointerEvent): void { this.delegated?.accept(event); }
+  acceptActual(event: PointerEvent): void {
+    this.delegated?.accept(event);
+    if (this.visuals && !this.ended) this.redraw();
+  }
 
   observe(event: PointerEvent, actual: readonly PointerEvent[], project: Project): void {
     if (this.ended) return;
@@ -184,6 +190,7 @@ export class LiveInkSession {
     // A temporary object and array, never a mutation of the stroke or its points.
     const point: InkPoint | null = this.tip && fresh && last ? { ...last, ...this.tip } : null;
     draw(point ? { ...stroke, points: [...stroke.points, point] } : stroke);
+    this.visuals?.render(last, point);
     this.delegated?.rendered();
     if (!this.logger) return;
     this.frames++;
@@ -211,12 +218,14 @@ export class LiveInkSession {
     if (this.ended) return;
     this.ended = true; this.clearExpiry(); this.tip = null; this.samples = [];
     this.delegated?.end(reason);
+    this.visuals?.end();
     if (!this.logger) return;
     const data: DebugData = { surface: this.surface, tool: this.tool, prediction: this.horizonMs !== 0, reason,
       events: this.events, frames: this.frames, nativeFrames: this.nativeFrames, fallbackFrames: this.fallbackFrames,
       nativeAvailable: this.nativeAvailable, invalidTimestamps: this.invalidTimestamps,
       nativeExtendedFrames: this.nativeExtendedFrames, distanceCappedFrames: this.distanceCappedFrames,
-      delegated: !!this.delegated, horizonMs: this.horizonMs, maxDistanceCssPx: MAX_DISTANCE_PX, expiryMs: EXPIRY_MS,
+      delegated: !!this.delegated, visualDiagnostics: !!this.visuals,
+      horizonMs: this.horizonMs, maxDistanceCssPx: MAX_DISTANCE_PX, expiryMs: EXPIRY_MS,
       predictionScope: "Frame-weighted endpoint metrics, before smoothing/paint. Effective horizon/lead are linear distance-cap estimates; negative lead means behind render time.",
       timingScope: "JS input-to-SVG-update; excludes paint/display; recent p95 uses last 256 observations" };
     for (const [name, timing] of Object.entries({ inputAge: this.inputAge, oldestInputAge: this.oldestInputAge,

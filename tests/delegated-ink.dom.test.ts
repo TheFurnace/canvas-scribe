@@ -6,7 +6,7 @@ import { DebugLogger } from "../src/debug-logger";
 import type { InkStroke } from "../src/types";
 
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); delete (navigator as unknown as { ink?: unknown }).ink; document.body.replaceChildren(); });
-function setup(options: { unavailable?: boolean; delayed?: boolean; reject?: boolean; syncThrow?: boolean; updateThrow?: boolean; type?: InkStroke["penType"] } = {}) {
+function setup(options: { unavailable?: boolean; delayed?: boolean; reject?: boolean; syncThrow?: boolean; updateThrow?: boolean; visual?: boolean; type?: InkStroke["penType"] } = {}) {
   vi.useFakeTimers();
   let now = 100.3;
   vi.spyOn(performance, "now").mockImplementation(() => now);
@@ -26,7 +26,7 @@ function setup(options: { unavailable?: boolean; delayed?: boolean; reject?: boo
   });
   if (!options.unavailable) Object.defineProperty(navigator, "ink", { configurable: true, value: { requestPresenter: request } });
   const logger = new DebugLogger(), redraw = vi.fn();
-  const session = new DelegatedInkSession({ area, path, screenScale: 2 }, "canvas", stroke, redraw, logger);
+  const session = new DelegatedInkSession({ area, path, screenScale: 2 }, "canvas", stroke, redraw, logger, options.visual);
   // Trusted-event doubles exercise our guard; the real-host test supplies native events.
   const event = { timeStamp: 100.3, pointerType: "pen", buttons: 1, isTrusted: true } as PointerEvent;
   session.accept(event);
@@ -89,4 +89,12 @@ it("makes prediction and delegation mutually exclusive and defaults both off", (
   experiment.cyclePrediction(); expect(experiment.prediction).toBe(true);
   expect(experiment.toggleDelegated()).toBe(true); expect(experiment.prediction).toBe(false);
   experiment.cyclePrediction(); expect(experiment.delegated).toBe(false); expect(experiment.horizonMs).toBe(16);
+});
+
+it("sends magenta and a fixed CSS-pixel diameter only to the real presenter in visual mode", async () => {
+  const f = setup({ visual: true }); await Promise.resolve(); f.session.rendered();
+  expect(f.update).toHaveBeenCalledWith(f.event, { color: "#ff00ff", diameter: 16 });
+  expect(f.path.outerHTML).not.toContain("#ff00ff");
+  expect(f.stroke.color).toBe("var(--text-normal)");
+  f.session.end("up"); expect(f.data()).toMatchObject({ visualDiagnostics: true, diagnosticColor: "#ff00ff", diagnosticDiameterCssPx: 16 });
 });

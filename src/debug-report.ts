@@ -127,6 +127,7 @@ Describe the result you wanted.
 - Prediction 24 ms: fast-line gap, corners, stop while touching:
 - Prediction 32 ms: fast-line gap, corners, stop while touching:
 - Delegated ink OFF / ON (opaque ballpoint, fountain or brush): fast-line gap, joins, corners, stops and pen lift:
+- Bright diagnostics: cyan dot visible? Yellow extension visible with prediction? Magenta trail visible with delegation?
 - Any overshoot or visible correction at pen lift:
 
 Use **Toggle ink latency recording**, draw a baseline, then **Cycle predicted ink tip: OFF / 16 / 24 / 32 ms (experimental)** and repeat at each mode. Confirm the mode in the notice. Recording and prediction reset to OFF on restart and apply to new strokes. The log includes per-stroke timing, used prediction horizon/distance, cap frequency and estimated lead remaining at render. These measure JavaScript work and preview endpoints before smoothing/paint, not physical pen-to-display latency. No stroke coordinates are included.
@@ -134,6 +135,8 @@ Use **Toggle ink latency recording**, draw a baseline, then **Cycle predicted in
 ## Optional notes
 
 For delegated ink, use **Toggle delegated ink trail (experimental)** to compare OFF and ON with the same opaque pen, speed and zoom. It disables application prediction; cycling prediction disables delegated ink. All experiment modes reset OFF on restart. Delegated stroke entries report unavailable/unsupported style, request failures, successful update counts and stale/untrusted input skips. Successful calls do not prove that WebView displayed a trail or reduced physical latency. Pencil, highlighter and translucent pens use ordinary SVG ink in this test.
+
+Use **Toggle bright ink diagnostics (cyan / yellow / magenta)** for a visibility test. Cyan marks the latest accepted actual point; yellow marks the unsmoothed predicted endpoint and extension. In delegated mode only the browser is asked to draw a magenta 16 CSS-pixel trail: the plugin never draws a magenta replacement. Cyan alone does not prove delegation. Markers are temporary, reset OFF on restart, and never enter saved ink. This deliberately oversized display is for visibility, not latency measurement.
 
 Add screenshots or a short screen recording here. The diagnostic log intentionally excludes note text, canvas names, vault names, and raw stylus coordinates.
 `;

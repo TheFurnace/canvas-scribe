@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.spyOn(window, "requestAnimationFrame").mockImplementation(fn => { frames.set(++frameId, fn); return frameId; });
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation(id => { frames.delete(id); });
 });
-afterEach(() => { cleanup(); frames.clear(); vi.restoreAllMocks(); delete (navigator as unknown as { ink?: unknown }).ink; document.body.replaceChildren(); });
+afterEach(() => { cleanup(); frames.clear(); vi.restoreAllMocks(); vi.useRealTimers(); delete (navigator as unknown as { ink?: unknown }).ink; document.body.replaceChildren(); });
 function frame() { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(now)); }
 function pointer(target: Element, type: string, x: number, time: number, trusted = false) {
   now = time;
@@ -144,6 +144,34 @@ it("Canvas does not anchor delegated ink to a filtered-out close sample", async 
   pointer(f.target, "pointermove", 110.001, 120, true); frame();
   expect(f.strokes()[0]!.points).toHaveLength(2); expect(update.mock.calls[0]![0]).toBe(accepted);
   pointer(f.target, "pointerup", 110, 125, true);
+});
+
+it.each(["canvas", "note"] as const)("%s shows cyan/yellow diagnostics, retracts yellow at a stop and saves no markers", async surface => {
+  const f = await setup(surface); f.experiment.visualDiagnostics = true; f.experiment.horizonMs = 32;
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  pointer(f.target, "pointerdown", 100, 100); pointer(f.target, "pointermove", 105, 110); pointer(f.target, "pointermove", 110, 120); frame();
+  const group = document.querySelector(".canvas-scribe-latency-markers")!;
+  expect(group).not.toBeNull();
+  const cyan = group.querySelector('[fill="#00e5ff"]')!, yellow = group.querySelector<SVGElement>('[fill="#ffea00"]')!;
+  expect(cyan.getAttribute("cx")).toBe("110"); expect(yellow.getAttribute("cx")).toBe("126");
+  expect(yellow.style.display).toBe("");
+  expect(f.save()).not.toContain("#ffea00"); expect(f.strokes()[0]!.points).toHaveLength(3);
+  now = 170; vi.advanceTimersByTime(50); frame(); expect(yellow.style.display).toBe("none");
+  pointer(f.target, "pointerup", 110, 175); frame(); expect(document.querySelector(".canvas-scribe-latency-markers")).toBeNull();
+  f.undo(); f.redo(); expect(document.querySelector(".canvas-scribe-latency-markers")).toBeNull();
+  expect(f.logger.snapshot().entries.find(e => e.event === "stroke" && e.category === "ink-latency")!.data).toMatchObject({ visualDiagnostics: true, horizonMs: 32 });
+});
+
+it.each(["canvas", "note"] as const)("%s shows only cyan in delegated visual mode and removes it on capture loss", async surface => {
+  const update = vi.fn(); Object.defineProperty(navigator, "ink", { configurable: true, value: { requestPresenter: async () => ({ updateInkTrailStartPoint: update }) } });
+  const f = await setup(surface, false); f.experiment.visualDiagnostics = true; f.experiment.toggleDelegated();
+  pointer(f.target, "pointerdown", 100, 100, true); await Promise.resolve();
+  pointer(f.target, "pointermove", 110, 110, true); frame();
+  const group = document.querySelector(".canvas-scribe-latency-markers")!;
+  expect(group).not.toBeNull(); expect(group.outerHTML).not.toContain("#ff00ff");
+  expect(group.querySelector<SVGElement>('[fill="#ffea00"]')!.style.display).toBe("none");
+  expect(update.mock.calls[0]![1]).toEqual({ color: "#ff00ff", diameter: 16 });
+  f.target.releasePointerCapture(1); frame(); expect(document.querySelector(".canvas-scribe-latency-markers")).toBeNull();
 });
 
 it.each(["canvas", "note"] as const)("%s cancels delegation on capture loss and ignores late rendering", async surface => {

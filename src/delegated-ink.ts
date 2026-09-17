@@ -1,6 +1,7 @@
 import type { DebugLogger } from "./debug-logger";
 import { PEN_PROFILES, penPressure } from "./pen-types";
 import type { InkPoint, InkStroke } from "./types";
+import { DELEGATED_DEBUG_COLOR, DELEGATED_DEBUG_DIAMETER } from "./ink-latency-visuals";
 
 export interface DelegatedInkTarget {
   area: HTMLElement;
@@ -33,7 +34,8 @@ export class DelegatedInkSession {
   private readonly view: Window;
 
   constructor(private readonly target: DelegatedInkTarget, private readonly surface: string,
-    private readonly stroke: InkStroke, private readonly redraw: () => void, private readonly logger?: DebugLogger) {
+    private readonly stroke: InkStroke, private readonly redraw: () => void, private readonly logger?: DebugLogger,
+    private readonly visualDiagnostics = false) {
     this.view = target.area.ownerDocument.defaultView!;
     this.started = this.view.performance.now();
     if (stroke.tool !== "pen" || !stroke.penType || stroke.penType === "pencil" || stroke.opacity !== 1) {
@@ -43,7 +45,7 @@ export class DelegatedInkSession {
     if (!ink?.requestPresenter) { this.status = "unavailable"; return; }
     try {
       // Resolve theme variables in the actual surface/document, not the main window.
-      this.color = this.view.getComputedStyle(target.path).fill;
+      this.color = visualDiagnostics ? DELEGATED_DEBUG_COLOR : this.view.getComputedStyle(target.path).fill;
       void Promise.resolve(ink.requestPresenter({ presentationArea: target.area })).then(presenter => {
         if (this.ended || !target.area.isConnected || !target.path.isConnected) return;
         this.requestMs = this.view.performance.now() - this.started;
@@ -74,7 +76,8 @@ export class DelegatedInkSession {
     const type = this.stroke.penType!;
     const thinning = PEN_PROFILES[type].thinning;
     const pressure = penPressure(type, last.pressure, this.stroke.hasPressure);
-    const diameter = this.stroke.size * (1 - thinning + 2 * thinning * pressure) * this.target.screenScale;
+    const diameter = this.visualDiagnostics ? DELEGATED_DEBUG_DIAMETER :
+      this.stroke.size * (1 - thinning + 2 * thinning * pressure) * this.target.screenScale;
     if (!Number.isFinite(diameter) || diameter <= 0) { this.status = "invalid-style"; this.presenter = null; return; }
     try {
       this.presenter.updateInkTrailStartPoint(event, { color: this.color, diameter });
@@ -98,6 +101,9 @@ export class DelegatedInkSession {
       surface: this.surface, tool: this.stroke.penType ?? this.stroke.tool, status: this.status,
       updates: this.updates, untrustedSkipped: this.untrusted, staleSkipped: this.stale,
       requestMs: this.requestMs, errorName: this.errorName, reason,
+      visualDiagnostics: this.visualDiagnostics,
+      diagnosticColor: this.visualDiagnostics ? DELEGATED_DEBUG_COLOR : null,
+      diagnosticDiameterCssPx: this.visualDiagnostics ? DELEGATED_DEBUG_DIAMETER : null,
       scope: "Successful API calls only; visible delegated ink and physical latency are not measured. Round tip approximates pressure/taper; SVG smoothing unchanged.",
     });
   }

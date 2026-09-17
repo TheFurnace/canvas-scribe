@@ -99,6 +99,14 @@ export default class CanvasScribePlugin extends Plugin {
       },
     });
     this.addCommand({
+      id: "toggle-ink-latency-colors", name: "Toggle bright ink diagnostics (cyan / yellow / magenta)",
+      callback: () => {
+        this.inkLatency.visualDiagnostics = !this.inkLatency.visualDiagnostics;
+        this.logger.record("ink-latency", "visual_diagnostics_changed", { enabled: this.inkLatency.visualDiagnostics });
+        new Notice(`Bright ink diagnostics ${this.inkLatency.visualDiagnostics ? "ON" : "OFF"} for new strokes. Cyan: actual endpoint. Yellow: prediction. Magenta: browser-only delegated trail. Resets on restart.`, 10000);
+      },
+    });
+    this.addCommand({
       id: "toggle-delegated-ink", name: "Toggle delegated ink trail (experimental)",
       callback: () => {
         const enabled = this.inkLatency.toggleDelegated();
