@@ -65,7 +65,9 @@ it.each(["canvas", "note"] as const)("%s shows a predicted tip but finalizes and
   pointer(f.target, "pointerdown", 100, 100); pointer(f.target, "pointermove", 110, 110); pointer(f.target, "pointermove", 120, 120);
   frame(); const stroke = f.strokes()[0]!;
   expect(stroke.points.map(p => p.x)).toEqual([100, 110, 120]);
-  expect(f.path().getAttribute("d")).not.toBe(strokeToSvgPath(stroke, false));
+  const preview = { ...stroke, points: [...stroke.points, { ...stroke.points[2]!, x: 136 }] };
+  expect(f.path().getAttribute("d")).toBe(strokeToSvgPath(preview, true));
+  expect(f.path().getAttribute("d")).not.toBe(strokeToSvgPath(preview, false));
   const savedDuringPreview = JSON.parse(f.save()) as { strokes?: InkStroke[]; objects?: InkStroke[] };
   expect((savedDuringPreview.strokes ?? savedDuringPreview.objects)![0]!.points.map(p => p.x)).toEqual([100, 110, 120]);
   pointer(f.target, "pointerup", 120, 125); frame();

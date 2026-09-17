@@ -375,7 +375,7 @@ export class HandwrittenNoteEditor {
 
   private renderActiveInk(complete: boolean): void {
     if (!this.activeInk || !this.activeInkPath) return;
-    const draw = (stroke: InkStroke) => this.activeInkPath?.setAttribute("d", strokeToSvgPath(stroke, complete));
+    const draw = (stroke: InkStroke, anchorEndpoint = false) => this.activeInkPath?.setAttribute("d", strokeToSvgPath(stroke, complete || anchorEndpoint));
     if (!complete && this.liveInk) this.liveInk.render(this.activeInk, draw); else draw(this.activeInk);
   }
 

@@ -182,14 +182,16 @@ export class LiveInkSession {
     }, Math.max(0, EXPIRY_MS - (now - latest.time)));
   }
 
-  render(stroke: InkStroke, draw: (preview: InkStroke) => void): void {
+  render(stroke: InkStroke, draw: (preview: InkStroke, anchorEndpoint?: boolean) => void): void {
     if (this.ended) { draw(stroke); return; }
     const start = this.view.performance.now();
     const fresh = this.newestTime !== null && start - this.newestTime < EXPIRY_MS;
     const last = stroke.points[stroke.points.length - 1];
     // A temporary object and array, never a mutation of the stroke or its points.
     const point: InkPoint | null = this.tip && fresh && last ? { ...last, ...this.tip } : null;
-    draw(point ? { ...stroke, points: [...stroke.points, point] } : stroke);
+    // Anchor only the temporary predicted endpoint. Otherwise perfect-freehand's
+    // unfinished-stroke streamline pulls the visible tip behind the prediction.
+    draw(point ? { ...stroke, points: [...stroke.points, point] } : stroke, !!point);
     this.visuals?.render(last, point);
     this.delegated?.rendered();
     if (!this.logger) return;
@@ -226,6 +228,7 @@ export class LiveInkSession {
       nativeExtendedFrames: this.nativeExtendedFrames, distanceCappedFrames: this.distanceCappedFrames,
       delegated: !!this.delegated, visualDiagnostics: !!this.visuals,
       horizonMs: this.horizonMs, maxDistanceCssPx: MAX_DISTANCE_PX, expiryMs: EXPIRY_MS,
+      predictionRendering: "anchored-endpoint",
       predictionScope: "Frame-weighted endpoint metrics, before smoothing/paint. Effective horizon/lead are linear distance-cap estimates; negative lead means behind render time.",
       timingScope: "JS input-to-SVG-update; excludes paint/display; recent p95 uses last 256 observations" };
     for (const [name, timing] of Object.entries({ inputAge: this.inputAge, oldestInputAge: this.oldestInputAge,

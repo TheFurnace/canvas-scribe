@@ -57,6 +57,18 @@ it("retracts on inactivity without another pointer event and on fresh stationary
   expect(f.render()).toBe(f.stroke);
 });
 
+it("anchors only fresh predicted previews, never expired or ended strokes", () => {
+  const f = setup(), draw = vi.fn();
+  f.session.observe(f.samples[2]!, f.samples, f.project);
+  f.session.render(f.stroke, draw);
+  expect(draw.mock.calls[0]![1]).toBe(true);
+  f.time(140); [...f.timers.values()][0]!();
+  f.session.render(f.stroke, draw);
+  expect(draw.mock.calls[1]).toEqual([f.stroke, false]);
+  f.session.end("up"); f.session.render(f.stroke, draw);
+  expect(draw.mock.calls[2]).toEqual([f.stroke]);
+});
+
 it.each([[20, 10], [0, 0], [100, 0]])("suppresses sharp turns, reversal and acceleration at %j,%j", (x, y) => {
   const f = setup(); f.session.observe(f.samples[2]!, f.samples, f.project);
   f.time(110); const e = f.event(110, x, y); f.session.observe(e, [e], f.project);

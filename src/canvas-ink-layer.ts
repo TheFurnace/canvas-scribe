@@ -790,7 +790,7 @@ export class CanvasInkLayer {
     this.renderFrame = window.requestAnimationFrame(() => {
       this.renderFrame = null;
       if (this.activeStroke && this.activePathEl) {
-        const draw = (stroke: InkStroke) => this.activePathEl?.setAttribute("d", strokeToSvgPath(stroke, false));
+        const draw = (stroke: InkStroke, anchorEndpoint = false) => this.activePathEl?.setAttribute("d", strokeToSvgPath(stroke, anchorEndpoint));
         if (this.liveInk) this.liveInk.render(this.activeStroke, draw); else draw(this.activeStroke);
       }
     });
