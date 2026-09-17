@@ -1,4 +1,5 @@
 import { InkLatencyExperiment } from "./ink-latency";
+import { DebugConsoleView, DEBUG_CONSOLE_VIEW_TYPE } from "./debug-console-view";
 import { InkToolState } from "./ink-tool-state";
 import { addIcon, Notice, Plugin } from "obsidian";
 import { PdfController } from "./pdf-controller";
@@ -25,6 +26,7 @@ export default class CanvasScribePlugin extends Plugin {
   private diagnostics: InputDiagnostics | null = null;
   private syncFrame: number | null = null;
   private pdfController: PdfController | null = null;
+  private readonly debugActions = new Map<string, () => void | Promise<void>>();
 
   async onload(): Promise<void> {
     registerToolIcons(addIcon);
@@ -43,6 +45,15 @@ export default class CanvasScribePlugin extends Plugin {
     this.logger.record("plugin", "loaded", { version: this.manifest.version });
     this.registerView(HANDWRITTEN_NOTE_VIEW_TYPE, (leaf) => new HandwrittenNoteView(leaf, this.favorites, this.tools, this.inkLatency));
     this.registerExtensions([HANDWRITTEN_NOTE_EXTENSION], HANDWRITTEN_NOTE_VIEW_TYPE);
+    this.registerView(DEBUG_CONSOLE_VIEW_TYPE, leaf => new DebugConsoleView(leaf,
+      () => ({ version: this.manifest.version, prediction: this.inkLatency.horizonMs, delegated: this.inkLatency.delegated,
+        colors: this.inkLatency.visualDiagnostics, recording: this.inkLatency.diagnostics, input: this.diagnostics?.enabled ?? false }),
+      () => this.logger.snapshot(), id => id === "export-debug-report" ? this.exportDebugReport(false) : this.debugActions.get(id)?.(),
+      side => void this.openDebugConsole(side)));
+    this.addRibbonIcon("bug", "Open Scribe debug console", () => void this.openDebugConsole());
+    for (const side of ["left", "right"] as const) this.addCommand({
+      id: `open-debug-console-${side}`, name: `Open debug console in ${side} sidebar`, callback: () => void this.openDebugConsole(side),
+    });
     registerHandwrittenNoteEmbeds(this);
     this.pdfController = new PdfController(this, this.favorites, this.tools);
     this.diagnostics = new InputDiagnostics(document, this.logger);
@@ -56,17 +67,17 @@ export default class CanvasScribePlugin extends Plugin {
       name: "Toggle stylus input on active view",
       callback: () => this.withActiveLayer((layer) => layer.toggleEnabled()),
     });
-    this.addCommand({
+    this.addDebugCommand({
       id: "export-debug-report",
       name: "Export debug report",
       callback: () => void this.exportDebugReport(),
     });
-    this.addCommand({
+    this.addDebugCommand({
       id: "clear-debug-history",
       name: "Clear debug history",
-      callback: () => {
+      callback: (notify) => {
         this.logger.clear();
-        new Notice("Canvas Scribe debug history cleared.");
+        notify("Canvas Scribe debug history cleared.");
       },
     });
 
@@ -81,45 +92,45 @@ export default class CanvasScribePlugin extends Plugin {
       name: "Redo Scribe edit",
       callback: () => this.withActiveLayer((layer) => layer.redo()),
     });
-    this.addCommand({
+    this.addDebugCommand({
       id: "toggle-input-diagnostics",
       name: "Toggle stylus input diagnostics",
-      callback: () => {
+      callback: (notify) => {
         const enabled = this.diagnostics?.toggle() ?? false;
-        new Notice(`Canvas Scribe input diagnostics ${enabled ? "enabled" : "disabled"}.`);
+        notify(`Canvas Scribe input diagnostics ${enabled ? "enabled" : "disabled"}.`);
       },
     });
 
-    this.addCommand({
+    this.addDebugCommand({
       id: "toggle-ink-prediction", name: "Cycle predicted ink tip: OFF / 16 / 24 / 32 ms (experimental)",
-      callback: () => {
+      callback: (notify) => {
         const horizonMs = this.inkLatency.cyclePrediction();
         this.logger.record("ink-latency", "prediction_mode_changed", { enabled: this.inkLatency.prediction, horizonMs });
-        new Notice(`Predicted ink tip: ${horizonMs ? `${horizonMs} ms` : "OFF"}; delegated ink OFF for new Canvas and note strokes. Resets on restart.`);
+        notify(`Predicted ink tip: ${horizonMs ? `${horizonMs} ms` : "OFF"}; delegated ink OFF for new Canvas and note strokes. Resets on restart.`);
       },
     });
-    this.addCommand({
+    this.addDebugCommand({
       id: "toggle-ink-latency-colors", name: "Toggle bright ink diagnostics (cyan / yellow / magenta)",
-      callback: () => {
+      callback: (notify) => {
         this.inkLatency.visualDiagnostics = !this.inkLatency.visualDiagnostics;
         this.logger.record("ink-latency", "visual_diagnostics_changed", { enabled: this.inkLatency.visualDiagnostics });
-        new Notice(`Bright ink diagnostics ${this.inkLatency.visualDiagnostics ? "ON" : "OFF"} for new strokes. Cyan: actual endpoint. Yellow: prediction. Magenta: browser-only delegated trail. Resets on restart.`, 10000);
+        notify(`Bright ink diagnostics ${this.inkLatency.visualDiagnostics ? "ON" : "OFF"} for new strokes. Cyan: actual endpoint. Yellow: prediction. Magenta: browser-only delegated trail. Resets on restart.`, 10000);
       },
     });
-    this.addCommand({
+    this.addDebugCommand({
       id: "toggle-delegated-ink", name: "Toggle delegated ink trail (experimental)",
-      callback: () => {
+      callback: (notify) => {
         const enabled = this.inkLatency.toggleDelegated();
         this.logger.record("ink-latency", "delegated_mode_changed", { enabled, prediction: false });
-        new Notice(`Delegated ink ${enabled ? "ON" : "OFF"}; prediction OFF for new Canvas and note strokes. Use an opaque ballpoint, fountain or brush pen. Export debug report after testing.`, 8000);
+        notify(`Delegated ink ${enabled ? "ON" : "OFF"}; prediction OFF for new Canvas and note strokes. Use an opaque ballpoint, fountain or brush pen. Export debug report after testing.`, 8000);
       },
     });
-    this.addCommand({
+    this.addDebugCommand({
       id: "toggle-ink-latency-diagnostics", name: "Toggle ink latency recording",
-      callback: () => {
+      callback: (notify) => {
         this.inkLatency.diagnostics = !this.inkLatency.diagnostics;
         this.logger.record("ink-latency", "recording_toggled", { enabled: this.inkLatency.diagnostics });
-        new Notice(`Ink latency recording ${this.inkLatency.diagnostics ? "ON" : "OFF"} for new strokes. Use Export debug report after testing.`);
+        notify(`Ink latency recording ${this.inkLatency.diagnostics ? "ON" : "OFF"} for new strokes. Use Export debug report after testing.`);
       },
     });
 
@@ -189,11 +200,35 @@ export default class CanvasScribePlugin extends Plugin {
     if (layer) callback(layer);
   }
 
-  private async exportDebugReport(): Promise<void> {
+  private addDebugCommand(command: { id: string; name: string; callback: (notify: (message: string, timeout?: number) => void) => void | Promise<void> }): void {
+    const execute = (notify: (message: string, timeout?: number) => void) => {
+      const result = command.callback(notify);
+      for (const leaf of this.app.workspace.getLeavesOfType(DEBUG_CONSOLE_VIEW_TYPE)) {
+        if (leaf.view instanceof DebugConsoleView) leaf.view.refresh();
+      }
+      return result;
+    };
+    this.debugActions.set(command.id, () => execute(() => {}));
+    this.addCommand({ ...command, callback: () => execute((message, timeout) => { new Notice(message, timeout); }) });
+  }
+
+  private async openDebugConsole(side?: "left" | "right"): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(DEBUG_CONSOLE_VIEW_TYPE);
+    const root = side === "left" ? this.app.workspace.leftSplit : this.app.workspace.rightSplit;
+    const found = existing.find(leaf => !side || leaf.getRoot() === root);
+    const leaf = found ?? (side === "left" ? this.app.workspace.getLeftLeaf(false) : this.app.workspace.getRightLeaf(false));
+    if (!leaf) { new Notice("Could not open the debug sidebar."); return; }
+    await leaf.setViewState({ type: DEBUG_CONSOLE_VIEW_TYPE, active: true });
+    for (const previous of existing) if (previous !== leaf) previous.detach();
+    await this.app.workspace.revealLeaf(leaf);
+    if (leaf.view instanceof DebugConsoleView) leaf.view.refresh();
+  }
+
+  private async exportDebugReport(open = true): Promise<void> {
     try {
       const files = await createDebugReport(this.app, this.logger, this.manifest.version);
       new Notice(`Canvas Scribe report saved to ${files.markdown.path}.`);
-      await this.app.workspace.getLeaf(false).openFile(files.markdown);
+      if (open) await this.app.workspace.getLeaf(false).openFile(files.markdown);
     } catch (error) {
       this.logger.recordError("report_export_failed", error);
       console.error("Canvas Scribe could not export its debug report", error);
