@@ -11,14 +11,24 @@ type Position = { x: number; y: number };
 type Sample = Position & { time: number };
 type Project = (x: number, y: number) => Position | null;
 
-/** Session-only experiment. Neither options nor predicted points enter document data. */
+/** Only the normal ON/OFF preference is persisted; predicted points never are. */
 export class InkLatencyExperiment {
-  horizonMs: PredictionHorizon = 0;
+  horizonMs: PredictionHorizon = 16;
+  predictionEnabled = true;
   get prediction(): boolean { return this.horizonMs !== 0; }
   diagnostics = false;
   delegated = false;
   visualDiagnostics = false;
   constructor(private readonly logger?: DebugLogger) {}
+  restorePrediction(enabled: unknown): void {
+    this.predictionEnabled = enabled !== false;
+    this.horizonMs = this.predictionEnabled ? 16 : 0;
+    this.delegated = false;
+  }
+  togglePrediction(): boolean {
+    this.restorePrediction(!this.prediction);
+    return this.predictionEnabled;
+  }
   cyclePrediction(): PredictionHorizon {
     this.delegated = false;
     this.horizonMs = PREDICTION_HORIZONS[(PREDICTION_HORIZONS.indexOf(this.horizonMs) + 1) % PREDICTION_HORIZONS.length]!;

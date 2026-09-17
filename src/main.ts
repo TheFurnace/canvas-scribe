@@ -32,9 +32,10 @@ export default class CanvasScribePlugin extends Plugin {
     registerToolIcons(addIcon);
     const stored = await this.loadData();
     const settings = stored && typeof stored === "object" ? stored : {};
+    this.inkLatency.restorePrediction(settings.inkPredictionEnabled);
     this.tools = new InkToolState(settings.inkTools);
     const persist = () => {
-      const snapshot = { ...settings, favoritePens: this.favorites.list(), inkTools: this.tools.serialize() };
+      const snapshot = { ...settings, favoritePens: this.favorites.list(), inkTools: this.tools.serialize(), inkPredictionEnabled: this.inkLatency.predictionEnabled };
       this.saveQueue = this.saveQueue.then(() => this.saveData(snapshot)).catch((error) => {
         this.logger.recordError("tool_preferences_save_failed", error);
         new Notice("Could not save tool preferences. Please try again.");
@@ -102,11 +103,20 @@ export default class CanvasScribePlugin extends Plugin {
     });
 
     this.addDebugCommand({
-      id: "toggle-ink-prediction", name: "Cycle predicted ink tip: OFF / 16 / 24 / 32 ms (experimental)",
+      id: "toggle-ink-prediction", name: "Toggle ink prediction (recommended: 16 ms)",
+      callback: (notify) => {
+        const enabled = this.inkLatency.togglePrediction();
+        persist();
+        this.logger.record("ink-latency", "prediction_preference_changed", { enabled, horizonMs: this.inkLatency.horizonMs });
+        notify(`Ink prediction ${enabled ? "ON (16 ms)" : "OFF"} for new Canvas and note strokes. Preference saved.`);
+      },
+    });
+    this.addDebugCommand({
+      id: "cycle-debug-ink-prediction", name: "Debug: Cycle prediction horizon OFF / 16 / 24 / 32 ms",
       callback: (notify) => {
         const horizonMs = this.inkLatency.cyclePrediction();
         this.logger.record("ink-latency", "prediction_mode_changed", { enabled: this.inkLatency.prediction, horizonMs });
-        notify(`Predicted ink tip: ${horizonMs ? `${horizonMs} ms` : "OFF"}; delegated ink OFF for new Canvas and note strokes. Resets on restart.`);
+        notify(`Debug prediction: ${horizonMs ? `${horizonMs} ms` : "OFF"}; delegated ink OFF. Restart restores your saved 16 ms/OFF preference.`);
       },
     });
     this.addDebugCommand({

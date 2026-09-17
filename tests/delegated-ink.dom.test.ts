@@ -84,8 +84,8 @@ it("keeps pencil on ordinary rendering without requesting a presenter", async ()
   expect(f.request).not.toHaveBeenCalled(); expect(f.data().status).toBe("unsupported-style");
 });
 
-it("makes prediction and delegation mutually exclusive and defaults both off", () => {
-  const experiment = new InkLatencyExperiment(); expect(experiment.delegated).toBe(false); expect(experiment.prediction).toBe(false);
+it("makes prediction and delegation mutually exclusive with prediction disabled", () => {
+  const experiment = new InkLatencyExperiment(); experiment.restorePrediction(false); expect(experiment.delegated).toBe(false); expect(experiment.prediction).toBe(false);
   experiment.cyclePrediction(); expect(experiment.prediction).toBe(true);
   expect(experiment.toggleDelegated()).toBe(true); expect(experiment.prediction).toBe(false);
   experiment.cyclePrediction(); expect(experiment.delegated).toBe(false); expect(experiment.horizonMs).toBe(16);

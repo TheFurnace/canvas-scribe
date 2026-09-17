@@ -19,7 +19,8 @@ function setup(prediction = true, horizon: PredictionHorizon = 16) {
 }
 
 it("allocates no session when the experiment is off", () => {
-  expect(new InkLatencyExperiment().begin({} as Document, "canvas", {} as InkStroke, vi.fn())).toBeNull();
+  const experiment = new InkLatencyExperiment(); experiment.restorePrediction(false);
+  expect(experiment.begin({} as Document, "canvas", {} as InkStroke, vi.fn())).toBeNull();
 });
 
 it("predicts only in a temporary array and preserves pressure, tilt and original samples", () => {
@@ -104,6 +105,7 @@ it("ends pending prediction on cancellation and cannot schedule later redraws", 
 
 it("cycles OFF / 16 / 24 / 32 / OFF and snapshots each gesture's mode", () => {
   const logger = new DebugLogger(), experiment = new InkLatencyExperiment(logger);
+  experiment.restorePrediction(false);
   experiment.diagnostics = true;
   expect(experiment.horizonMs).toBe(0);
   expect(experiment.prediction).toBe(false);
@@ -115,7 +117,21 @@ it("cycles OFF / 16 / 24 / 32 / OFF and snapshots each gesture's mode", () => {
   expect(experiment.cyclePrediction()).toBe(0);
   // This already-started session keeps its 16 ms setting even after mode changes.
   session.end("up"); expect(logger.snapshot().entries[0]!.data!.horizonMs).toBe(16);
-  expect(new InkLatencyExperiment().horizonMs).toBe(0);
+  expect(new InkLatencyExperiment().horizonMs).toBe(16);
+});
+
+it("restores only the saved normal preference and leaves debug overrides transient", () => {
+  const experiment = new InkLatencyExperiment();
+  expect(experiment.horizonMs).toBe(16);
+  experiment.cyclePrediction(); expect(experiment.horizonMs).toBe(24);
+  expect(experiment.predictionEnabled).toBe(true);
+  experiment.restorePrediction(experiment.predictionEnabled); expect(experiment.horizonMs).toBe(16);
+  expect(experiment.togglePrediction()).toBe(false);
+  experiment.cyclePrediction(); expect(experiment.predictionEnabled).toBe(false);
+  experiment.restorePrediction(experiment.predictionEnabled); expect(experiment.horizonMs).toBe(0);
+  expect(experiment.togglePrediction()).toBe(true); expect(experiment.horizonMs).toBe(16);
+  experiment.toggleDelegated(); experiment.togglePrediction();
+  expect(experiment.delegated).toBe(false); expect(experiment.horizonMs).toBe(16);
 });
 
 it.each([16, 24, 32] as const)("uses %i ms with fallback and reports uncapped endpoint horizon/distance", horizon => {

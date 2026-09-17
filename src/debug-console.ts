@@ -21,10 +21,10 @@ export class DebugConsole {
     const title = document.createElement("h3"); title.textContent = "Scribe debug"; this.root.append(title);
     this.summary = document.createElement("p"); this.root.append(this.summary);
     const hint = document.createElement("p"); hint.className = "canvas-scribe-debug-hint";
-    hint.textContent = "Experiments apply to new Canvas and note strokes. Switches reset OFF on restart. Prediction and delegated ink are mutually exclusive.";
+    hint.textContent = "16 ms prediction is recommended. ON/OFF is saved. Debug horizons and diagnostics reset on restart. Changes apply to new Canvas and note strokes.";
     this.root.append(hint);
     const controls = document.createElement("div"); controls.className = "canvas-scribe-debug-controls"; this.root.append(controls);
-    for (const id of ["toggle-ink-prediction", "toggle-delegated-ink", "toggle-ink-latency-colors", "toggle-ink-latency-diagnostics", "toggle-input-diagnostics", "export-debug-report", "clear-debug-history"]) {
+    for (const id of ["toggle-ink-prediction", "cycle-debug-ink-prediction", "toggle-delegated-ink", "toggle-ink-latency-colors", "toggle-ink-latency-diagnostics", "toggle-input-diagnostics", "export-debug-report", "clear-debug-history"]) {
       const button = document.createElement("button"); button.type = "button"; button.dataset.debugAction = id;
       button.addEventListener("click", async () => { button.disabled = true; try { await run(id); } finally { button.disabled = false; this.refresh(); } });
       controls.append(button); this.buttons.set(id, button);
@@ -46,7 +46,8 @@ export class DebugConsole {
     const s = this.state();
     this.summary.textContent = `Canvas Scribe ${s.version}`;
     const labels: Record<string, [string, boolean?]> = {
-      "toggle-ink-prediction": [`Prediction: ${s.prediction ? `${s.prediction} ms` : "OFF"} · Tap to cycle`],
+      "toggle-ink-prediction": [s.prediction ? `Prediction: ${s.prediction} ms · Tap to turn OFF` : "Prediction: OFF · Tap for 16 ms", s.prediction !== 0],
+      "cycle-debug-ink-prediction": [`Debug horizon: ${s.prediction ? `${s.prediction} ms` : "OFF"} · Cycle`],
       "toggle-delegated-ink": ["Delegated ink", s.delegated],
       "toggle-ink-latency-colors": ["Bright diagnostic colors", s.colors],
       "toggle-ink-latency-diagnostics": ["Latency recording", s.recording],
@@ -56,7 +57,7 @@ export class DebugConsole {
     };
     for (const [id, [label, pressed]] of Object.entries(labels)) {
       const button = this.buttons.get(id)!;
-      button.textContent = pressed === undefined ? label : `${label}: ${pressed ? "ON" : "OFF"}`;
+      button.textContent = pressed === undefined || id === "toggle-ink-prediction" ? label : `${label}: ${pressed ? "ON" : "OFF"}`;
       if (pressed !== undefined) button.setAttribute("aria-pressed", String(pressed));
     }
     const log = this.snapshot();
